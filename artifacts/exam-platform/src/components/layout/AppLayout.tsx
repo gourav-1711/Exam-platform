@@ -8,7 +8,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 type NavGroup = {
   label?: string;
@@ -148,6 +148,7 @@ function MobileTopNav() {
           </button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0 flex flex-col">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <div className="p-5 border-b flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-sm">
               MK
