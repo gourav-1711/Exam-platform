@@ -1,14 +1,14 @@
 import React from "react";
 import { Link, useParams } from "wouter";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useGetCurrentAffair } from "@workspace/api-client-react";
+import { useGetCurrentAffair, getGetCurrentAffairQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Share2, Tag, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function CurrentAffairDetail() {
   const { id } = useParams();
-  const { data: article, isLoading, isError } = useGetCurrentAffair(Number(id), { query: { enabled: !!id } });
+  const { data: article, isLoading, isError } = useGetCurrentAffair(Number(id), { query: { enabled: !!id, queryKey: getGetCurrentAffairQueryKey(Number(id)) } });
 
   if (isLoading) {
     return (

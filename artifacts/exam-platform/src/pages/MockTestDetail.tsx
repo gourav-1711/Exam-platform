@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useParams } from "wouter";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useGetMockTest } from "@workspace/api-client-react";
+import { useGetMockTest, getGetMockTestQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,7 +9,7 @@ import { ArrowLeft, Clock, FileText, Award, AlertCircle, Play } from "lucide-rea
 
 export default function MockTestDetail() {
   const { id } = useParams();
-  const { data: test, isLoading, isError } = useGetMockTest(Number(id), { query: { enabled: !!id } });
+  const { data: test, isLoading, isError } = useGetMockTest(Number(id), { query: { enabled: !!id, queryKey: getGetMockTestQueryKey(Number(id)) } });
 
   if (isLoading) {
     return <div className="p-8"><Skeleton className="h-[400px] max-w-3xl mx-auto rounded-3xl" /></div>;

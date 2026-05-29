@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, Link } from "wouter";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListPyqQuestions } from "@workspace/api-client-react";
+import { useListPyqQuestions, getListPyqQuestionsQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function PyqQuestions() {
   const { subjectId } = useParams();
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useListPyqQuestions({ subjectId: Number(subjectId), page }, { query: { enabled: !!subjectId } });
+  const { data, isLoading } = useListPyqQuestions({ subjectId: Number(subjectId), page }, { query: { enabled: !!subjectId, queryKey: getListPyqQuestionsQueryKey({ subjectId: Number(subjectId), page }) } });
 
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);

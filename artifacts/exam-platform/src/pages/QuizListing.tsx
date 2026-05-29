@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, Play, FileText, CheckCircle2 } from "lucide-react";
-import { QuizStatus } from "@workspace/api-zod";
 
 export default function QuizListing() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history">("ongoing");

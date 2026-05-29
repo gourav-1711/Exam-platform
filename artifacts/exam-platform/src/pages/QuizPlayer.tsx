@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGetQuiz } from "@workspace/api-client-react";
+import { useGetQuiz, getGetQuizQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export default function QuizPlayer() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { data: quiz, isLoading } = useGetQuiz(Number(id), { query: { enabled: !!id } });
+  const { data: quiz, isLoading } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
 
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});

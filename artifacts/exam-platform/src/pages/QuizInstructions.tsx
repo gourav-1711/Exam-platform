@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useGetQuiz } from "@workspace/api-client-react";
+import { useGetQuiz, getGetQuizQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +10,7 @@ import { AlertCircle, Clock, FileText, Settings, ArrowLeft } from "lucide-react"
 export default function QuizInstructions() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
-  const { data: quiz, isLoading, isError } = useGetQuiz(Number(id), { query: { enabled: !!id } });
+  const { data: quiz, isLoading, isError } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
 
   if (isLoading) {
     return (
