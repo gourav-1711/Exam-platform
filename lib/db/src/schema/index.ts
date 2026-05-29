@@ -6,3 +6,4 @@ export * from "./ncert";
 export * from "./papers";
 export * from "./mockTests";
 export * from "./support";
+export * from "./announcements";

@@ -31,6 +31,22 @@ export const GetStatsResponse = zod.object({
 
 
 /**
+ * @summary List active announcements / exam alerts
+ */
+export const ListAnnouncementsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "body": zod.string().nullish(),
+  "type": zod.enum(['info', 'warning', 'success', 'urgent']),
+  "isActive": zod.boolean(),
+  "linkText": zod.string().nullish(),
+  "linkUrl": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListAnnouncementsResponse = zod.array(ListAnnouncementsResponseItem)
+
+
+/**
  * @summary List all quizzes
  */
 export const ListQuizzesQueryParams = zod.object({

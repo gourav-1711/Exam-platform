@@ -60,6 +60,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlatformStats"
 
+  # ─── ANNOUNCEMENTS ────────────────────────────────────────────────────────
+  /announcements:
+    get:
+      operationId: listAnnouncements
+      tags: [stats]
+      summary: List active announcements / exam alerts
+      responses:
+        "200":
+          description: List of active announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Announcement"
+
   # ─── QUIZ ─────────────────────────────────────────────────────────────────
   /quizzes:
     get:
@@ -656,6 +672,28 @@ components:
         isFeatured:
           type: boolean
       required: [id, title, description, durationMins, questionCount, maxMarks, negativeMarking, isFeatured]
+
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [info, warning, success, urgent]
+        isActive:
+          type: boolean
+        linkText:
+          type: ["string", "null"]
+        linkUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, title, type, isActive, createdAt]
 
     SupportMessage:
       type: object

@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './announcement';
+export * from './announcementType';
 export * from './currentAffair';
 export * from './currentAffairsList';
 export * from './healthStatus';

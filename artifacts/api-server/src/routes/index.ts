@@ -8,11 +8,13 @@ import pyqRouter from "./pyq";
 import ncertRouter from "./ncert";
 import papersRouter from "./papers";
 import supportRouter from "./support";
+import announcementsRouter from "./announcements";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(statsRouter);
+router.use(announcementsRouter);
 router.use(quizzesRouter);
 router.use(currentAffairsRouter);
 router.use(studyNotesRouter);

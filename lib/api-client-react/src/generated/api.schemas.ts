@@ -155,6 +155,30 @@ export interface MockTest {
   isFeatured: boolean;
 }
 
+export type AnnouncementType = typeof AnnouncementType[keyof typeof AnnouncementType];
+
+
+export const AnnouncementType = {
+  info: 'info',
+  warning: 'warning',
+  success: 'success',
+  urgent: 'urgent',
+} as const;
+
+export interface Announcement {
+  id: number;
+  title: string;
+  /** @nullable */
+  body?: string | null;
+  type: AnnouncementType;
+  isActive: boolean;
+  /** @nullable */
+  linkText?: string | null;
+  /** @nullable */
+  linkUrl?: string | null;
+  createdAt: string;
+}
+
 export type SupportMessageSender = typeof SupportMessageSender[keyof typeof SupportMessageSender];
 
 
