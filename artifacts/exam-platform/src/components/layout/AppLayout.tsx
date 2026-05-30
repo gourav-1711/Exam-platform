@@ -1,5 +1,8 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home, BookOpen, Newspaper, FileText, MessageCircle,
   GraduationCap, BookMarked, Library, Search, Bell, Menu,
@@ -11,8 +14,28 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { StreakTracker } from "@/components/shared/StreakTracker";
 import { cn } from "@/lib/utils";
-import { Show, useUser, useClerk } from "@clerk/react";
+import { SignedIn, SignedOut, useUser, useClerk } from "@clerk/nextjs";
 import { useListAnnouncements } from "@workspace/api-client-react";
+
+function useClientMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
+}
+
+function ClientSignedIn({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded } = useUser();
+  const mounted = useClientMounted();
+  if (!mounted || !isLoaded || !user) return null;
+  return <>{children}</>;
+}
+
+function ClientSignedOut({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded } = useUser();
+  const mounted = useClientMounted();
+  if (!mounted || !isLoaded || user) return null;
+  return <>{children}</>;
+}
 
 type NavGroup = {
   label?: string;
@@ -66,7 +89,6 @@ const BOTTOM_NAV = [
   { href: "/pyq",         icon: RotateCcw,   label: "PYQS" },
 ];
 
-// ─── Announcement type icon map ────────────────────────────────────────────────
 const NOTIF_ICON: Record<string, React.ElementType> = {
   urgent:  Megaphone,
   warning: AlertTriangle,
@@ -80,11 +102,10 @@ const NOTIF_COLOR: Record<string, string> = {
   info:    "text-blue-600 bg-blue-100",
 };
 
-// ─── SearchBar ─────────────────────────────────────────────────────────────────
 function SearchBar({ className, onNavigate }: { className?: string; onNavigate?: () => void }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
-  const [, navigate] = useLocation();
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -106,7 +127,7 @@ function SearchBar({ className, onNavigate }: { className?: string; onNavigate?:
   }, []);
 
   const handleSelect = (href: string) => {
-    navigate(href);
+    router.push(href);
     setQuery("");
     setFocused(false);
     onNavigate?.();
@@ -146,7 +167,7 @@ function SearchBar({ className, onNavigate }: { className?: string; onNavigate?:
             );
           }) : (
             <div className="px-4 py-3 text-xs text-muted-foreground text-center">
-              No results for "<span className="font-semibold text-foreground">{query}</span>"
+              No results for &quot;<span className="font-semibold text-foreground">{query}</span>&quot;
             </div>
           )}
         </div>
@@ -155,11 +176,11 @@ function SearchBar({ className, onNavigate }: { className?: string; onNavigate?:
   );
 }
 
-// ─── Notifications panel ───────────────────────────────────────────────────────
 function NotificationsPanel() {
   const [open, setOpen] = useState(false);
-  const { data: announcements } = useListAnnouncements();
-  const count = announcements?.length ?? 0;
+  const mounted = useClientMounted();
+  const { data: announcements } = useListAnnouncements({ query: { enabled: mounted } });
+  const count = mounted ? (announcements?.length ?? 0) : 0;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -232,44 +253,42 @@ function NotificationsPanel() {
   );
 }
 
-// ─── Auth Avatar / Sign-in button ──────────────────────────────────────────────
 function AuthButton({ compact = false }: { compact?: boolean }) {
   const { user, isLoaded } = useUser();
-  const [, navigate] = useLocation();
+  const router = useRouter();
+  const mounted = useClientMounted();
 
-  if (!isLoaded) return <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse" />;
+  if (!mounted || !isLoaded) return <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse" />;
+
+  if (user) {
+    return (
+      <button onClick={() => router.push("/profile")} className="shrink-0">
+        <Avatar className="w-7 h-7 border border-primary/20 hover:ring-2 hover:ring-primary/30 transition-all">
+          <AvatarImage src={user.imageUrl} />
+          <AvatarFallback className="bg-primary text-white font-bold text-xs">
+            {(user.firstName?.[0] ?? user.primaryEmailAddress?.emailAddress?.[0] ?? "U").toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      </button>
+    );
+  }
 
   return (
-    <>
-      <Show when="signed-in">
-        <button onClick={() => navigate("/profile")} className="shrink-0">
-          <Avatar className="w-7 h-7 border border-primary/20 hover:ring-2 hover:ring-primary/30 transition-all">
-            <AvatarImage src={user?.imageUrl} />
-            <AvatarFallback className="bg-primary text-white font-bold text-xs">
-              {(user?.firstName?.[0] ?? user?.primaryEmailAddress?.emailAddress?.[0] ?? "U").toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </button>
-      </Show>
-      <Show when="signed-out">
-        <button
-          onClick={() => navigate("/sign-in")}
-          className={cn(
-            "flex items-center gap-1.5 rounded-xl font-semibold transition-colors",
-            compact
-              ? "text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1.5"
-              : "text-xs text-white bg-primary hover:bg-primary/90 px-3 py-1.5"
-          )}
-        >
-          <LogIn className="w-3.5 h-3.5" />
-          Sign In
-        </button>
-      </Show>
-    </>
+    <button
+      onClick={() => router.push("/sign-in")}
+      className={cn(
+        "flex items-center gap-1.5 rounded-xl font-semibold transition-colors",
+        compact
+          ? "text-xs text-primary bg-primary/10 hover:bg-primary/20 px-2.5 py-1.5"
+          : "text-xs text-white bg-primary hover:bg-primary/90 px-3 py-1.5"
+      )}
+    >
+      <LogIn className="w-3.5 h-3.5" />
+      Sign In
+    </button>
   );
 }
 
-// ─── AppLayout ─────────────────────────────────────────────────────────────────
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background md:flex-row">
@@ -281,19 +300,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
         <MobileBottomNav />
       </div>
-      {/* Daily streak auto-tracker — invisible, fires once per day */}
-      <Show when="signed-in">
+      <ClientSignedIn>
         <StreakTracker />
-      </Show>
+      </ClientSignedIn>
     </div>
   );
 }
 
-// ─── Desktop Sidebar ───────────────────────────────────────────────────────────
 function DesktopSidebar() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
-  const [, navigate] = useLocation();
+  const router = useRouter();
 
   return (
     <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 border-r border-border bg-card z-50 overflow-y-auto">
@@ -331,8 +348,8 @@ function DesktopSidebar() {
       </nav>
 
       <div className="p-4 border-t border-border shrink-0">
-        <Show when="signed-in">
-          <button onClick={() => navigate("/profile")} className="w-full flex items-center gap-3 hover:bg-muted rounded-xl p-1 transition-colors">
+        <ClientSignedIn>
+          <button onClick={() => router.push("/profile")} className="w-full flex items-center gap-3 hover:bg-muted rounded-xl p-1 transition-colors">
             <Avatar className="w-9 h-9 border-2 border-primary/20">
               <AvatarImage src={user?.imageUrl} />
               <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
@@ -344,30 +361,28 @@ function DesktopSidebar() {
               <p className="text-xs text-muted-foreground truncate">View Profile →</p>
             </div>
           </button>
-        </Show>
-        <Show when="signed-out">
+        </ClientSignedIn>
+        <ClientSignedOut>
           <button
-            onClick={() => navigate("/sign-in")}
+            onClick={() => router.push("/sign-in")}
             className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-xl py-2.5 text-sm font-bold hover:bg-primary/90 transition-colors"
           >
             <LogIn className="w-4 h-4" />
             Sign In / Sign Up
           </button>
-        </Show>
+        </ClientSignedOut>
       </div>
     </aside>
   );
 }
 
-// ─── Mobile Top Nav ────────────────────────────────────────────────────────────
 function MobileTopNav() {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
+  const router = useRouter();
 
   return (
     <header className="md:hidden sticky top-0 z-40 bg-white border-b border-border/60 px-3 h-14 flex items-center gap-2.5 shadow-sm">
-
-      {/* Hamburger → sidebar sheet */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0" aria-label="Open navigation menu">
@@ -402,7 +417,7 @@ function MobileTopNav() {
             ))}
           </nav>
           <div className="p-4 border-t">
-            <Show when="signed-in">
+            <ClientSignedIn>
               <Link href="/profile" onClick={() => setOpen(false)}>
                 <div className="flex items-center gap-3 hover:bg-muted rounded-xl p-1 transition-colors cursor-pointer">
                   <Avatar className="w-9 h-9">
@@ -415,19 +430,18 @@ function MobileTopNav() {
                   </div>
                 </div>
               </Link>
-            </Show>
-            <Show when="signed-out">
+            </ClientSignedIn>
+            <ClientSignedOut>
               <Link href="/sign-in" onClick={() => setOpen(false)}>
                 <div className="flex items-center justify-center gap-2 bg-primary text-white rounded-xl py-2.5 text-sm font-bold hover:bg-primary/90 transition-colors cursor-pointer">
                   <LogIn className="w-4 h-4" /> Sign In / Sign Up
                 </div>
               </Link>
-            </Show>
+            </ClientSignedOut>
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Logo */}
       <Link href="/" className="flex items-center gap-1.5 shrink-0 min-w-0">
         <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow">MK</div>
         <div className="leading-none min-w-0">
@@ -436,12 +450,10 @@ function MobileTopNav() {
         </div>
       </Link>
 
-      {/* Search */}
       <div className="flex-1 min-w-0">
         <SearchBar />
       </div>
 
-      {/* Notifications + Auth */}
       <div className="flex items-center gap-1.5 shrink-0">
         <NotificationsPanel />
         <AuthButton compact />
@@ -450,13 +462,12 @@ function MobileTopNav() {
   );
 }
 
-// ─── Mobile Bottom Nav ─────────────────────────────────────────────────────────
 function MobileBottomNav() {
-  const [location] = useLocation();
+  const pathname = usePathname() ?? "";
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-border/60 flex items-center h-16 z-50 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
       {BOTTOM_NAV.slice(0, 2).map((item) => (
-        <MobileNavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+        <MobileNavItem key={item.href} {...item} isActive={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))} />
       ))}
       <Link href="/current-affairs" className="flex-1 flex items-center justify-center">
         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-violet-700 flex items-center justify-center shadow-lg shadow-primary/40 -mt-4">
@@ -464,18 +475,17 @@ function MobileBottomNav() {
         </div>
       </Link>
       {BOTTOM_NAV.slice(2).map((item) => (
-        <MobileNavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+        <MobileNavItem key={item.href} {...item} isActive={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))} />
       ))}
     </nav>
   );
 }
 
-// ─── Nav item components ───────────────────────────────────────────────────────
 function SidebarNavItem({
   href, icon: Icon, label, onClick, protected: isProtected,
 }: { href: string; icon: React.ElementType; label: string; onClick?: () => void; protected?: boolean }) {
-  const [location] = useLocation();
-  const isActive = location === href || (href !== "/" && location.startsWith(href));
+  const pathname = usePathname() ?? "";
+  const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
 
   return (
     <Link href={href} onClick={onClick}>

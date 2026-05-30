@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { useUser } from "@clerk/react";
+import { useUser } from "@clerk/nextjs";
 import { useRecordActivity } from "@workspace/api-client-react";
 import { Flame, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,7 +13,6 @@ function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-// ─── Streak Toast ─────────────────────────────────────────────────────────────
 function StreakToast({
   streak,
   pointsEarned,
@@ -43,9 +44,6 @@ function StreakToast({
   );
 }
 
-// ─── StreakTracker ─────────────────────────────────────────────────────────────
-// Invisible component — renders in AppLayout when signed in.
-// Once per day, auto-records a "quiz" activity to maintain streak.
 export function StreakTracker() {
   const { user, isLoaded } = useUser();
   const { mutateAsync: recordActivity } = useRecordActivity();
@@ -57,7 +55,7 @@ export function StreakTracker() {
 
     const today = todayStr();
     const lastDate = localStorage.getItem(STORAGE_KEY);
-    if (lastDate === today) return; // Already recorded today
+    if (lastDate === today) return;
 
     fired.current = true;
     const displayName = user.fullName || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "Learner";
@@ -70,7 +68,7 @@ export function StreakTracker() {
         }
       })
       .catch(() => {
-        fired.current = false; // Allow retry on error
+        fired.current = false;
       });
   }, [isLoaded, user]);
 

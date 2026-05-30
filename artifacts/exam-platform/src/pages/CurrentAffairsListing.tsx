@@ -1,5 +1,7 @@
+"use client";
+
 import React from "react";
-import { Link } from "wouter";
+import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useListCurrentAffairs } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";

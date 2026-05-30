@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
-import { Link, useLocation } from "wouter";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Shield } from "lucide-react";
 import { PageTransition } from "./PageTransition";
 
@@ -26,15 +29,14 @@ const FOOTER_COMPANY = [
 ];
 
 export function StaticPageLayout({ title, subtitle = "Explore premium educational resources", heading, children }: StaticPageLayoutProps) {
-  const [, navigate] = useLocation();
+  const router = useRouter();
 
   return (
     <PageTransition className="min-h-screen bg-gray-50 flex flex-col">
 
-      {/* ── Page Header ── */}
       <div className="bg-white border-b border-border/60 px-4 py-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => router.push("/")}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -44,25 +46,20 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
         <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
 
-      {/* ── Main Content ── */}
       <div className="flex-1 px-4 pt-6 pb-4 max-w-2xl w-full mx-auto">
-        {/* Section heading with violet underline accent */}
         <div className="mb-5">
           <h1 className="text-2xl font-extrabold text-foreground">{heading}</h1>
           <div className="mt-1.5 w-14 h-[3px] rounded-full bg-primary" />
         </div>
 
-        {/* Content card */}
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-5 space-y-4 text-sm leading-relaxed text-foreground">
           {children}
         </div>
       </div>
 
-      {/* ── Footer ── */}
       <footer className="bg-white border-t border-border/60 px-4 pt-6 pb-24">
         <div className="max-w-2xl mx-auto">
 
-          {/* Brand block */}
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow">MK</div>
@@ -71,7 +68,6 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
             <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">
               A premium learning platform dedicated to providing the best study materials and tools for competitive exam aspirants.
             </p>
-            {/* Social icons */}
             <div className="flex items-center gap-2 mt-3">
               <a href="https://t.me" target="_blank" rel="noopener noreferrer"
                 className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white hover:bg-sky-600 transition-colors shadow-sm" aria-label="Telegram">
@@ -88,7 +84,6 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
             </div>
           </div>
 
-          {/* Link columns */}
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border/50">
             <div>
               <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2">Resources</p>
@@ -122,7 +117,6 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
             </div>
           </div>
 
-          {/* Admin Dashboard button */}
           <div className="mt-5">
             <button className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-xl py-3 text-sm font-bold hover:bg-gray-800 transition-colors shadow-md">
               <Shield className="w-4 h-4" />
@@ -136,7 +130,6 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
   );
 }
 
-// ─── Reusable content sub-components ─────────────────────────────────────────
 export function SectionHeading({ children }: { children: React.ReactNode }) {
   return <h3 className="font-bold text-base text-foreground mt-4 mb-1.5">{children}</h3>;
 }

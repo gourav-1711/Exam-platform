@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGetQuiz, getGetQuizQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -10,8 +12,9 @@ import { Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Share2, Li
 import { cn } from "@/lib/utils";
 
 export default function QuizPlayer() {
-  const { id } = useParams();
-  const [, setLocation] = useLocation();
+  const params = useParams();
+  const id = params.id as string;
+  const router = useRouter();
   const { data: quiz, isLoading } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
 
   const [currentQIndex, setCurrentQIndex] = useState(0);
@@ -22,14 +25,12 @@ export default function QuizPlayer() {
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize timer
   useEffect(() => {
     if (quiz && !isSubmitted && timeLeft === 0) {
       setTimeLeft(quiz.durationMins * 60);
     }
   }, [quiz, isSubmitted]);
 
-  // Handle timer
   useEffect(() => {
     if (timeLeft > 0 && !isSubmitted) {
       timerRef.current = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -81,7 +82,6 @@ export default function QuizPlayer() {
   const isLastQ = currentQIndex === questions.length - 1;
   const isFirstQ = currentQIndex === 0;
 
-  // Calculate score if submitted
   let score = 0;
   let correctCount = 0;
   let wrongCount = 0;
@@ -99,9 +99,7 @@ export default function QuizPlayer() {
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
-      {/* Main Player Area */}
       <div className="flex-1 flex flex-col h-full bg-muted/20">
-        {/* Header */}
         <header className="h-16 px-4 md:px-8 border-b bg-background flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <span className="font-bold text-lg hidden md:inline-block truncate max-w-sm">{quiz.title}</span>
@@ -124,7 +122,7 @@ export default function QuizPlayer() {
             </Button>
             
             {isSubmitted ? (
-              <Button onClick={() => setLocation("/quiz")} variant="default">Exit</Button>
+              <Button onClick={() => router.push("/quiz")} variant="default">Exit</Button>
             ) : (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -135,7 +133,7 @@ export default function QuizPlayer() {
                     <AlertDialogTitle>Submit Quiz?</AlertDialogTitle>
                     <AlertDialogDescription>
                       You have answered {Object.keys(answers).length} out of {questions.length} questions.
-                      Are you sure you want to submit? You won't be able to change your answers.
+                      Are you sure you want to submit? You won&apos;t be able to change your answers.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -148,7 +146,6 @@ export default function QuizPlayer() {
           </div>
         </header>
 
-        {/* Question Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-3xl mx-auto">
             {isSubmitted && (
@@ -235,7 +232,6 @@ export default function QuizPlayer() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation Controls */}
             <div className="flex items-center justify-between mt-6">
               <Button
                 variant="outline"
@@ -248,9 +244,7 @@ export default function QuizPlayer() {
               
               <Button
                 onClick={() => {
-                  if (isLastQ && !isSubmitted) {
-                    // Could open submit dialog here
-                  } else {
+                  if (!isLastQ) {
                     setCurrentQIndex(prev => Math.min(questions.length - 1, prev + 1));
                   }
                 }}
@@ -266,7 +260,6 @@ export default function QuizPlayer() {
         </div>
       </div>
 
-      {/* Sidebar Palette - Desktop */}
       <div className="hidden md:flex w-72 border-l bg-card flex-col">
         <div className="p-4 border-b font-semibold flex items-center justify-between">
           Question Palette
@@ -306,7 +299,6 @@ export default function QuizPlayer() {
             })}
           </div>
           
-          {/* Legend */}
           <div className="mt-8 space-y-2 text-xs">
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-primary/20 border border-primary/30"></div> Answered</div>
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-muted"></div> Unanswered</div>
@@ -319,8 +311,6 @@ export default function QuizPlayer() {
           </div>
         </div>
       </div>
-      
-      {/* Mobile Palette Drawer trigger could go here if needed, but omitted for brevity as mobile user can just swipe next */}
     </div>
   );
 }

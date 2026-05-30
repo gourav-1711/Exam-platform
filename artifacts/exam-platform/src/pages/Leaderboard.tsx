@@ -1,11 +1,22 @@
-import React, { useState } from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { cn } from "@/lib/utils";
 import { Trophy, Star, Zap, BookOpen, RotateCcw, TrendingUp, Flame } from "lucide-react";
-import { Show } from "@clerk/react";
-import { Link } from "wouter";
+import { useUser } from "@clerk/nextjs";
 import { useGetLeaderboard } from "@workspace/api-client-react";
+
 import type { LeaderboardEntry } from "@workspace/api-client-react";
+
+function ClientSignedOut({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded } = useUser();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted || !isLoaded || user) return null;
+  return <>{children}</>;
+}
 
 type Tab = "allTime" | "monthly" | "weekly";
 
@@ -85,7 +96,6 @@ export default function Leaderboard() {
   return (
     <PageTransition className="min-h-screen bg-gray-50 pb-6">
 
-      {/* ── Header ── */}
       <div className="bg-gradient-to-br from-violet-700 to-purple-600 px-4 pt-5 pb-8 text-white">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
@@ -100,7 +110,6 @@ export default function Leaderboard() {
 
       <div className="px-4 -mt-4 space-y-4">
 
-        {/* ── Tabs ── */}
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-1 flex gap-1">
           {TABS.map((tab) => (
             <button
@@ -121,7 +130,6 @@ export default function Leaderboard() {
             <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
         ) : entries.length === 0 ? (
-          /* ── Empty state ── */
           <div className="bg-white rounded-2xl border border-border/50 shadow-sm py-10 px-6 text-center space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
               <Trophy className="w-7 h-7 text-primary/60" />
@@ -131,7 +139,6 @@ export default function Leaderboard() {
           </div>
         ) : (
           <>
-            {/* ── Podium (top 3) ── */}
             {top3.length >= 3 && (
               <div className="bg-white rounded-2xl border border-border/50 shadow-sm py-5 px-2">
                 <div className="flex items-end justify-center gap-2">
@@ -142,7 +149,6 @@ export default function Leaderboard() {
               </div>
             )}
 
-            {/* ── Rankings list ── */}
             {(top3.length < 3 ? entries : rest).length > 0 && (
               <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
@@ -184,8 +190,7 @@ export default function Leaderboard() {
           </>
         )}
 
-        {/* ── Auth CTA ── */}
-        <Show when="signed-out">
+        <SignedOut>
           <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-4 text-center space-y-2">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
               <TrendingUp className="w-5 h-5 text-primary" />
@@ -198,19 +203,18 @@ export default function Leaderboard() {
               </button>
             </Link>
           </div>
-        </Show>
+        </SignedOut>
 
-        {/* ── Scoring guide ── */}
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-4">
           <p className="text-xs font-bold text-foreground mb-3 flex items-center gap-1.5">
             <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" /> How Points Are Earned
           </p>
           <div className="space-y-2">
             {[
-              { icon: Zap,      color: "text-teal-600 bg-teal-100",   label: "Quiz question correct",  pts: "+5 pts" },
-              { icon: BookOpen, color: "text-violet-600 bg-violet-100", label: "Mock test completed",  pts: "+50 pts" },
-              { icon: RotateCcw, color: "text-pink-600 bg-pink-100",  label: "PYQ solved correctly",   pts: "+3 pts" },
-              { icon: Flame,    color: "text-orange-600 bg-orange-100", label: "Daily streak bonus",   pts: "+20 pts" },
+              { icon: Zap,      color: "text-teal-600 bg-teal-100",    label: "Quiz question correct",  pts: "+5 pts" },
+              { icon: BookOpen, color: "text-violet-600 bg-violet-100", label: "Mock test completed",    pts: "+50 pts" },
+              { icon: RotateCcw, color: "text-pink-600 bg-pink-100",   label: "PYQ solved correctly",   pts: "+3 pts" },
+              { icon: Flame,    color: "text-orange-600 bg-orange-100", label: "Daily streak bonus",     pts: "+20 pts" },
             ].map(({ icon: Icon, color, label, pts }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", color.split(" ")[1])}>

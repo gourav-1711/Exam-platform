@@ -1,6 +1,7 @@
+"use client";
+
 import { useState } from "react";
-import { useUser, useClerk, Show } from "@clerk/react";
-import { Redirect } from "wouter";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,12 +32,7 @@ function StatCard({ icon: Icon, label, value, color }: {
 
 // ─── Profile Page ─────────────────────────────────────────────────────────────
 export default function Profile() {
-  return (
-    <>
-      <Show when="signed-out"><Redirect to="/sign-in" /></Show>
-      <Show when="signed-in"><ProfileContent /></Show>
-    </>
-  );
+  return <ProfileContent />;
 }
 
 function ProfileContent() {

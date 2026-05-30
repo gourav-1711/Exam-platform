@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { Link } from "wouter";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import {
   Zap, Newspaper, BookOpen, FlaskConical, RotateCcw, FileText,
@@ -55,15 +57,18 @@ const TYPE_CONFIG = {
 
 // ─── AnnouncementBanner (must be above Home) ──────────────────────────────────
 function AnnouncementBanner() {
-  const { data: announcements } = useListAnnouncements();
-  const [dismissed, setDismissed] = useState<Set<number>>(() => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const { data: announcements } = useListAnnouncements({ query: { enabled: mounted } });
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (!mounted) return;
     try {
       const stored = localStorage.getItem("dismissed_announcements");
-      return stored ? new Set(JSON.parse(stored)) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
+      if (stored) setDismissed(new Set(JSON.parse(stored)));
+    } catch {}
+  }, [mounted]);
 
   const dismiss = (id: number) => {
     const next = new Set(dismissed).add(id);
@@ -71,6 +76,7 @@ function AnnouncementBanner() {
     try { localStorage.setItem("dismissed_announcements", JSON.stringify([...next])); } catch {}
   };
 
+  if (!mounted) return null;
   const visible = announcements?.filter((a) => !dismissed.has(a.id)) ?? [];
   if (visible.length === 0) return null;
 

@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
-import { Link, useParams, useLocation } from "wouter";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useGetQuiz, getGetQuizQueryKey } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,8 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock, FileText, Settings, ArrowLeft } from "lucide-react";
 
 export default function QuizInstructions() {
-  const { id } = useParams();
-  const [, setLocation] = useLocation();
+  const params = useParams();
+  const id = params.id as string;
+  const router = useRouter();
   const { data: quiz, isLoading, isError } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
 
   if (isLoading) {
@@ -27,8 +31,8 @@ export default function QuizInstructions() {
         <div className="py-12">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-2xl font-bold">Quiz Not Found</h2>
-          <p className="text-muted-foreground mt-2 mb-6">The quiz you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => setLocation("/quiz")}>Back to Quizzes</Button>
+          <p className="text-muted-foreground mt-2 mb-6">The quiz you&apos;re looking for doesn&apos;t exist or has been removed.</p>
+          <Button onClick={() => router.push("/quiz")}>Back to Quizzes</Button>
         </div>
       </PageTransition>
     );
@@ -90,7 +94,7 @@ export default function QuizInstructions() {
   );
 }
 
-function StatBox({ icon: Icon, label, value }: { icon: any, label: string, value: string }) {
+function StatBox({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string }) {
   return (
     <div className="bg-muted/50 p-4 rounded-xl border border-border/50 flex flex-col items-center justify-center text-center gap-2">
       <Icon className="w-5 h-5 text-primary" />
