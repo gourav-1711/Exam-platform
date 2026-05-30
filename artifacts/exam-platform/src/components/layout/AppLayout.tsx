@@ -5,7 +5,7 @@ import {
   GraduationCap, BookMarked, Library, Search, Bell, Menu,
   Info, Phone, Shield, ScrollText, FlaskConical, RotateCcw,
   StickyNote, X, Zap, Cpu, Bot, LogIn, User,
-  AlertTriangle, CheckCircle2, Megaphone
+  AlertTriangle, CheckCircle2, Megaphone, Trophy
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -39,9 +39,10 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Support",
+    label: "Community",
     items: [
-      { href: "/support", icon: Bot, label: "AI Support", keywords: "ai chat support help" },
+      { href: "/leaderboard", icon: Trophy, label: "Leaderboard", keywords: "leaderboard ranking top students scores" },
+      { href: "/support",     icon: Bot,    label: "AI Support",  keywords: "ai chat support help" },
     ],
   },
   {

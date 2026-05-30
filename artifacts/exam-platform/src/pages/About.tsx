@@ -1,62 +1,51 @@
 import React from "react";
-import { PageTransition } from "@/components/shared/PageTransition";
-import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "wouter";
+import { StaticPageLayout, SectionHeading, SectionText } from "@/components/shared/StaticPageLayout";
 
 export default function About() {
   return (
-    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
-      <div className="text-center space-y-4 py-8">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground">About Manish Ki Pathshala</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Empowering Indian students with premium, accessible education for competitive exams.
+    <StaticPageLayout title="About Us" heading="About Us">
+
+      {/* Welcome intro */}
+      <p className="text-sm leading-relaxed text-[#374151]">
+        Welcome to{" "}
+        <span className="text-primary font-bold">Manish Ki Pathshala</span>
+        , your premier destination for high-quality educational resources and exam preparation in Rajasthan and across India.
+      </p>
+
+      {/* Mission blockquote */}
+      <div className="border-l-4 border-primary bg-primary/5 rounded-r-xl px-4 py-3 my-2">
+        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Our Mission</p>
+        <p className="text-sm italic text-foreground leading-relaxed">
+          "Empowering the next generation of civil servants and professionals through accessible, affordable, and expert-led education."
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-border/50 bg-card rounded-3xl overflow-hidden shadow-sm">
-          <CardContent className="p-8 space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl mb-6">M</div>
-            <h3 className="text-2xl font-bold">Our Mission</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              We believe that quality education shouldn't be a luxury. Our mission is to democratize exam preparation by providing top-tier study materials, interactive quizzes, and AI-powered support to every student, regardless of their location.
-            </p>
-          </CardContent>
-        </Card>
+      {/* Who We Are */}
+      <SectionHeading>Who We Are</SectionHeading>
+      <SectionText>
+        Founded by Manish, an educator passionate about transforming the way students prepare
+        for competitive exams, Manish Ki Pathshala started as a small initiative to provide quality
+        guidance for RAS and RPSC exams. Today, we have grown into a comprehensive learning
+        platform serving thousands of aspirants.
+      </SectionText>
 
-        <Card className="border-border/50 bg-card rounded-3xl overflow-hidden shadow-sm">
-          <CardContent className="p-8 space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 font-bold text-xl mb-6">W</div>
-            <h3 className="text-2xl font-bold">Who We Are</h3>
-            <p className="text-muted-foreground leading-relaxed">
-              We are a team of passionate educators, technologists, and former exam toppers dedicated to building the tools we wish we had during our own preparation journeys.
-            </p>
-          </CardContent>
-        </Card>
+      {/* What We Offer */}
+      <SectionHeading>What We Offer</SectionHeading>
+      <div className="grid grid-cols-2 gap-2.5 mt-1">
+        {[
+          { n: 1, label: "Daily Current Affairs" },
+          { n: 2, label: "Exam-Specific Study Notes" },
+          { n: 3, label: "Previous Year Questions (PYQs)" },
+          { n: 4, label: "Interactive Quizzes & Mock Tests" },
+        ].map(({ n, label }) => (
+          <div key={n} className="flex items-center gap-2.5 bg-gray-50 border border-border/50 rounded-xl px-3 py-2.5">
+            <span className="w-6 h-6 rounded-lg bg-primary text-white text-xs font-extrabold flex items-center justify-center shrink-0">{n}</span>
+            <span className="text-xs font-semibold text-foreground leading-snug">{label}</span>
+          </div>
+        ))}
       </div>
 
-      <Card className="border-border/50 bg-gradient-to-br from-card to-muted rounded-3xl overflow-hidden shadow-sm mt-8">
-        <CardContent className="p-8 text-center space-y-4">
-          <h2 className="text-2xl font-bold">What We Offer</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 text-left">
-            <div className="p-4 bg-background rounded-2xl border shadow-sm">
-              <h4 className="font-bold text-primary mb-2">Daily Quizzes</h4>
-              <p className="text-sm text-muted-foreground">Keep your mind sharp with curated daily questions.</p>
-            </div>
-            <div className="p-4 bg-background rounded-2xl border shadow-sm">
-              <h4 className="font-bold text-blue-600 mb-2">Current Affairs</h4>
-              <p className="text-sm text-muted-foreground">Stay updated with exam-relevant news daily.</p>
-            </div>
-            <div className="p-4 bg-background rounded-2xl border shadow-sm">
-              <h4 className="font-bold text-orange-600 mb-2">PYQ Papers</h4>
-              <p className="text-sm text-muted-foreground">Master patterns with previous year questions.</p>
-            </div>
-            <div className="p-4 bg-background rounded-2xl border shadow-sm">
-              <h4 className="font-bold text-emerald-600 mb-2">AI Support</h4>
-              <p className="text-sm text-muted-foreground">Instant doubt resolution and concept clarity.</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </PageTransition>
+    </StaticPageLayout>
   );
 }

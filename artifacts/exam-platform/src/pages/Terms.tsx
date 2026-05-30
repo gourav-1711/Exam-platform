@@ -1,57 +1,54 @@
 import React from "react";
-import { PageTransition } from "@/components/shared/PageTransition";
-import { Card, CardContent } from "@/components/ui/card";
+import { StaticPageLayout, SectionHeading, SectionText, BulletList } from "@/components/shared/StaticPageLayout";
 
 export default function Terms() {
   return (
-    <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-      <div className="space-y-2 pb-6 border-b">
-        <h1 className="text-3xl font-bold tracking-tight">Terms & Conditions</h1>
-        <p className="text-muted-foreground">Last updated: May 2024</p>
-      </div>
+    <StaticPageLayout title="Terms & Conditions" heading="Terms & Conditions">
 
-      <Card className="border-none shadow-none bg-transparent">
-        <CardContent className="p-0 prose prose-slate max-w-none text-muted-foreground prose-headings:text-foreground">
-          <p>
-            Welcome to Manish Ki Pathshala!
-          </p>
-          <p>
-            These terms and conditions outline the rules and regulations for the use of Manish Ki Pathshala's platform.
-          </p>
+      <p className="text-xs text-muted-foreground font-semibold">
+        Last Updated : April, 2026
+      </p>
 
-          <h3>1. Acceptance of Terms</h3>
-          <p>
-            By accessing this platform we assume you accept these terms and conditions. Do not continue to use Manish Ki Pathshala if you do not agree to take all of the terms and conditions stated on this page.
-          </p>
+      <SectionText>
+        Welcome to Manish Ki Pathshala! By accessing or using our platform, you agree to be bound by the following terms and conditions. Please read them carefully.
+      </SectionText>
 
-          <h3>2. License</h3>
-          <p>
-            Unless otherwise stated, Manish Ki Pathshala and/or its licensors own the intellectual property rights for all material on the platform. All intellectual property rights are reserved. You may access this from Manish Ki Pathshala for your own personal use subjected to restrictions set in these terms and conditions.
-          </p>
-          <p>You must not:</p>
-          <ul>
-            <li>Republish material from Manish Ki Pathshala</li>
-            <li>Sell, rent or sub-license material from Manish Ki Pathshala</li>
-            <li>Reproduce, duplicate or copy material from Manish Ki Pathshala</li>
-            <li>Redistribute content from Manish Ki Pathshala</li>
-          </ul>
+      <SectionHeading>1. Acceptance of Terms</SectionHeading>
+      <SectionText>
+        By accessing this platform you accept these terms and conditions in full. Do not continue to use Manish Ki Pathshala if you do not agree to all the terms stated on this page.
+      </SectionText>
 
-          <h3>3. User Accounts</h3>
-          <p>
-            If you create an account on the platform, you are responsible for maintaining the security of your account and you are fully responsible for all activities that occur under the account and any other actions taken in connection with it.
-          </p>
+      <SectionHeading>2. License to Use</SectionHeading>
+      <SectionText>
+        Unless otherwise stated, Manish Ki Pathshala owns the intellectual property rights for all material on this platform. All rights are reserved. You may access content for your own personal, non-commercial use. You must not:
+      </SectionText>
+      <BulletList items={[
+        "Republish, sell, rent, or sub-license material from this platform.",
+        "Reproduce, duplicate, or copy material for commercial purposes.",
+        "Redistribute content without written permission.",
+        "Use the platform to spam or harass others.",
+      ]} />
 
-          <h3>4. Content Liability</h3>
-          <p>
-            We shall not be hold responsible for any content that appears on your Website/App. You agree to protect and defend us against all claims that is rising on your Website/App.
-          </p>
+      <SectionHeading>3. User Accounts</SectionHeading>
+      <SectionText>
+        You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. Notify us immediately of any unauthorized use.
+      </SectionText>
 
-          <h3>5. Disclaimer</h3>
-          <p>
-            The materials on Manish Ki Pathshala's platform are provided on an 'as is' basis. Manish Ki Pathshala makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
-          </p>
-        </CardContent>
-      </Card>
-    </PageTransition>
+      <SectionHeading>4. Content Accuracy</SectionHeading>
+      <SectionText>
+        While we strive to provide accurate and up-to-date educational content, Manish Ki Pathshala makes no warranties regarding the completeness or accuracy of any material. Content is provided for educational purposes only.
+      </SectionText>
+
+      <SectionHeading>5. Limitation of Liability</SectionHeading>
+      <SectionText>
+        Manish Ki Pathshala shall not be held liable for any indirect, incidental, or consequential damages arising from your use of the platform or inability to access it.
+      </SectionText>
+
+      <SectionHeading>6. Changes to Terms</SectionHeading>
+      <SectionText>
+        We reserve the right to modify these terms at any time. Continued use of the platform after changes constitutes acceptance of the new terms.
+      </SectionText>
+
+    </StaticPageLayout>
   );
 }

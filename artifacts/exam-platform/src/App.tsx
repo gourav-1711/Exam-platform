@@ -31,6 +31,7 @@ import Contact from "@/pages/Contact";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
 import Profile from "@/pages/Profile";
+import Leaderboard from "@/pages/Leaderboard";
 
 // ─── Clerk setup ──────────────────────────────────────────────────────────────
 const clerkPubKey = publishableKeyFromHost(
@@ -201,6 +202,7 @@ function AppRouter() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/profile" component={Profile} />
+        <Route path="/leaderboard" component={Leaderboard} />
 
         <Route component={NotFound} />
       </Switch>

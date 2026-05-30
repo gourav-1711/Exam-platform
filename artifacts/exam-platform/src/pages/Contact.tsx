@@ -1,99 +1,106 @@
-import React from "react";
-import { PageTransition } from "@/components/shared/PageTransition";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
+import { StaticPageLayout, SectionHeading } from "@/components/shared/StaticPageLayout";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, MessageCircle, MapPin } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Mail, MessageCircle, MapPin, CheckCircle2 } from "lucide-react";
 
 export default function Contact() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSent(true);
+    setName(""); setEmail(""); setMessage("");
+    setTimeout(() => setSent(false), 5000);
+  };
+
   return (
-    <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto">
-      <div className="text-center space-y-4 py-8 mb-4">
-        <h1 className="text-4xl font-bold tracking-tight">Contact Us</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Have a question or feedback? We'd love to hear from you.
-        </p>
+    <StaticPageLayout title="Contact Us" heading="Contact Us">
+
+      {/* Contact Info Cards */}
+      <div className="space-y-3">
+        {[
+          {
+            icon: Mail,
+            iconBg: "bg-primary/10",
+            iconColor: "text-primary",
+            title: "Email Support",
+            sub: "Usually replies within 2 hours",
+            value: "support@manishkipathshala.com",
+            href: "mailto:support@manishkipathshala.com",
+            valueColor: "text-primary",
+          },
+          {
+            icon: MessageCircle,
+            iconBg: "bg-green-100",
+            iconColor: "text-green-600",
+            title: "WhatsApp",
+            sub: "Available 9 AM – 6 PM, Mon–Sat",
+            value: "+91 99999 99999",
+            href: "https://wa.me/919999999999",
+            valueColor: "text-green-600",
+          },
+          {
+            icon: MapPin,
+            iconBg: "bg-blue-100",
+            iconColor: "text-blue-600",
+            title: "Location",
+            sub: "Rajasthan, India",
+            value: "Jaipur, Rajasthan — 302001",
+            href: null,
+            valueColor: "text-foreground",
+          },
+        ].map(({ icon: Icon, iconBg, iconColor, title, sub, value, href, valueColor }) => (
+          <div key={title} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-border/50">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconBg}`}>
+              <Icon className={`w-4 h-4 ${iconColor}`} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-sm text-foreground">{title}</p>
+              <p className="text-xs text-muted-foreground">{sub}</p>
+              {href ? (
+                <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
+                  className={`text-xs font-semibold mt-0.5 hover:underline block ${valueColor}`}>{value}</a>
+              ) : (
+                <p className={`text-xs font-semibold mt-0.5 ${valueColor}`}>{value}</p>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="grid md:grid-cols-5 gap-8">
-        <div className="md:col-span-2 space-y-6">
-          <Card className="border-border/50 bg-card rounded-3xl shadow-sm">
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Mail className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Email Support</h3>
-                <p className="text-muted-foreground mb-2">Usually replies within 2 hours</p>
-                <a href="mailto:support@manishkipathshala.com" className="text-primary font-medium hover:underline">
-                  support@manishkipathshala.com
-                </a>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Contact form */}
+      <div className="pt-1">
+        <SectionHeading>Send a Message</SectionHeading>
 
-          <Card className="border-border/50 bg-card rounded-3xl shadow-sm">
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <MessageCircle className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">WhatsApp</h3>
-                <p className="text-muted-foreground mb-2">Available 9 AM - 6 PM</p>
-                <a href="#" className="text-emerald-600 font-medium hover:underline">
-                  +91 98765 43210
-                </a>
-              </div>
-            </CardContent>
-          </Card>
+        {sent && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 rounded-xl px-3 py-2 text-sm font-semibold mb-3">
+            <CheckCircle2 className="w-4 h-4" /> Message sent! We'll get back to you soon.
+          </div>
+        )}
 
-          <Card className="border-border/50 bg-card rounded-3xl shadow-sm">
-            <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                <MapPin className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Office</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  123 Education Hub, Knowledge City<br />
-                  New Delhi, 110001<br />
-                  India
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="md:col-span-3 border-border/50 bg-card rounded-3xl shadow-sm h-full">
-          <CardContent className="p-8">
-            <h3 className="text-2xl font-bold mb-6">Send a Message</h3>
-            <form className="space-y-4" onSubmit={e => e.preventDefault()}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">First Name</label>
-                  <Input placeholder="John" className="rounded-xl h-12 bg-muted/50 border-transparent" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Last Name</label>
-                  <Input placeholder="Doe" className="rounded-xl h-12 bg-muted/50 border-transparent" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email Address</label>
-                <Input type="email" placeholder="john@example.com" className="rounded-xl h-12 bg-muted/50 border-transparent" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Message</label>
-                <Textarea placeholder="How can we help you?" className="min-h-[150px] rounded-xl bg-muted/50 border-transparent resize-none" />
-              </div>
-              <Button type="submit" size="lg" className="w-full rounded-xl h-14 bg-foreground text-background hover:bg-foreground/90 text-lg shadow-xl mt-4">
-                Send Message
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className="h-10 rounded-xl text-sm bg-gray-50 border-gray-200" required />
+            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className="h-10 rounded-xl text-sm bg-gray-50 border-gray-200" required />
+          </div>
+          <Textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder="Write your message here..."
+            className="min-h-[100px] rounded-xl text-sm bg-gray-50 border-gray-200 resize-none"
+            required
+          />
+          <Button type="submit" className="w-full h-10 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm">
+            Send Message
+          </Button>
+        </form>
       </div>
-    </PageTransition>
+
+    </StaticPageLayout>
   );
 }
