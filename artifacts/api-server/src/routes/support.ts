@@ -22,7 +22,7 @@ router.get("/support/messages", async (req, res) => {
 router.post("/support/messages", async (req, res) => {
   try {
     const parse = SendSupportMessageBody.safeParse(req.body);
-    if (!parse.success) return res.status(400).json({ error: "Invalid body" });
+    if (!parse.success) { res.status(400).json({ error: "Invalid body" }); return; }
 
     const [msg] = await db.insert(supportMessagesTable).values({
       message: parse.data.message,

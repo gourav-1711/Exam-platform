@@ -40,7 +40,7 @@ router.get("/mock-tests/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const [test] = await db.select().from(mockTestsTable).where(eq(mockTestsTable.id, id));
-    if (!test) return res.status(404).json({ error: "Not found" });
+    if (!test) { res.status(404).json({ error: "Not found" }); return; }
     res.json(test);
   } catch (err) {
     req.log.error(err);

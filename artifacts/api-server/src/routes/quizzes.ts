@@ -44,7 +44,7 @@ router.get("/quizzes/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const [quiz] = await db.select().from(quizzesTable).where(eq(quizzesTable.id, id));
-    if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+    if (!quiz) { res.status(404).json({ error: "Quiz not found" }); return; }
 
     const questions = await db.select().from(questionsTable).where(
       and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz"))

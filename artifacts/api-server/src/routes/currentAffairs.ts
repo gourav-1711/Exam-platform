@@ -35,7 +35,7 @@ router.get("/current-affairs/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const all = await db.select().from(currentAffairsTable).orderBy(desc(currentAffairsTable.publishedAt));
     const idx = all.findIndex(a => a.id === id);
-    if (idx === -1) return res.status(404).json({ error: "Not found" });
+    if (idx === -1) { res.status(404).json({ error: "Not found" }); return; }
     const article = all[idx];
     res.json({
       id: article.id,

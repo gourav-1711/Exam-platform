@@ -1,0 +1,1 @@
+- [Clerk Auth Setup](clerk-auth-setup.md) — Clerk is provisioned and wired end-to-end; dev keys active, proxy middleware in place.
