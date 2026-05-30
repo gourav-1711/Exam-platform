@@ -199,6 +199,51 @@ export interface SupportMessageInput {
   message: string;
 }
 
+export interface UserStreakData {
+  currentStreak: number;
+  longestStreak: number;
+  totalPoints: number;
+  quizCount: number;
+  mockCount: number;
+  pyqCount: number;
+  /** @nullable */
+  lastActivityDate?: string | null;
+}
+
+export type RecordActivityInputActivityType = typeof RecordActivityInputActivityType[keyof typeof RecordActivityInputActivityType];
+
+
+export const RecordActivityInputActivityType = {
+  quiz: 'quiz',
+  mock: 'mock',
+  pyq: 'pyq',
+} as const;
+
+export interface RecordActivityInput {
+  activityType: RecordActivityInputActivityType;
+  displayName: string;
+}
+
+export interface ActivityResult {
+  currentStreak: number;
+  longestStreak: number;
+  totalPoints: number;
+  pointsEarned: number;
+  streakIncremented: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  displayName: string;
+  totalPoints: number;
+  currentStreak: number;
+  longestStreak: number;
+  quizCount: number;
+  mockCount: number;
+  pyqCount: number;
+}
+
 export type ListQuizzesParams = {
 status?: ListQuizzesStatus;
 };
@@ -243,5 +288,9 @@ medium?: string;
 
 export type ListPypParams = {
 examName?: string;
+};
+
+export type GetLeaderboardParams = {
+limit?: number;
 };
 

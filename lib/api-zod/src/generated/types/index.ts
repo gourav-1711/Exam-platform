@@ -6,11 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityResult';
 export * from './announcement';
 export * from './announcementType';
 export * from './currentAffair';
 export * from './currentAffairsList';
+export * from './getLeaderboardParams';
 export * from './healthStatus';
+export * from './leaderboardEntry';
 export * from './listCurrentAffairsParams';
 export * from './listNcertBooksParams';
 export * from './listNcertMcqQuestionsParams';
@@ -28,6 +31,8 @@ export * from './question';
 export * from './quiz';
 export * from './quizStatus';
 export * from './quizWithQuestions';
+export * from './recordActivityInput';
+export * from './recordActivityInputActivityType';
 export * from './studyNote';
 export * from './studyNotesList';
 export * from './subject';
@@ -35,3 +40,4 @@ export * from './supportMessage';
 export * from './supportMessageInput';
 export * from './supportMessageSender';
 export * from './syllabus';
+export * from './userStreakData';

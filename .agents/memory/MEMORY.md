@@ -1,1 +1,2 @@
 - [Clerk Auth Setup](clerk-auth-setup.md) — Clerk is provisioned and wired end-to-end; dev keys active, proxy middleware in place.
+- [Streak System](streak-system.md) — real-time DB-backed streak + leaderboard; auto-records daily activity via StreakTracker in AppLayout.

@@ -348,3 +348,57 @@ export const SendSupportMessageBody = zod.object({
 })
 
 
+/**
+ * @summary Get current user's streak and points
+ */
+export const GetMyStreakResponse = zod.object({
+  "currentStreak": zod.number(),
+  "longestStreak": zod.number(),
+  "totalPoints": zod.number(),
+  "quizCount": zod.number(),
+  "mockCount": zod.number(),
+  "pyqCount": zod.number(),
+  "lastActivityDate": zod.string().nullish()
+})
+
+
+/**
+ * @summary Record a learning activity (updates streak + awards points)
+ */
+export const RecordActivityBody = zod.object({
+  "activityType": zod.enum(['quiz', 'mock', 'pyq']),
+  "displayName": zod.string()
+})
+
+export const RecordActivityResponse = zod.object({
+  "currentStreak": zod.number(),
+  "longestStreak": zod.number(),
+  "totalPoints": zod.number(),
+  "pointsEarned": zod.number(),
+  "streakIncremented": zod.boolean()
+})
+
+
+/**
+ * @summary Get leaderboard (top students by total points)
+ */
+export const getLeaderboardQueryLimitDefault = 20;
+
+export const GetLeaderboardQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getLeaderboardQueryLimitDefault)
+})
+
+export const GetLeaderboardResponseItem = zod.object({
+  "rank": zod.number(),
+  "userId": zod.string(),
+  "displayName": zod.string(),
+  "totalPoints": zod.number(),
+  "currentStreak": zod.number(),
+  "longestStreak": zod.number(),
+  "quizCount": zod.number(),
+  "mockCount": zod.number(),
+  "pyqCount": zod.number()
+})
+export const GetLeaderboardResponse = zod.array(GetLeaderboardResponseItem)
+
+

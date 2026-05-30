@@ -9,12 +9,14 @@ import ncertRouter from "./ncert";
 import papersRouter from "./papers";
 import supportRouter from "./support";
 import announcementsRouter from "./announcements";
+import streaksRouter from "./streaks";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(statsRouter);
 router.use(announcementsRouter);
+router.use(streaksRouter);
 router.use(quizzesRouter);
 router.use(currentAffairsRouter);
 router.use(studyNotesRouter);

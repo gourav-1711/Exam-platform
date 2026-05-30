@@ -8,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
-  User, Mail, Lock, BookOpen, FlaskConical, RotateCcw,
-  Cpu, LogOut, ChevronRight, CheckCircle2, Trophy, Star,
-  Camera, Pencil, Save, X, Eye, EyeOff
+  User, Lock, BookOpen, FlaskConical, RotateCcw,
+  LogOut, ChevronRight, CheckCircle2, Star,
+  Pencil, Save, X, Eye, EyeOff, Flame, Trophy, Zap
 } from "lucide-react";
+import { useGetMyStreak } from "@workspace/api-client-react";
 
-// ─── Stats card ───────────────────────────────────────────────────────────────
+// ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, color }: {
   icon: React.ElementType; label: string; value: string | number; color: string;
 }) {
@@ -41,6 +42,7 @@ export default function Profile() {
 function ProfileContent() {
   const { user, isLoaded } = useUser();
   const { signOut } = useClerk();
+  const { data: streakData } = useGetMyStreak();
 
   const [editingName, setEditingName] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -70,6 +72,15 @@ function ProfileContent() {
   const email = user.primaryEmailAddress?.emailAddress ?? "";
   const initials = fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   const memberSince = user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "—";
+
+  const currentStreak = streakData?.currentStreak ?? 0;
+  const longestStreak = streakData?.longestStreak ?? 0;
+  const totalPoints   = streakData?.totalPoints ?? 0;
+  const quizCount     = streakData?.quizCount ?? 0;
+  const mockCount     = streakData?.mockCount ?? 0;
+  const pyqCount      = streakData?.pyqCount ?? 0;
+
+  const streakColor = currentStreak >= 30 ? "text-orange-500" : currentStreak >= 7 ? "text-amber-500" : "text-rose-500";
 
   const handleStartEditName = () => {
     setFirstName(user.firstName ?? "");
@@ -124,13 +135,27 @@ function ProfileContent() {
               <AvatarImage src={user.imageUrl} />
               <AvatarFallback className="bg-violet-800 text-white font-bold text-2xl">{initials}</AvatarFallback>
             </Avatar>
+            {/* Streak flame badge on avatar */}
+            {currentStreak > 0 && (
+              <div className="absolute -bottom-1 -right-1 bg-orange-500 border-2 border-white rounded-full w-7 h-7 flex items-center justify-center shadow-md">
+                <Flame className="w-3.5 h-3.5 text-white fill-white" />
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-xl font-extrabold leading-tight">{fullName}</h1>
             <p className="text-sm text-violet-200 mt-0.5">{email}</p>
-            <div className="mt-2 inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
-              <Star className="w-3 h-3 fill-yellow-300 text-yellow-300" />
-              Active Learner · Since {memberSince}
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
+                <Star className="w-3 h-3 fill-yellow-300 text-yellow-300" />
+                Active Learner · Since {memberSince}
+              </div>
+              {currentStreak > 0 && (
+                <div className="inline-flex items-center gap-1 bg-orange-500/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold">
+                  <Flame className="w-3 h-3 fill-white" />
+                  {currentStreak} day streak
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -138,12 +163,43 @@ function ProfileContent() {
 
       <div className="px-4 -mt-8 space-y-4">
 
-        {/* ── Stats ── */}
-        <div className="grid grid-cols-4 gap-2.5">
-          <StatCard icon={FlaskConical}  label="Quizzes Taken"    value={user.publicMetadata?.quizzesTaken as number ?? 0}    color="bg-teal-100 text-teal-600" />
-          <StatCard icon={BookOpen}      label="Notes Read"       value={user.publicMetadata?.notesRead as number ?? 0}        color="bg-orange-100 text-orange-600" />
-          <StatCard icon={FlaskConical}  label="Mock Tests"       value={user.publicMetadata?.mockTestsTaken as number ?? 0}   color="bg-violet-100 text-violet-600" />
-          <StatCard icon={RotateCcw}     label="PYQs Solved"      value={user.publicMetadata?.pyqsSolved as number ?? 0}       color="bg-pink-100 text-pink-600" />
+        {/* ── Streak + Points Banner ── */}
+        <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Flame className={cn("w-5 h-5 fill-current", currentStreak > 0 ? "text-orange-500" : "text-gray-300")} />
+                <span className="text-2xl font-extrabold text-foreground">{currentStreak}</span>
+              </div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Day Streak</p>
+            </div>
+            <div className="text-center border-x border-border/50">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Trophy className="w-4 h-4 text-yellow-500 fill-yellow-400" />
+                <span className="text-2xl font-extrabold text-foreground">{totalPoints.toLocaleString()}</span>
+              </div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Points</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-0.5">
+                <Zap className="w-4 h-4 text-violet-500" />
+                <span className="text-2xl font-extrabold text-foreground">{longestStreak}</span>
+              </div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Best Streak</p>
+            </div>
+          </div>
+          {currentStreak === 0 && (
+            <p className="text-center text-xs text-muted-foreground mt-3 bg-gray-50 rounded-xl py-2 px-3">
+              🎯 Start solving quizzes to build your streak and earn points!
+            </p>
+          )}
+        </div>
+
+        {/* ── Activity Stats ── */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <StatCard icon={FlaskConical} label="Quizzes"   value={quizCount} color="bg-teal-100 text-teal-600" />
+          <StatCard icon={BookOpen}    label="Mock Tests" value={mockCount} color="bg-violet-100 text-violet-600" />
+          <StatCard icon={RotateCcw}   label="PYQs"       value={pyqCount}  color="bg-pink-100 text-pink-600" />
         </div>
 
         {/* ── Success banners ── */}
@@ -186,7 +242,7 @@ function ProfileContent() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSaveName} disabled={savingPw} className="flex-1 rounded-xl h-9 gap-1.5 bg-violet-600 hover:bg-violet-700">
+                  <Button size="sm" onClick={handleSaveName} disabled={savingName} className="flex-1 rounded-xl h-9 gap-1.5 bg-violet-600 hover:bg-violet-700">
                     <Save className="w-3.5 h-3.5" />
                     {savingName ? "Saving..." : "Save Changes"}
                   </Button>

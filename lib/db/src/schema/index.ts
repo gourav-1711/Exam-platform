@@ -7,3 +7,4 @@ export * from "./papers";
 export * from "./mockTests";
 export * from "./support";
 export * from "./announcements";
+export * from "./streaks";

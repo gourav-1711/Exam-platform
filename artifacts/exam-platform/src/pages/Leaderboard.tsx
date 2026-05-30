@@ -1,24 +1,11 @@
 import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Trophy, Medal, Star, Zap, BookOpen, RotateCcw, TrendingUp } from "lucide-react";
+import { Trophy, Star, Zap, BookOpen, RotateCcw, TrendingUp, Flame } from "lucide-react";
 import { Show } from "@clerk/react";
 import { Link } from "wouter";
-
-// ─── Mock leaderboard data ─────────────────────────────────────────────────────
-const LEADERBOARD = [
-  { rank: 1,  name: "Priya Sharma",       state: "Rajasthan",  score: 4820, quizzes: 148, mocks: 22, pyqs: 310, avatar: "PS", color: "bg-yellow-500" },
-  { rank: 2,  name: "Rahul Meena",        state: "Rajasthan",  score: 4615, quizzes: 139, mocks: 19, pyqs: 285, avatar: "RM", color: "bg-gray-400" },
-  { rank: 3,  name: "Sunita Verma",       state: "UP",         score: 4430, quizzes: 132, mocks: 17, pyqs: 260, avatar: "SV", color: "bg-amber-700" },
-  { rank: 4,  name: "Arjun Yadav",        state: "Bihar",      score: 4210, quizzes: 127, mocks: 15, pyqs: 240, avatar: "AY", color: "bg-violet-500" },
-  { rank: 5,  name: "Kavita Gupta",       state: "MP",         score: 3980, quizzes: 120, mocks: 14, pyqs: 220, avatar: "KG", color: "bg-blue-500" },
-  { rank: 6,  name: "Suresh Patel",       state: "Gujarat",    score: 3750, quizzes: 112, mocks: 13, pyqs: 198, avatar: "SP", color: "bg-green-500" },
-  { rank: 7,  name: "Deepika Rajput",     state: "Rajasthan",  score: 3620, quizzes: 108, mocks: 12, pyqs: 185, avatar: "DR", color: "bg-pink-500" },
-  { rank: 8,  name: "Vikram Singh",       state: "HP",         score: 3490, quizzes: 102, mocks: 11, pyqs: 170, avatar: "VS", color: "bg-teal-500" },
-  { rank: 9,  name: "Anita Kumari",       state: "Jharkhand",  score: 3310, quizzes: 98,  mocks: 10, pyqs: 155, avatar: "AK", color: "bg-orange-500" },
-  { rank: 10, name: "Manoj Tiwari",       state: "UP",         score: 3180, quizzes: 94,  mocks: 9,  pyqs: 140, avatar: "MT", color: "bg-indigo-500" },
-];
+import { useGetLeaderboard } from "@workspace/api-client-react";
+import type { LeaderboardEntry } from "@workspace/api-client-react";
 
 type Tab = "allTime" | "monthly" | "weekly";
 
@@ -28,36 +15,60 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "weekly",  label: "This Week" },
 ];
 
-function PodiumCard({ entry, size }: { entry: typeof LEADERBOARD[0]; size: "lg" | "md" | "sm" }) {
-  const medals = ["🥇", "🥈", "🥉"];
+const AVATAR_COLORS = [
+  "bg-yellow-500", "bg-gray-400", "bg-amber-700", "bg-violet-500",
+  "bg-blue-500", "bg-green-500", "bg-pink-500", "bg-teal-500",
+  "bg-orange-500", "bg-indigo-500", "bg-red-500", "bg-cyan-500",
+];
+
+function getInitials(name: string): string {
+  return name.split(" ").map((w) => w[0] ?? "").join("").toUpperCase().slice(0, 2) || "??";
+}
+
+function getAvatarColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function StreakBadge({ streak }: { streak: number }) {
+  if (streak < 1) return null;
+  const flameColor = streak >= 30 ? "text-red-500" : streak >= 7 ? "text-orange-500" : "text-amber-400";
   return (
-    <div className={cn(
-      "flex flex-col items-center gap-1.5 px-3",
-      size === "lg" ? "order-2" : size === "md" ? "order-1" : "order-3"
-    )}>
-      <span className="text-2xl">{medals[entry.rank - 1]}</span>
-      <div className={cn(
-        "rounded-full border-4 border-white shadow-lg flex items-center justify-center font-extrabold text-white",
-        entry.color,
-        size === "lg" ? "w-16 h-16 text-lg" : size === "md" ? "w-13 h-13 w-[52px] h-[52px] text-base" : "w-11 h-11 text-sm"
-      )}>
-        {entry.avatar}
+    <span className={cn("flex items-center gap-0.5 text-[10px] font-bold", flameColor)}>
+      <Flame className={cn("w-3 h-3 fill-current", flameColor)} />
+      {streak}
+    </span>
+  );
+}
+
+function PodiumCard({ entry, pos }: { entry: LeaderboardEntry; pos: "first" | "second" | "third" }) {
+  const medals = { first: "🥇", second: "🥈", third: "🥉" };
+  const sizes = { first: "w-16 h-16 text-lg", second: "w-[52px] h-[52px] text-base", third: "w-11 h-11 text-sm" };
+  const orders = { first: "order-2", second: "order-1", third: "order-3" };
+  const labelSize = { first: "text-sm", second: "text-xs", third: "text-xs" };
+  const scoreSize = { first: "text-base", second: "text-sm", third: "text-sm" };
+  const rankSizes = {
+    first: "w-10 h-10 text-lg bg-yellow-400",
+    second: "w-9 h-9 bg-gray-400",
+    third: "w-8 h-8 text-sm bg-amber-700",
+  };
+  const avatarColor = getAvatarColor(entry.userId);
+  const displayFirst = entry.displayName.split(" ")[0] ?? entry.displayName;
+
+  return (
+    <div className={cn("flex flex-col items-center gap-1.5 px-3", orders[pos])}>
+      <span className="text-2xl">{medals[pos]}</span>
+      <div className={cn("rounded-full border-4 border-white shadow-lg flex items-center justify-center font-extrabold text-white", avatarColor, sizes[pos])}>
+        {getInitials(entry.displayName)}
       </div>
-      <p className={cn("font-bold text-foreground text-center leading-tight", size === "lg" ? "text-sm" : "text-xs")}>{entry.name.split(" ")[0]}</p>
-      <div className={cn(
-        "flex items-center gap-1 font-extrabold text-primary",
-        size === "lg" ? "text-base" : "text-sm"
-      )}>
-        <Trophy className={cn("shrink-0", size === "lg" ? "w-4 h-4" : "w-3 h-3")} />
-        {entry.score.toLocaleString()}
+      <p className={cn("font-bold text-foreground text-center leading-tight", labelSize[pos])}>{displayFirst}</p>
+      {entry.currentStreak > 0 && <StreakBadge streak={entry.currentStreak} />}
+      <div className={cn("flex items-center gap-1 font-extrabold text-primary", scoreSize[pos])}>
+        <Trophy className={cn("shrink-0", pos === "first" ? "w-4 h-4" : "w-3 h-3")} />
+        {entry.totalPoints.toLocaleString()}
       </div>
-      <div className={cn(
-        "rounded-full text-center text-white font-bold py-3",
-        entry.rank === 1 ? "bg-yellow-400 w-10 h-10 flex items-center justify-center text-lg" :
-        entry.rank === 2 ? "bg-gray-400 w-9 h-9 flex items-center justify-center" :
-        "bg-amber-700 w-8 h-8 flex items-center justify-center text-sm",
-        "rounded-full shadow-md"
-      )}>
+      <div className={cn("rounded-full flex items-center justify-center text-white font-bold shadow-md", rankSizes[pos])}>
         {entry.rank}
       </div>
     </div>
@@ -66,9 +77,10 @@ function PodiumCard({ entry, size }: { entry: typeof LEADERBOARD[0]; size: "lg" 
 
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState<Tab>("allTime");
+  const { data: entries = [], isLoading } = useGetLeaderboard({ limit: 20 });
 
-  const top3 = LEADERBOARD.slice(0, 3);
-  const rest = LEADERBOARD.slice(3);
+  const top3 = entries.slice(0, 3);
+  const rest  = entries.slice(3);
 
   return (
     <PageTransition className="min-h-screen bg-gray-50 pb-6">
@@ -96,9 +108,7 @@ export default function Leaderboard() {
               onClick={() => setActiveTab(tab.key)}
               className={cn(
                 "flex-1 py-2 rounded-xl text-xs font-bold transition-all",
-                activeTab === tab.key
-                  ? "bg-primary text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                activeTab === tab.key ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
               )}
             >
               {tab.label}
@@ -106,67 +116,75 @@ export default function Leaderboard() {
           ))}
         </div>
 
-        {/* ── Podium (top 3) ── */}
-        <div className="bg-white rounded-2xl border border-border/50 shadow-sm py-5 px-2">
-          <div className="flex items-end justify-center gap-2">
-            {[top3[1], top3[0], top3[2]].map((entry) => (
-              <PodiumCard key={entry.rank} entry={entry} size={entry.rank === 1 ? "lg" : entry.rank === 2 ? "md" : "sm"} />
-            ))}
+        {isLoading ? (
+          <div className="bg-white rounded-2xl border border-border/50 shadow-sm flex items-center justify-center py-12">
+            <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
-        </div>
-
-        {/* ── Rest of rankings ── */}
-        <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Rankings</p>
-            <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
-              <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-teal-500" /> Quizzes</span>
-              <span className="flex items-center gap-1"><BookOpen className="w-3 h-3 text-violet-500" /> Mocks</span>
-              <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3 text-pink-500" /> PYQs</span>
+        ) : entries.length === 0 ? (
+          /* ── Empty state ── */
+          <div className="bg-white rounded-2xl border border-border/50 shadow-sm py-10 px-6 text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+              <Trophy className="w-7 h-7 text-primary/60" />
             </div>
+            <p className="font-bold text-foreground">No entries yet!</p>
+            <p className="text-sm text-muted-foreground">Be the first to appear on the leaderboard. Start solving quizzes to earn points and build your streak.</p>
           </div>
-
-          {rest.map((entry, idx) => (
-            <div
-              key={entry.rank}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors",
-                idx !== rest.length - 1 && "border-b border-border/30"
-              )}
-            >
-              {/* Rank */}
-              <span className="w-6 text-center text-sm font-extrabold text-muted-foreground shrink-0">
-                {entry.rank}
-              </span>
-
-              {/* Avatar */}
-              <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0", entry.color)}>
-                {entry.avatar}
+        ) : (
+          <>
+            {/* ── Podium (top 3) ── */}
+            {top3.length >= 3 && (
+              <div className="bg-white rounded-2xl border border-border/50 shadow-sm py-5 px-2">
+                <div className="flex items-end justify-center gap-2">
+                  <PodiumCard entry={top3[1]} pos="second" />
+                  <PodiumCard entry={top3[0]} pos="first" />
+                  <PodiumCard entry={top3[2]} pos="third" />
+                </div>
               </div>
+            )}
 
-              {/* Name + state */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{entry.name}</p>
-                <p className="text-[10px] text-muted-foreground">{entry.state}</p>
+            {/* ── Rankings list ── */}
+            {(top3.length < 3 ? entries : rest).length > 0 && (
+              <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                    {top3.length < 3 ? "Rankings" : "More Rankings"}
+                  </p>
+                  <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground">
+                    <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-teal-500" />Quiz</span>
+                    <span className="flex items-center gap-1"><BookOpen className="w-3 h-3 text-violet-500" />Mock</span>
+                    <span className="flex items-center gap-1"><RotateCcw className="w-3 h-3 text-pink-500" />PYQ</span>
+                  </div>
+                </div>
+
+                {(top3.length < 3 ? entries : rest).map((entry, idx, arr) => (
+                  <div key={entry.userId} className={cn("flex items-center gap-3 px-4 py-3", idx !== arr.length - 1 && "border-b border-border/30")}>
+                    <span className="w-6 text-center text-sm font-extrabold text-muted-foreground shrink-0">{entry.rank}</span>
+                    <div className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-extrabold shrink-0", getAvatarColor(entry.userId))}>
+                      {getInitials(entry.displayName)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold text-foreground truncate">{entry.displayName}</p>
+                        {entry.currentStreak > 0 && <StreakBadge streak={entry.currentStreak} />}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-bold shrink-0">
+                      <span className="text-teal-600">{entry.quizCount}</span>
+                      <span className="text-violet-600">{entry.mockCount}</span>
+                      <span className="text-pink-600">{entry.pyqCount}</span>
+                    </div>
+                    <div className="text-right shrink-0 ml-1">
+                      <p className="text-sm font-extrabold text-primary">{entry.totalPoints.toLocaleString()}</p>
+                      <p className="text-[9px] text-muted-foreground">pts</p>
+                    </div>
+                  </div>
+                ))}
               </div>
+            )}
+          </>
+        )}
 
-              {/* Stats */}
-              <div className="flex items-center gap-2 text-[10px] font-bold shrink-0">
-                <span className="text-teal-600">{entry.quizzes}</span>
-                <span className="text-violet-600">{entry.mocks}</span>
-                <span className="text-pink-600">{entry.pyqs}</span>
-              </div>
-
-              {/* Score */}
-              <div className="text-right shrink-0 ml-1">
-                <p className="text-sm font-extrabold text-primary">{entry.score.toLocaleString()}</p>
-                <p className="text-[9px] text-muted-foreground">pts</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Auth CTA (shown when signed out) ── */}
+        {/* ── Auth CTA ── */}
         <Show when="signed-out">
           <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-4 text-center space-y-2">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -189,10 +207,10 @@ export default function Leaderboard() {
           </p>
           <div className="space-y-2">
             {[
-              { icon: Zap, color: "text-teal-600 bg-teal-100", label: "Quiz question correct", pts: "+5 pts" },
-              { icon: BookOpen, color: "text-violet-600 bg-violet-100", label: "Mock test completed", pts: "+50 pts" },
-              { icon: RotateCcw, color: "text-pink-600 bg-pink-100", label: "PYQ solved correctly", pts: "+3 pts" },
-              { icon: Trophy, color: "text-yellow-600 bg-yellow-100", label: "Daily streak maintained", pts: "+20 pts" },
+              { icon: Zap,      color: "text-teal-600 bg-teal-100",   label: "Quiz question correct",  pts: "+5 pts" },
+              { icon: BookOpen, color: "text-violet-600 bg-violet-100", label: "Mock test completed",  pts: "+50 pts" },
+              { icon: RotateCcw, color: "text-pink-600 bg-pink-100",  label: "PYQ solved correctly",   pts: "+3 pts" },
+              { icon: Flame,    color: "text-orange-600 bg-orange-100", label: "Daily streak bonus",   pts: "+20 pts" },
             ].map(({ icon: Icon, color, label, pts }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", color.split(" ")[1])}>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { StreakTracker } from "@/components/shared/StreakTracker";
 import { cn } from "@/lib/utils";
 import { Show, useUser, useClerk } from "@clerk/react";
 import { useListAnnouncements } from "@workspace/api-client-react";
@@ -280,6 +281,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
         <MobileBottomNav />
       </div>
+      {/* Daily streak auto-tracker — invisible, fires once per day */}
+      <Show when="signed-in">
+        <StreakTracker />
+      </Show>
     </div>
   );
 }

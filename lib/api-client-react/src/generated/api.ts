@@ -20,10 +20,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActivityResult,
   Announcement,
   CurrentAffair,
   CurrentAffairsList,
+  GetLeaderboardParams,
   HealthStatus,
+  LeaderboardEntry,
   ListCurrentAffairsParams,
   ListNcertBooksParams,
   ListNcertMcqQuestionsParams,
@@ -39,11 +42,13 @@ import type {
   Question,
   Quiz,
   QuizWithQuestions,
+  RecordActivityInput,
   StudyNotesList,
   Subject,
   SupportMessage,
   SupportMessageInput,
-  Syllabus
+  Syllabus,
+  UserStreakData
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1563,4 +1568,236 @@ export const useSendSupportMessage = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSendSupportMessageMutationOptions(options));
     }
+
+export const getGetMyStreakUrl = () => {
+
+
+
+
+  return `/api/streaks/me`
+}
+
+/**
+ * @summary Get current user's streak and points
+ */
+export const getMyStreak = async ( options?: RequestInit): Promise<UserStreakData> => {
+
+  return customFetch<UserStreakData>(getGetMyStreakUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyStreakQueryKey = () => {
+    return [
+    `/api/streaks/me`
+    ] as const;
+    }
+
+
+export const getGetMyStreakQueryOptions = <TData = Awaited<ReturnType<typeof getMyStreak>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyStreakQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyStreak>>> = ({ signal }) => getMyStreak({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyStreak>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyStreakQueryResult = NonNullable<Awaited<ReturnType<typeof getMyStreak>>>
+export type GetMyStreakQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get current user's streak and points
+ */
+
+export function useGetMyStreak<TData = Awaited<ReturnType<typeof getMyStreak>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyStreak>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyStreakQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getRecordActivityUrl = () => {
+
+
+
+
+  return `/api/streaks/activity`
+}
+
+/**
+ * @summary Record a learning activity (updates streak + awards points)
+ */
+export const recordActivity = async (recordActivityInput: RecordActivityInput, options?: RequestInit): Promise<ActivityResult> => {
+
+  return customFetch<ActivityResult>(getRecordActivityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      recordActivityInput,)
+  }
+);}
+
+
+
+
+export const getRecordActivityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordActivity>>, TError,{data: BodyType<RecordActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordActivity>>, TError,{data: BodyType<RecordActivityInput>}, TContext> => {
+
+const mutationKey = ['recordActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordActivity>>, {data: BodyType<RecordActivityInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  recordActivity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordActivityMutationResult = NonNullable<Awaited<ReturnType<typeof recordActivity>>>
+    export type RecordActivityMutationBody = BodyType<RecordActivityInput>
+    export type RecordActivityMutationError = ErrorType<void>
+
+    /**
+ * @summary Record a learning activity (updates streak + awards points)
+ */
+export const useRecordActivity = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordActivity>>, TError,{data: BodyType<RecordActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordActivity>>,
+        TError,
+        {data: BodyType<RecordActivityInput>},
+        TContext
+      > => {
+      return useMutation(getRecordActivityMutationOptions(options));
+    }
+
+export const getGetLeaderboardUrl = (params?: GetLeaderboardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/leaderboard?${stringifiedParams}` : `/api/leaderboard`
+}
+
+/**
+ * @summary Get leaderboard (top students by total points)
+ */
+export const getLeaderboard = async (params?: GetLeaderboardParams, options?: RequestInit): Promise<LeaderboardEntry[]> => {
+
+  return customFetch<LeaderboardEntry[]>(getGetLeaderboardUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeaderboardQueryKey = (params?: GetLeaderboardParams,) => {
+    return [
+    `/api/leaderboard`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetLeaderboardQueryOptions = <TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<unknown>>(params?: GetLeaderboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeaderboardQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeaderboard>>> = ({ signal }) => getLeaderboard(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeaderboardQueryResult = NonNullable<Awaited<ReturnType<typeof getLeaderboard>>>
+export type GetLeaderboardQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get leaderboard (top students by total points)
+ */
+
+export function useGetLeaderboard<TData = Awaited<ReturnType<typeof getLeaderboard>>, TError = ErrorType<unknown>>(
+ params?: GetLeaderboardParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeaderboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeaderboardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 

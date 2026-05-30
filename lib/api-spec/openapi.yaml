@@ -31,6 +31,8 @@ tags:
     description: Learning support / messages
   - name: stats
     description: Dashboard stats
+  - name: streaks
+    description: User streaks and leaderboard
 
 paths:
   /healthz:
@@ -415,6 +417,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/SupportMessage"
 
+  # ─── STREAKS & LEADERBOARD ──────────────────────────────────────────────────
+  /streaks/me:
+    get:
+      operationId: getMyStreak
+      tags: [streaks]
+      summary: Get current user's streak and points
+      responses:
+        "200":
+          description: User streak data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStreakData"
+        "401":
+          description: Unauthorized
+
+  /streaks/activity:
+    post:
+      operationId: recordActivity
+      tags: [streaks]
+      summary: Record a learning activity (updates streak + awards points)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordActivityInput"
+      responses:
+        "200":
+          description: Updated streak result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityResult"
+        "401":
+          description: Unauthorized
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [streaks]
+      summary: Get leaderboard (top students by total points)
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
 components:
   schemas:
     HealthStatus:
@@ -716,3 +776,70 @@ components:
           type: string
           minLength: 1
       required: [message]
+
+    UserStreakData:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalPoints:
+          type: integer
+        quizCount:
+          type: integer
+        mockCount:
+          type: integer
+        pyqCount:
+          type: integer
+        lastActivityDate:
+          type: ["string", "null"]
+      required: [currentStreak, longestStreak, totalPoints, quizCount, mockCount, pyqCount]
+
+    RecordActivityInput:
+      type: object
+      properties:
+        activityType:
+          type: string
+          enum: [quiz, mock, pyq]
+        displayName:
+          type: string
+      required: [activityType, displayName]
+
+    ActivityResult:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalPoints:
+          type: integer
+        pointsEarned:
+          type: integer
+        streakIncremented:
+          type: boolean
+      required: [currentStreak, longestStreak, totalPoints, pointsEarned, streakIncremented]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        displayName:
+          type: string
+        totalPoints:
+          type: integer
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        quizCount:
+          type: integer
+        mockCount:
+          type: integer
+        pyqCount:
+          type: integer
+      required: [rank, userId, displayName, totalPoints, currentStreak, longestStreak, quizCount, mockCount, pyqCount]
