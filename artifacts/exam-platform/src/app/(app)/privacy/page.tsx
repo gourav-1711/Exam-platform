@@ -1,2 +1,2 @@
-import Privacy from "@/pages/Privacy";
+import Privacy from "@/views/Privacy";
 export default Privacy;

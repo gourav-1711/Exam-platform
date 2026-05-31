@@ -1,2 +1,2 @@
-import Leaderboard from "@/pages/Leaderboard";
+import Leaderboard from "@/views/Leaderboard";
 export default Leaderboard;

@@ -1,2 +1,2 @@
-import QuizListing from "@/pages/QuizListing";
+import QuizListing from "@/views/QuizListing";
 export default QuizListing;

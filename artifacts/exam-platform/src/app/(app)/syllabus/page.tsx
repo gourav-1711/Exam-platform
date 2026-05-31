@@ -1,2 +1,2 @@
-import Syllabus from "@/pages/Syllabus";
+import Syllabus from "@/views/Syllabus";
 export default Syllabus;

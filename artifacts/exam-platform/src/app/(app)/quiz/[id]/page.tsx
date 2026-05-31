@@ -1,2 +1,2 @@
-import QuizInstructions from "@/pages/QuizInstructions";
+import QuizInstructions from "@/views/QuizInstructions";
 export default QuizInstructions;

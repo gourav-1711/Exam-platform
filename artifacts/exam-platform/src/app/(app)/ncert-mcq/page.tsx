@@ -1,2 +1,2 @@
-import NcertMcq from "@/pages/NcertMcq";
+import NcertMcq from "@/views/NcertMcq";
 export default NcertMcq;

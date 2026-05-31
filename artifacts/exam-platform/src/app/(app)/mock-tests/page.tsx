@@ -1,2 +1,2 @@
-import MockTests from "@/pages/MockTests";
+import MockTests from "@/views/MockTests";
 export default MockTests;

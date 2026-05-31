@@ -1,3 +1,3 @@
 "use client";
-import Pyp from "@/pages/Pyp";
+import Pyp from "@/views/Pyp";
 export default Pyp;

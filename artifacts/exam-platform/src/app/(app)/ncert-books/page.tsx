@@ -1,2 +1,2 @@
-import NcertBooks from "@/pages/NcertBooks";
+import NcertBooks from "@/views/NcertBooks";
 export default NcertBooks;

@@ -1,2 +1,2 @@
-import MockTestDetail from "@/pages/MockTestDetail";
+import MockTestDetail from "@/views/MockTestDetail";
 export default MockTestDetail;

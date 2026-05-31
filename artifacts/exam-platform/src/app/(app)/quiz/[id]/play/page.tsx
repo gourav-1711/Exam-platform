@@ -1,2 +1,2 @@
-import QuizPlayer from "@/pages/QuizPlayer";
+import QuizPlayer from "@/views/QuizPlayer";
 export default QuizPlayer;

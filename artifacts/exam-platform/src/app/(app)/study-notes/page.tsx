@@ -1,2 +1,2 @@
-import StudyNotes from "@/pages/StudyNotes";
+import StudyNotes from "@/views/StudyNotes";
 export default StudyNotes;

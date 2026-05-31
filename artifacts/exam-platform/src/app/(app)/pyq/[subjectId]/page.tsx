@@ -1,2 +1,2 @@
-import PyqQuestions from "@/pages/PyqQuestions";
+import PyqQuestions from "@/views/PyqQuestions";
 export default PyqQuestions;
