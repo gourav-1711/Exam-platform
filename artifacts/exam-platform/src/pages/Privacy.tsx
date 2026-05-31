@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { StaticPageLayout, SectionHeading, SectionText, BulletList } from "@/components/shared/StaticPageLayout";
 

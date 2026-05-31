@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useListSyllabus } from "@workspace/api-client-react";
