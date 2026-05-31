@@ -190,7 +190,7 @@ export default function Leaderboard() {
           </>
         )}
 
-        <SignedOut>
+        <ClientSignedOut>
           <div className="bg-gradient-to-r from-violet-50 to-purple-50 border border-violet-200 rounded-2xl p-4 text-center space-y-2">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
               <TrendingUp className="w-5 h-5 text-primary" />
@@ -203,7 +203,7 @@ export default function Leaderboard() {
               </button>
             </Link>
           </div>
-        </SignedOut>
+        </ClientSignedOut>
 
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-4">
           <p className="text-xs font-bold text-foreground mb-3 flex items-center gap-1.5">

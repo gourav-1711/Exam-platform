@@ -12,8 +12,8 @@ import { Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Share2, Li
 import { cn } from "@/lib/utils";
 
 export default function QuizPlayer() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const router = useRouter();
   const { data: quiz, isLoading } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
 

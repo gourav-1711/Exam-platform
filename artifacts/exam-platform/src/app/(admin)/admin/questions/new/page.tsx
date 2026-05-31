@@ -64,7 +64,7 @@ export default function NewQuestionPage() {
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
           <QuestionForm
-            onSubmit={createMutation.mutate}
+            onSubmit={async (data) => { createMutation.mutate(data); }}
             onSaveDraft={saveDraftMutation}
             isLoading={createMutation.isPending}
           />

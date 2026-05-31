@@ -11,8 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Clock, FileText, Award, AlertCircle, Play } from "lucide-react";
 
 export default function MockTestDetail() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const { data: test, isLoading, isError } = useGetMockTest(Number(id), { query: { enabled: !!id, queryKey: getGetMockTestQueryKey(Number(id)) } });
 
   if (isLoading) {

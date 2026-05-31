@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from 
 import { StreakTracker } from "@/components/shared/StreakTracker";
 import { cn } from "@/lib/utils";
 import { SignedIn, SignedOut, useUser, useClerk } from "@clerk/nextjs";
-import { useListAnnouncements } from "@workspace/api-client-react";
+import { useListAnnouncements, getListAnnouncementsQueryKey } from "@workspace/api-client-react";
 
 function useClientMounted() {
   const [mounted, setMounted] = useState(false);
@@ -179,7 +179,7 @@ function SearchBar({ className, onNavigate }: { className?: string; onNavigate?:
 function NotificationsPanel() {
   const [open, setOpen] = useState(false);
   const mounted = useClientMounted();
-  const { data: announcements } = useListAnnouncements({ query: { enabled: mounted } });
+  const { data: announcements } = useListAnnouncements({ query: { enabled: mounted, queryKey: getListAnnouncementsQueryKey() } });
   const count = mounted ? (announcements?.length ?? 0) : 0;
 
   return (

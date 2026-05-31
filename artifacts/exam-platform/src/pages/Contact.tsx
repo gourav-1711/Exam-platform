@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { StaticPageLayout, SectionHeading } from "@/components/shared/StaticPageLayout";
 import { Input } from "@/components/ui/input";

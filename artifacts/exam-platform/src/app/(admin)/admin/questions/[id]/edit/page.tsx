@@ -9,7 +9,8 @@ import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
 export default function EditQuestionPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const router = useRouter();
   const { toast } = useToast();
   const qc = useQueryClient();

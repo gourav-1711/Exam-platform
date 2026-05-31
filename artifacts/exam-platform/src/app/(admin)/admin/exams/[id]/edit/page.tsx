@@ -33,7 +33,8 @@ interface ExamFormData {
 const SUBJECTS = ["History", "Geography", "Polity", "Economy", "Science", "Current Affairs", "Mathematics", "English", "General Studies", "Reasoning"];
 
 export default function EditExamPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const router = useRouter();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -115,7 +116,7 @@ export default function EditExamPage() {
 
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
-          <form onSubmit={handleSubmit(updateMutation.mutate)} className="space-y-5">
+          <form onSubmit={handleSubmit((data) => updateMutation.mutate(data))} className="space-y-5">
             <div>
               <Label>Title <span className="text-red-500">*</span></Label>
               <Input {...register("title", { required: true })} className="mt-1" />

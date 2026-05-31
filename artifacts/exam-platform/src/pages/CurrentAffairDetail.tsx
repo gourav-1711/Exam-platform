@@ -10,8 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Share2, Tag, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function CurrentAffairDetail() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const { data: article, isLoading, isError } = useGetCurrentAffair(Number(id), { query: { enabled: !!id, queryKey: getGetCurrentAffairQueryKey(Number(id)) } });
 
   if (isLoading) {
@@ -40,7 +40,7 @@ export default function CurrentAffairDetail() {
 
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2 items-center">
-          {article.tags?.map((tag) => (
+          {(article as { tags?: string[] }).tags?.map((tag: string) => (
             <span key={tag} className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
               <Tag className="w-3 h-3" />{tag}
             </span>

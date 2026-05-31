@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useListNcertMcqQuestions } from "@workspace/api-client-react";

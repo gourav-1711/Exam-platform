@@ -11,8 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Clock, FileText, Settings, ArrowLeft } from "lucide-react";
 
 export default function QuizInstructions() {
-  const params = useParams();
-  const id = params.id as string;
+  const params = useParams<{ id: string }>();
+  const id = params?.id ?? "";
   const router = useRouter();
   const { data: quiz, isLoading, isError } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
 

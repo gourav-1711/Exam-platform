@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useListSupportMessages, useSendSupportMessage, getListSupportMessagesQueryKey } from "@workspace/api-client-react";

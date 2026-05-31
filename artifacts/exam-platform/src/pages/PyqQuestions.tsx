@@ -13,8 +13,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function PyqQuestions() {
-  const params = useParams();
-  const subjectId = params.subjectId as string;
+  const params = useParams<{ subjectId: string }>();
+  const subjectId = params?.subjectId ?? "";
   const [page, setPage] = useState(1);
   const { data, isLoading } = useListPyqQuestions({ subjectId: Number(subjectId), page }, { query: { enabled: !!subjectId, queryKey: getListPyqQuestionsQueryKey({ subjectId: Number(subjectId), page }) } });
 
@@ -32,7 +32,7 @@ export default function PyqQuestions() {
     return <div className="p-8"><Skeleton className="h-[600px] w-full max-w-4xl mx-auto rounded-3xl" /></div>;
   }
 
-  const questions = data?.questions ?? [];
+  const questions = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
 
   if (questions.length === 0) {
@@ -107,7 +107,7 @@ export default function PyqQuestions() {
             </div>
 
             <div className="space-y-3">
-              {currentQ.options.map((opt, i) => {
+              {currentQ.options.map((opt: string, i: number) => {
                 const isSelected = selectedOption === i;
                 const isCorrectOpt = currentQ.correctIndex === i;
                 const isWrong = showAnswer && isSelected && !isCorrectOpt;

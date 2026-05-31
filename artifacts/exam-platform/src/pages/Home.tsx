@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useListAnnouncements } from "@workspace/api-client-react";
+import { useListAnnouncements, getListAnnouncementsQueryKey } from "@workspace/api-client-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ function AnnouncementBanner() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const { data: announcements } = useListAnnouncements({ query: { enabled: mounted } });
+  const { data: announcements } = useListAnnouncements({ query: { enabled: mounted, queryKey: getListAnnouncementsQueryKey() } });
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   useEffect(() => {
     if (!mounted) return;
