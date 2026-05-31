@@ -5,6 +5,7 @@ import { z } from "zod";
 import { examCreationLimiter } from "../../middlewares/rateLimitMiddleware";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
+import { routeParamInt } from "../../lib/routeParams";
 
 const router = Router();
 
@@ -45,7 +46,7 @@ router.get("/exams", async (req, res) => {
 
 router.get("/exams/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = routeParamInt(req.params.id);
     const [exam] = await db.select().from(examsTable).where(eq(examsTable.id, id));
     if (!exam) { res.status(404).json({ error: "Exam not found" }); return; }
 
@@ -87,7 +88,7 @@ router.post("/exams", examCreationLimiter, logAdminActivity("create_exam", "exam
 
 router.patch("/exams/:id", logAdminActivity("update_exam", "exam"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = routeParamInt(req.params.id);
     const parsed = examBodySchema.partial().safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Validation failed", details: parsed.error.issues }); return;
@@ -105,7 +106,7 @@ router.patch("/exams/:id", logAdminActivity("update_exam", "exam"), async (req, 
 
 router.delete("/exams/:id", logAdminActivity("delete_exam", "exam"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = routeParamInt(req.params.id);
     await db.delete(examQuestionsTable).where(eq(examQuestionsTable.examId, id));
     await db.delete(examsTable).where(eq(examsTable.id, id));
     cacheDel("admin:dashboard:stats");
@@ -118,7 +119,7 @@ router.delete("/exams/:id", logAdminActivity("delete_exam", "exam"), async (req,
 
 router.post("/exams/:id/questions", async (req, res) => {
   try {
-    const examId = parseInt(req.params.id);
+    const examId = routeParamInt(req.params.id);
     const { questionIds } = req.body as { questionIds: number[] };
     const values = questionIds.map((qid, i) => ({ examId, questionId: qid, orderNum: i, marks: 1, negativeMarks: 0 }));
     await db.insert(examQuestionsTable).values(values).onConflictDoNothing();

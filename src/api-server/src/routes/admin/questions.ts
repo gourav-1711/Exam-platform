@@ -5,6 +5,7 @@ import { z } from "zod";
 import { questionCreationLimiter } from "../../middlewares/rateLimitMiddleware";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
+import { routeParamInt } from "../../lib/routeParams";
 
 const router = Router();
 
@@ -71,7 +72,7 @@ router.get("/questions", async (req, res) => {
 
 router.get("/questions/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = routeParamInt(req.params.id);
     const [question] = await db.select().from(questionsTable).where(eq(questionsTable.id, id));
     if (!question) { res.status(404).json({ error: "Question not found" }); return; }
     res.json(question);
@@ -100,7 +101,7 @@ router.post("/questions", questionCreationLimiter, logAdminActivity("create_ques
 
 router.patch("/questions/:id", logAdminActivity("update_question", "question"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = routeParamInt(req.params.id);
     const parsed = questionBodySchema.partial().safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
@@ -118,7 +119,7 @@ router.patch("/questions/:id", logAdminActivity("update_question", "question"), 
 
 router.delete("/questions/:id", logAdminActivity("delete_question", "question"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = routeParamInt(req.params.id);
     await db.delete(questionsTable).where(eq(questionsTable.id, id));
     cacheDel("admin:dashboard:stats");
     res.json({ success: true });

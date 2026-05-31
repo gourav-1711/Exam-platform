@@ -1,2 +1,5 @@
 import Support from "@/views/Support";
-export default Support;
+
+export default function SupportPage() {
+  return <Support />;
+}

@@ -12,8 +12,7 @@
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo",
+    "incremental": false,
     "plugins": [
       {
         "name": "next"
@@ -26,6 +25,7 @@
     },
     "allowJs": true,
     "strict": false,
+    "noImplicitAny": false,
     "esModuleInterop": true
   },
   "include": [
@@ -35,6 +35,7 @@
   ],
   "exclude": [
     "node_modules",
+    ".next",
     "build",
     "dist"
   ],

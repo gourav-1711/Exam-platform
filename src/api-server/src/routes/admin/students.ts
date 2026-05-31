@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { db, studentAttemptsTable, streaksTable } from "@workspace/db";
+import { db, studentAttemptsTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
+import { routeParam } from "../../lib/routeParams";
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.get("/students", async (req, res) => {
 
 router.get("/students/:userId/attempts", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = routeParam(req.params.userId);
     const attempts = await db.select().from(studentAttemptsTable)
       .where(eq(studentAttemptsTable.userId, userId))
       .orderBy(desc(studentAttemptsTable.attemptedAt))

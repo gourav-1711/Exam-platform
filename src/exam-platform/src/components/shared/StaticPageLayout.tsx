@@ -62,7 +62,7 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
 
           <div className="mb-5">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow">MK</div>
+              <div className="w-9 h-9 rounded-xl bg-linear-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow">MK</div>
               <span className="font-extrabold text-base text-foreground">Manish Ki Pathshala</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px]">

@@ -1,2 +1,5 @@
 import Privacy from "@/views/Privacy";
-export default Privacy;
+
+export default function PrivacyPage() {
+  return <Privacy />;
+}

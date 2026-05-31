@@ -1,2 +1,5 @@
 import MockTests from "@/views/MockTests";
-export default MockTests;
+
+export default function MockTestsPage() {
+  return <MockTests />;
+}

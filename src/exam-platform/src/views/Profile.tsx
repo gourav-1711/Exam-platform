@@ -118,7 +118,7 @@ function ProfileContent() {
 
   return (
     <PageTransition className="min-h-screen bg-gray-50 pb-8">
-
+      
       {/* ── Hero ── */}
       <div className="relative bg-gradient-to-br from-violet-700 to-purple-600 pt-10 pb-16 px-4 text-white text-center">
         <div className="absolute inset-0 overflow-hidden">
@@ -157,7 +157,7 @@ function ProfileContent() {
         </div>
       </div>
 
-      <div className="px-4 -mt-8 space-y-4">
+      <div className="px-4 mt-4 space-y-4">
 
         {/* ── Streak + Points Banner ── */}
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-4">

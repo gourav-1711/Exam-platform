@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { StaticPageLayout, SectionHeading, SectionText } from "@/components/shared/StaticPageLayout";
 
 export default function About() {

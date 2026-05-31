@@ -1,2 +1,5 @@
 import Terms from "@/views/Terms";
-export default Terms;
+
+export default function TermsPage() {
+  return <Terms />;
+}

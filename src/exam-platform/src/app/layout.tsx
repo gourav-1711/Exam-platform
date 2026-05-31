@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/themes";
 import Providers from "@/app/providers";
 import "@/index.css";
+import { clerkPublishableKey, isClerkConfigured } from "@/lib/clerk";
 
 export const metadata: Metadata = {
   title: "Manish Ki Pathshala",
@@ -72,10 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <ClerkProvider
-          publishableKey={
-            process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??
-            process.env.CLERK_PUBLISHABLE_KEY
-          }
+          publishableKey={clerkPublishableKey}
           proxyUrl={
             process.env.NEXT_PUBLIC_CLERK_PROXY_URL ??
             process.env.VITE_CLERK_PROXY_URL
@@ -98,9 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             },
           }}
         >
-          <Providers>
-            {children}
-          </Providers>
+          <Providers clerkEnabled={isClerkConfigured}>{children}</Providers>
         </ClerkProvider>
       </body>
     </html>

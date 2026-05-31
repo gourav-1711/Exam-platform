@@ -51,13 +51,19 @@ const ClerkCacheInvalidatorDynamic = dynamic(
   { ssr: false }
 );
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+  children,
+  clerkEnabled,
+}: {
+  children: React.ReactNode;
+  clerkEnabled?: boolean;
+}) {
   const [queryClient] = useState(() => makeQueryClient());
 
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ClerkCacheInvalidatorDynamic />
+        {clerkEnabled ? <ClerkCacheInvalidatorDynamic /> : null}
         <TooltipProvider>
           {children}
           <Toaster />

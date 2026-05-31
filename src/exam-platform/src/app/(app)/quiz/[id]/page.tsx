@@ -1,2 +1,5 @@
 import QuizInstructions from "@/views/QuizInstructions";
-export default QuizInstructions;
+
+export default function QuizInstructionsPage() {
+  return <QuizInstructions />;
+}

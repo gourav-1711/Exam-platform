@@ -1,2 +1,5 @@
 import PyqQuestions from "@/views/PyqQuestions";
-export default PyqQuestions;
+
+export default function PyqQuestionsPage() {
+  return <PyqQuestions />;
+}

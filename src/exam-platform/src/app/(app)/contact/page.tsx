@@ -1,2 +1,5 @@
 import Contact from "@/views/Contact";
-export default Contact;
+
+export default function ContactPage() {
+  return <Contact />;
+}

@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
+import { routeParam } from "../lib/routeParams";
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
   const auth = getAuth(req);
@@ -24,7 +25,7 @@ export function logAdminActivity(action: string, entityType?: string) {
         userId: auth.userId ?? "unknown",
         action,
         entityType: entityType ?? null,
-        entityId: req.params.id ?? null,
+        entityId: req.params.id ? routeParam(req.params.id) : null,
         details: req.body ? { body: req.body } : null,
         ipAddress: req.ip ?? null,
       });

@@ -1,2 +1,5 @@
 import Home from "@/views/Home";
-export default Home;
+
+export default function HomePage() {
+  return <Home />;
+}

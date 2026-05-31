@@ -1,2 +1,5 @@
 import Syllabus from "@/views/Syllabus";
-export default Syllabus;
+
+export default function SyllabusPage() {
+  return <Syllabus />;
+}

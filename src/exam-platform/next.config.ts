@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 const nextConfig: NextConfig = {
   env: {
@@ -9,6 +12,13 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ["*.replit.dev", "*.repl.co", "*.pike.replit.dev"],
   transpilePackages: ["@workspace/api-client-react"],
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@tanstack/react-query": require.resolve("@tanstack/react-query"),
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

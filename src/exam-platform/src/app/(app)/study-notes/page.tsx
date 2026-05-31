@@ -1,2 +1,5 @@
 import StudyNotes from "@/views/StudyNotes";
-export default StudyNotes;
+
+export default function StudyNotesPage() {
+  return <StudyNotes />;
+}

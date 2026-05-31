@@ -1,2 +1,5 @@
 import QuizListing from "@/views/QuizListing";
-export default QuizListing;
+
+export default function QuizListingPage() {
+  return <QuizListing />;
+}
