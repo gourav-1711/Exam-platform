@@ -1,2 +1,4 @@
 - [Clerk Auth Setup](clerk-auth-setup.md) — Clerk is provisioned and wired end-to-end; dev keys active, proxy middleware in place.
 - [Streak System](streak-system.md) — real-time DB-backed streak + leaderboard; auto-records daily activity via StreakTracker in AppLayout.
+- [Admin System Architecture](admin-system.md) — full admin system built: Redux store, DB schema, API routes, Next.js pages, middleware.
+- [esbuild zod/v4 resolution](esbuild-zod-resolution.md) — api-server routes must NOT import zod/v4 directly; pnpm hoisting quirk requires zod in api-server deps.

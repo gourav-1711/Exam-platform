@@ -8,3 +8,4 @@ export * from "./mockTests";
 export * from "./support";
 export * from "./announcements";
 export * from "./streaks";
+export * from "./admin";

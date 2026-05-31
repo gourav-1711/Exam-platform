@@ -7,6 +7,7 @@ const isProtectedRoute = createRouteMatcher([
   "/ncert-mcq(.*)",
   "/mock-tests(.*)",
   "/profile(.*)",
+  "/admin(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

@@ -10,6 +10,7 @@ import papersRouter from "./papers";
 import supportRouter from "./support";
 import announcementsRouter from "./announcements";
 import streaksRouter from "./streaks";
+import adminRouter from "./admin/index";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(pyqRouter);
 router.use(ncertRouter);
 router.use(papersRouter);
 router.use(supportRouter);
+router.use("/admin", adminRouter);
 
 export default router;
