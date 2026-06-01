@@ -1,14 +1,25 @@
-"use client";
+'use client';
+import { AdminPinProvider, useAdminPin } from './_context/AdminPinContext';
+import { PinGate } from './_components/PinGate';
+import { AdminSidebar } from './_components/AdminSidebar';
 
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
+  const { verified } = useAdminPin();
+  if (!verified) return <PinGate />;
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-slate-950">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-8">
         {children}
       </main>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminPinProvider>
+      <AdminLayoutInner>{children}</AdminLayoutInner>
+    </AdminPinProvider>
   );
 }

@@ -9,3 +9,4 @@ export * from "./support";
 export * from "./announcements";
 export * from "./streaks";
 export * from "./admin";
+export * from "./fileStorage";

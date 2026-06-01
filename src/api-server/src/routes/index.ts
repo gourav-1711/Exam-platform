@@ -11,6 +11,9 @@ import supportRouter from "./support";
 import announcementsRouter from "./announcements";
 import streaksRouter from "./streaks";
 import adminRouter from "./admin/index";
+import documentAdminRouter from "./documentAdmin";
+import documentNcertRouter from "./documentNcert";
+import documentPypRouter from "./documentPyp";
 
 const router: IRouter = Router();
 
@@ -26,5 +29,8 @@ router.use(ncertRouter);
 router.use(papersRouter);
 router.use(supportRouter);
 router.use("/admin", adminRouter);
+router.use("/document-admin", documentAdminRouter);
+router.use("/document-ncert", documentNcertRouter);
+router.use("/document-pyp", documentPypRouter);
 
 export default router;

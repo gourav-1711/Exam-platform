@@ -1,111 +1,142 @@
-"use client";
-
-import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Settings, User, Shield, Bell, Palette } from "lucide-react";
-import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { setTheme } from "@/store/slices/uiSlice";
+'use client';
+import { useState } from 'react';
+import { API_BASE_URL } from '@/lib/api-config';
+import { useAdminPin } from '../_context/AdminPinContext';
+import { AlertCircle, CheckCircle, Lock } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user } = useUser();
-  const dispatch = useAppDispatch();
-  const theme = useAppSelector((s) => s.ui.theme);
+  const { pin: sessionPin } = useAdminPin();
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (newPin !== confirmPin) {
+      setError('New PIN and confirm PIN do not match');
+      return;
+    }
+
+    if (newPin.length < 4) {
+      setError('PIN must be at least 4 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/document-admin/set-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPin, newPin }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update PIN');
+      }
+
+      setSuccess('PIN updated successfully');
+      setCurrentPin('');
+      setNewPin('');
+      setConfirmPin('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update PIN');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-3xl">
+    <div className="max-w-2xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Manage your admin preferences</p>
+        <h1 className="text-3xl font-bold text-white">Settings</h1>
+        <p className="text-slate-400 mt-2">Manage admin settings</p>
       </div>
 
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4 text-gray-400" /> Account
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            {user?.imageUrl && (
-              <img src={user.imageUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
-            )}
-            <div>
-              <p className="font-semibold text-gray-900">{user?.fullName ?? "—"}</p>
-              <p className="text-sm text-gray-500">{user?.primaryEmailAddress?.emailAddress}</p>
+      {/* Change PIN */}
+      <div className="bg-slate-900 border border-slate-800 rounded-lg p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <Lock className="w-6 h-6 text-indigo-400" />
+          <h2 className="text-xl font-semibold text-white">Change Admin PIN</h2>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Current PIN</label>
+            <input
+              type="password"
+              value={currentPin}
+              onChange={(e) => setCurrentPin(e.target.value)}
+              placeholder="Enter current PIN"
+              required
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">New PIN</label>
+            <input
+              type="password"
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value)}
+              placeholder="Enter new PIN (min 4 characters)"
+              required
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Confirm New PIN</label>
+            <input
+              type="password"
+              value={confirmPin}
+              onChange={(e) => setConfirmPin(e.target.value)}
+              placeholder="Confirm new PIN"
+              required
+              className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-3 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-200">{error}</p>
             </div>
-            <Badge className="ml-auto bg-violet-100 text-violet-700 hover:bg-violet-100">
-              <Shield className="h-3 w-3 mr-1" /> Admin
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
+          )}
 
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Palette className="h-4 w-4 text-gray-400" /> Appearance
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            {(["light", "dark", "system"] as const).map((t) => (
-              <Button
-                key={t}
-                variant={theme === t ? "default" : "outline"}
-                size="sm"
-                onClick={() => dispatch(setTheme(t))}
-                className={theme === t ? "bg-violet-600 hover:bg-violet-700" : ""}
-              >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </Button>
-            ))}
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Theme preference is saved locally</p>
-        </CardContent>
-      </Card>
+          {success && (
+            <div className="flex items-start gap-3 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+              <p className="text-green-200">{success}</p>
+            </div>
+          )}
 
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-4 w-4 text-gray-400" /> Admin Access
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-500 mb-3">
-            Your admin role is managed through Clerk user metadata. To grant or revoke admin access for other users, update their <code className="bg-gray-100 px-1 rounded">publicMetadata.role</code> to <code className="bg-gray-100 px-1 rounded">"admin"</code>.
-          </p>
-          <div className="rounded-lg bg-violet-50 border border-violet-100 p-3 text-sm text-violet-700">
-            <strong>Your role:</strong> {String((user?.publicMetadata as Record<string, unknown>)?.role ?? "user")}
-          </div>
-        </CardContent>
-      </Card>
+          <button
+            type="submit"
+            disabled={isLoading || !currentPin || !newPin || !confirmPin}
+            className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
+          >
+            {isLoading ? 'Updating...' : 'Update PIN'}
+          </button>
+        </form>
+      </div>
 
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Bell className="h-4 w-4 text-gray-400" /> API Cache
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-500 mb-3">Cache settings (managed by the server):</p>
-          <div className="space-y-2 text-sm">
-            {[
-              { label: "Dashboard Statistics", ttl: "5 min" },
-              { label: "Question Lists", ttl: "10 min" },
-              { label: "Analytics Data", ttl: "15 min" },
-              { label: "Leaderboard", ttl: "5 min" },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center justify-between py-1.5 border-b last:border-0">
-                <span className="text-gray-700">{item.label}</span>
-                <Badge variant="outline" className="text-xs">{item.ttl}</Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Information */}
+      <div className="bg-slate-900 border border-slate-800 rounded-lg p-8">
+        <h2 className="text-xl font-semibold text-white mb-4">Admin Information</h2>
+        <div className="space-y-3 text-slate-300 text-sm">
+          <p>The admin PIN is used to authenticate file uploads and deletions for NCERT and PYP documents.</p>
+          <p>Your PIN is stored securely in the database using bcrypt hashing and is never displayed in plain text.</p>
+          <p className="text-slate-500 mt-4">Remember to change your PIN regularly for security.</p>
+        </div>
+      </div>
     </div>
   );
 }
