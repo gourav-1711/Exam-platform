@@ -1,0 +1,845 @@
+openapi: 3.1.0
+info:
+  title: Api
+  version: 0.1.0
+  description: Manish Ki Pathshala - Exam Preparation Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: quiz
+    description: Daily free quiz operations
+  - name: currentAffairs
+    description: Current affairs operations
+  - name: studyNotes
+    description: Study notes operations
+  - name: pyq
+    description: Previous year questions
+  - name: ncertMcq
+    description: NCERT MCQ operations
+  - name: ncertBooks
+    description: NCERT Books operations
+  - name: pyp
+    description: Previous year papers
+  - name: syllabus
+    description: Syllabus operations
+  - name: mockTest
+    description: Mock test operations
+  - name: support
+    description: Learning support / messages
+  - name: stats
+    description: Dashboard stats
+  - name: streaks
+    description: User streaks and leaderboard
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ─── STATS ────────────────────────────────────────────────────────────────
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Platform-wide stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
+  # ─── ANNOUNCEMENTS ────────────────────────────────────────────────────────
+  /announcements:
+    get:
+      operationId: listAnnouncements
+      tags: [stats]
+      summary: List active announcements / exam alerts
+      responses:
+        "200":
+          description: List of active announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Announcement"
+
+  # ─── QUIZ ─────────────────────────────────────────────────────────────────
+  /quizzes:
+    get:
+      operationId: listQuizzes
+      tags: [quiz]
+      summary: List all quizzes
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ongoing, history]
+      responses:
+        "200":
+          description: List of quizzes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Quiz"
+
+  /quizzes/{id}:
+    get:
+      operationId: getQuiz
+      tags: [quiz]
+      summary: Get a single quiz
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizWithQuestions"
+
+  /quizzes/{id}/questions:
+    get:
+      operationId: listQuizQuestions
+      tags: [quiz]
+      summary: Get questions for a quiz
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+
+  # ─── CURRENT AFFAIRS ──────────────────────────────────────────────────────
+  /current-affairs:
+    get:
+      operationId: listCurrentAffairs
+      tags: [currentAffairs]
+      summary: List current affairs articles
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentAffairsList"
+
+  /current-affairs/{id}:
+    get:
+      operationId: getCurrentAffair
+      tags: [currentAffairs]
+      summary: Get a single current affairs article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentAffair"
+
+  # ─── STUDY NOTES ──────────────────────────────────────────────────────────
+  /study-notes:
+    get:
+      operationId: listStudyNotes
+      tags: [studyNotes]
+      summary: List study notes
+      parameters:
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: medium
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Study notes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyNotesList"
+
+  # ─── PYQ ──────────────────────────────────────────────────────────────────
+  /pyq/subjects:
+    get:
+      operationId: listPyqSubjects
+      tags: [pyq]
+      summary: List PYQ subjects
+      responses:
+        "200":
+          description: Subjects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+
+  /pyq/questions:
+    get:
+      operationId: listPyqQuestions
+      tags: [pyq]
+      summary: List PYQ questions
+      parameters:
+        - name: subjectId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedQuestions"
+
+  # ─── NCERT MCQ ────────────────────────────────────────────────────────────
+  /ncert-mcq/questions:
+    get:
+      operationId: listNcertMcqQuestions
+      tags: [ncertMcq]
+      summary: List NCERT MCQ questions
+      parameters:
+        - name: classNum
+          in: query
+          schema:
+            type: integer
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: medium
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Questions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedQuestions"
+
+  # ─── NCERT BOOKS ──────────────────────────────────────────────────────────
+  /ncert-books:
+    get:
+      operationId: listNcertBooks
+      tags: [ncertBooks]
+      summary: List NCERT books
+      parameters:
+        - name: classNum
+          in: query
+          schema:
+            type: integer
+        - name: subject
+          in: query
+          schema:
+            type: string
+        - name: medium
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Books
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NcertBook"
+
+  # ─── PREVIOUS YEAR PAPERS ─────────────────────────────────────────────────
+  /pyp:
+    get:
+      operationId: listPyp
+      tags: [pyp]
+      summary: List previous year papers
+      parameters:
+        - name: examName
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Papers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PreviousYearPaper"
+
+  # ─── SYLLABUS ─────────────────────────────────────────────────────────────
+  /syllabus:
+    get:
+      operationId: listSyllabus
+      tags: [syllabus]
+      summary: List syllabi
+      responses:
+        "200":
+          description: Syllabi
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Syllabus"
+
+  # ─── MOCK TESTS ───────────────────────────────────────────────────────────
+  /mock-tests:
+    get:
+      operationId: listMockTests
+      tags: [mockTest]
+      summary: List mock tests
+      responses:
+        "200":
+          description: Mock tests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MockTest"
+
+  /mock-tests/{id}:
+    get:
+      operationId: getMockTest
+      tags: [mockTest]
+      summary: Get a mock test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Mock test
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MockTest"
+
+  # ─── SUPPORT ──────────────────────────────────────────────────────────────
+  /support/messages:
+    get:
+      operationId: listSupportMessages
+      tags: [support]
+      summary: Get support messages
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SupportMessage"
+
+    post:
+      operationId: sendSupportMessage
+      tags: [support]
+      summary: Send a support message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportMessageInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportMessage"
+
+  # ─── STREAKS & LEADERBOARD ──────────────────────────────────────────────────
+  /streaks/me:
+    get:
+      operationId: getMyStreak
+      tags: [streaks]
+      summary: Get current user's streak and points
+      responses:
+        "200":
+          description: User streak data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserStreakData"
+        "401":
+          description: Unauthorized
+
+  /streaks/activity:
+    post:
+      operationId: recordActivity
+      tags: [streaks]
+      summary: Record a learning activity (updates streak + awards points)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordActivityInput"
+      responses:
+        "200":
+          description: Updated streak result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityResult"
+        "401":
+          description: Unauthorized
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [streaks]
+      summary: Get leaderboard (top students by total points)
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Leaderboard entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    PlatformStats:
+      type: object
+      properties:
+        users:
+          type: integer
+        subjects:
+          type: integer
+        topics:
+          type: integer
+        questions:
+          type: integer
+        currentAffairsCount:
+          type: integer
+        studyNotesCount:
+          type: integer
+        mockTestsCount:
+          type: integer
+      required: [users, subjects, topics, questions, currentAffairsCount, studyNotesCount, mockTestsCount]
+
+    Quiz:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: string
+        durationMins:
+          type: integer
+        questionCount:
+          type: integer
+        negativeMarking:
+          type: number
+        status:
+          type: string
+          enum: [ongoing, completed]
+        createdAt:
+          type: string
+      required: [id, title, subject, durationMins, questionCount, negativeMarking, status, createdAt]
+
+    QuizWithQuestions:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: string
+        durationMins:
+          type: integer
+        questionCount:
+          type: integer
+        negativeMarking:
+          type: number
+        status:
+          type: string
+        instructions:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+      required: [id, title, subject, durationMins, questionCount, negativeMarking, status, instructions, questions]
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+        text:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        correctIndex:
+          type: integer
+        explanation:
+          type: ["string", "null"]
+        examLabel:
+          type: ["string", "null"]
+      required: [id, text, options, correctIndex]
+
+    PaginatedQuestions:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    CurrentAffair:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        publishedAt:
+          type: string
+        category:
+          type: string
+        prevId:
+          type: ["integer", "null"]
+        nextId:
+          type: ["integer", "null"]
+      required: [id, title, summary, content, publishedAt, category]
+
+    CurrentAffairsList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CurrentAffair"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    StudyNote:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        subject:
+          type: string
+        medium:
+          type: string
+        downloadUrl:
+          type: ["string", "null"]
+        readUrl:
+          type: ["string", "null"]
+      required: [id, title, subject, medium]
+
+    StudyNotesList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StudyNote"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required: [data, total, page, totalPages]
+
+    Subject:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        questionCount:
+          type: integer
+      required: [id, name, questionCount]
+
+    NcertBook:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        classNum:
+          type: integer
+        subject:
+          type: string
+        medium:
+          type: string
+        readUrl:
+          type: ["string", "null"]
+        downloadUrl:
+          type: ["string", "null"]
+      required: [id, title, classNum, subject, medium]
+
+    PreviousYearPaper:
+      type: object
+      properties:
+        id:
+          type: integer
+        examName:
+          type: string
+        shiftName:
+          type: string
+        year:
+          type: integer
+        questionPaperUrl:
+          type: ["string", "null"]
+        answerKeyUrl:
+          type: ["string", "null"]
+      required: [id, examName, shiftName, year]
+
+    Syllabus:
+      type: object
+      properties:
+        id:
+          type: integer
+        examName:
+          type: string
+        readUrl:
+          type: ["string", "null"]
+        downloadUrl:
+          type: ["string", "null"]
+      required: [id, examName]
+
+    MockTest:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        durationMins:
+          type: integer
+        questionCount:
+          type: integer
+        maxMarks:
+          type: integer
+        negativeMarking:
+          type: number
+        isFeatured:
+          type: boolean
+      required: [id, title, description, durationMins, questionCount, maxMarks, negativeMarking, isFeatured]
+
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        body:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [info, warning, success, urgent]
+        isActive:
+          type: boolean
+        linkText:
+          type: ["string", "null"]
+        linkUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, title, type, isActive, createdAt]
+
+    SupportMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        message:
+          type: string
+        sender:
+          type: string
+          enum: [user, support]
+        createdAt:
+          type: string
+      required: [id, message, sender, createdAt]
+
+    SupportMessageInput:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+      required: [message]
+
+    UserStreakData:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalPoints:
+          type: integer
+        quizCount:
+          type: integer
+        mockCount:
+          type: integer
+        pyqCount:
+          type: integer
+        lastActivityDate:
+          type: ["string", "null"]
+      required: [currentStreak, longestStreak, totalPoints, quizCount, mockCount, pyqCount]
+
+    RecordActivityInput:
+      type: object
+      properties:
+        activityType:
+          type: string
+          enum: [quiz, mock, pyq]
+        displayName:
+          type: string
+      required: [activityType, displayName]
+
+    ActivityResult:
+      type: object
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        totalPoints:
+          type: integer
+        pointsEarned:
+          type: integer
+        streakIncremented:
+          type: boolean
+      required: [currentStreak, longestStreak, totalPoints, pointsEarned, streakIncremented]
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: string
+        displayName:
+          type: string
+        totalPoints:
+          type: integer
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        quizCount:
+          type: integer
+        mockCount:
+          type: integer
+        pyqCount:
+          type: integer
+      required: [rank, userId, displayName, totalPoints, currentStreak, longestStreak, quizCount, mockCount, pyqCount]
