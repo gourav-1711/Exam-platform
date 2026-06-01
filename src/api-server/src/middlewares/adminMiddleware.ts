@@ -2,13 +2,19 @@ import type { Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
 import { routeParam } from "../lib/routeParams";
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+export function requireAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   const auth = getAuth(req);
   if (!auth.userId) {
     res.status(401).json({ error: "Authentication required" });
     return;
   }
-  const role = (auth.sessionClaims?.publicMetadata as { role?: string } | undefined)?.role;
+  console.log("Admin access attempt by user:", auth);
+  const role = (auth.sessionClaims?.metadata as { role?: string } | undefined)
+    ?.role;
   if (role !== "admin") {
     res.status(403).json({ error: "Admin access required" });
     return;
@@ -29,8 +35,7 @@ export function logAdminActivity(action: string, entityType?: string) {
         details: req.body ? { body: req.body } : null,
         ipAddress: req.ip ?? null,
       });
-    } catch {
-    }
+    } catch {}
     next();
   };
 }
