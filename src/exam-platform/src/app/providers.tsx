@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { useState } from "react";
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useClerk } from "@clerk/nextjs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import dynamic from "next/dynamic";
@@ -16,7 +20,7 @@ setBaseUrl(API_BASE_URL);
 
 const Toaster = dynamic(
   () => import("@/components/ui/toaster").then((m) => ({ default: m.Toaster })),
-  { ssr: false }
+  { ssr: false },
 );
 
 function makeQueryClient() {
@@ -40,7 +44,10 @@ function ClerkQueryClientCacheInvalidator() {
   useEffect(() => {
     const unsubscribe = addListener(({ user }) => {
       const userId = user?.id ?? null;
-      if (prevUserIdRef.current !== undefined && prevUserIdRef.current !== userId) {
+      if (
+        prevUserIdRef.current !== undefined &&
+        prevUserIdRef.current !== userId
+      ) {
         qc.clear();
       }
       prevUserIdRef.current = userId;
@@ -53,7 +60,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 const ClerkCacheInvalidatorDynamic = dynamic(
   () => Promise.resolve(ClerkQueryClientCacheInvalidator),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function Providers({

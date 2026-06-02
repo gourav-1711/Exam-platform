@@ -59,11 +59,24 @@ app.use(
 
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
-// CORS with origin restriction
+// CORS with origin restriction (supporting development environments, Replit dev/app origins, and localhosts)
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:8080,http://localhost:3000').split(',');
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    const isLocalhost = origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:");
+    const isReplit = /\.replit\.(dev|app)$/.test(origin) || /\.repl\.co$/.test(origin);
+
+    if (
+      process.env.NODE_ENV !== "production" ||
+      allowedOrigins.includes(origin) ||
+      isLocalhost ||
+      isReplit
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
