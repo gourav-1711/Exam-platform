@@ -8,6 +8,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import dynamic from "next/dynamic";
 import { Provider as ReduxProvider } from "react-redux";
 import { store } from "@/store/store";
+import { setBaseUrl } from "@workspace/api-client-react";
+import { API_BASE_URL } from "@/lib/api-config";
+
+// Configure base URL of API client to point to the port 4000 API server
+setBaseUrl(API_BASE_URL);
 
 const Toaster = dynamic(
   () => import("@/components/ui/toaster").then((m) => ({ default: m.Toaster })),
