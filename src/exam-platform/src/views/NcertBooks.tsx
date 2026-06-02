@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListNcertBooks } from "@workspace/api-client-react";
+import { useListNcertBooks, ListNcertBooksParams } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,10 +13,12 @@ export default function NcertBooks() {
   const [classNum, setClassNum] = useState<string>("all");
   const [subject, setSubject] = useState<string>("all");
   
-  const { data: books, isLoading } = useListNcertBooks({
+  const queryParams: ListNcertBooksParams = {
     classNum: classNum !== "all" ? Number(classNum) : undefined,
     subject: subject !== "all" ? subject : undefined,
-  });
+  };
+
+  const { data: books, isLoading } = useListNcertBooks(queryParams);
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
