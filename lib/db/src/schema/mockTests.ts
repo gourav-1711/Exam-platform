@@ -1,6 +1,6 @@
 import { pgTable, serial, text, integer, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const mockTestsTable = pgTable("mock_tests", {
   id: serial("id").primaryKey(),
