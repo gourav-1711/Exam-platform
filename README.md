@@ -5,11 +5,13 @@ A comprehensive exam platform built with Next.js 15, Express, PostgreSQL, and Dr
 ## Architecture Overview
 
 ### Port Assignments
+
 - **Frontend:** `http://localhost:8080` (Next.js 15 app)
 - **Backend API:** `http://localhost:4000` (Express server)
 - **Database:** PostgreSQL (configured via `DATABASE_URL`)
 
 ### Technology Stack
+
 - **Frontend:** Next.js 15, React 19, TypeScript, Tailwind CSS v4, TanStack Query, Clerk Auth
 - **Backend:** Express 5, TypeScript, Drizzle ORM, PostgreSQL, Cloudinary
 - **Database:** PostgreSQL with Drizzle schema management
@@ -45,6 +47,7 @@ Exam-platform/
 ## Getting Started
 
 ### Prerequisites
+
 1. **Node.js** 18+ with pnpm package manager
 2. **PostgreSQL** database (local or cloud)
 3. **Cloudinary** account (free tier sufficient)
@@ -53,17 +56,20 @@ Exam-platform/
 ### Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repo-url>
    cd Exam-platform
    ```
 
 2. **Set up environment variables:**
+
    ```bash
    cp .env.example .env
    ```
-   
+
    Update `.env` with your credentials:
+
    ```env
    # Database
    DATABASE_URL=postgresql://user:password@localhost:5432/exam_db?sslmode=require
@@ -89,11 +95,13 @@ Exam-platform/
    ```
 
 3. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 4. **Set up the database:**
+
    ```bash
    # Create/migrate database schema
    pnpm drizzle-kit push
@@ -105,6 +113,7 @@ Exam-platform/
    - You'll be prompted to enter a PIN to access the admin panel
 
 6. **Run development servers:**
+
    ```bash
    # Terminal 1: API Server
    cd src/api-server && pnpm dev
@@ -114,6 +123,7 @@ Exam-platform/
    ```
 
    Or run both concurrently from root:
+
    ```bash
    pnpm -r run dev
    ```
@@ -123,12 +133,14 @@ Exam-platform/
 ### Public Pages (No Authentication Required)
 
 #### NCERT Books (`/ncert-books`)
+
 - Browse NCERT textbooks by class (1-12) and subject
 - Filter by subject and class number
 - Direct download from Cloudinary CDN
 - Clean, responsive card-based interface
 
 #### Previous Year Papers (`/pyp`)
+
 - Access exam papers from multiple years
 - Filter by exam type (JEE Main, NEET, CBSE Board, etc.)
 - Filter by subject and year
@@ -137,17 +149,20 @@ Exam-platform/
 ### Admin Panel (`/admin`) - PIN-Protected
 
 #### PIN Authentication
+
 - Unique admin PIN gates access to all admin features
 - PIN verified via `POST /api/document-admin/verify-pin`
 - Session-based verification stored in `sessionStorage`
 - Change PIN in Settings page with current PIN verification
 
 #### Dashboard (`/admin`)
+
 - Overview of uploaded documents
 - Statistics on NCERT and PYP papers
 - Quick navigation to management pages
 
 #### NCERT Management (`/admin/ncert`)
+
 - **Upload Form:**
   - Title, Subject (Physics, Chemistry, Mathematics, etc.), Class (1-12)
   - File upload with drag-and-drop support
@@ -161,6 +176,7 @@ Exam-platform/
   - Displays file size and upload date
 
 #### PYP Management (`/admin/pyp`)
+
 - **Upload Form:**
   - Title, Subject, Year (dropdown), Exam Type (JEE/NEET/Board/etc.)
   - Similar file upload and validation
@@ -171,6 +187,7 @@ Exam-platform/
   - Download and delete functionality
 
 #### Settings (`/admin/settings`)
+
 - **Change Admin PIN:**
   - Requires current PIN for security
   - New PIN must be at least 4 characters
@@ -182,22 +199,26 @@ Exam-platform/
 ### Document Management
 
 #### NCERT Books
+
 - `GET /api/document-ncert` - List all NCERT PDFs (public)
 - `POST /api/document-ncert/upload` - Upload NCERT PDF (requires `x-admin-pin` header)
 - `DELETE /api/document-ncert/:id` - Delete NCERT PDF (requires `x-admin-pin` header)
 
 #### Previous Year Papers
+
 - `GET /api/document-pyp` - List all PYP PDFs (public)
 - `POST /api/document-pyp/upload` - Upload PYP PDF (requires `x-admin-pin` header)
 - `DELETE /api/document-pyp/:id` - Delete PYP PDF (requires `x-admin-pin` header)
 
 #### Admin PIN Management
+
 - `POST /api/document-admin/verify-pin` - Verify admin PIN
 - `POST /api/document-admin/set-pin` - Set or change admin PIN
 
 ## Database Schema
 
 ### Admin Settings
+
 ```sql
 admin_settings (
   id SERIAL PRIMARY KEY,
@@ -208,6 +229,7 @@ admin_settings (
 ```
 
 ### NCERT PDFs
+
 ```sql
 ncert_pdfs (
   id SERIAL PRIMARY KEY,
@@ -223,6 +245,7 @@ ncert_pdfs (
 ```
 
 ### PYP PDFs
+
 ```sql
 pyp_pdfs (
   id SERIAL PRIMARY KEY,
@@ -241,6 +264,7 @@ pyp_pdfs (
 ## Security Features
 
 ### Backend Security
+
 - **Helmet:** Sets secure HTTP headers (CSP, X-Frame-Options, etc.)
 - **CORS:** Restricted to configured origins only
 - **Rate Limiting:**
@@ -251,6 +275,7 @@ pyp_pdfs (
 - **Admin PIN:** Bcrypt-hashed, required for file operations
 
 ### Frontend Security
+
 - **Clerk Auth:** Handles user authentication and session management
 - **PIN Storage:** Session-based, never persisted to localStorage permanently
 - **Header-based Auth:** Admin PIN sent via `x-admin-pin` header on each request
@@ -278,6 +303,7 @@ pyp_pdfs (
 ## Development Workflow
 
 ### Making API Changes
+
 1. Update Drizzle schema in `lib/db/src/schema/`
 2. Run `pnpm drizzle-kit generate` to create migration
 3. Run `pnpm drizzle-kit push` to apply schema
@@ -285,12 +311,14 @@ pyp_pdfs (
 5. Run `pnpm typecheck` to verify types
 
 ### Adding New Pages
+
 1. Create page in `src/exam-platform/src/app/`
 2. Use existing API config: `import { API_BASE_URL } from '@/lib/api-config'`
 3. Fetch data with TanStack Query: `useQuery`
 4. Use Tailwind CSS for styling (dark theme tokens provided)
 
 ### Building for Production
+
 ```bash
 # Build all packages
 pnpm build
@@ -306,22 +334,26 @@ cd src/exam-platform && pnpm start
 ## Troubleshooting
 
 ### API Connection Issues
+
 - Ensure `NEXT_PUBLIC_API_URL=http://localhost:4000` is set
 - Check that API server is running on port 4000
 - Verify CORS origins in `ALLOWED_ORIGINS`
 
 ### Cloudinary Upload Failures
+
 - Verify credentials in `.env` are correct
 - Check Cloudinary account is active and not rate-limited
 - Ensure file size < 50MB
 - Only PDF and DOCX files are allowed
 
 ### Admin PIN Issues
+
 - First time: Visit `/admin` to set PIN
 - Forgot PIN: Contact database admin to reset `admin_settings` table
 - Session expired: Refresh page and re-enter PIN
 
 ### Database Errors
+
 - Check `DATABASE_URL` connection string is correct
 - Ensure PostgreSQL server is running
 - Run migrations: `pnpm drizzle-kit push`
