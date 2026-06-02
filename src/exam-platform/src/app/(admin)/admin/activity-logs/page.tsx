@@ -1,42 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useAdminActivityLogs } from "@workspace/api-client-react";
 import { Activity, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { API_BASE_URL } from "@/lib/api-config";
-
-interface ActivityLog {
-  id: number;
-  userId: string;
-  action: string;
-  entityType: string | null;
-  entityId: string | null;
-  ipAddress: string | null;
-  createdAt: string;
-}
-
-async function fetchLogs(page: number, action: string): Promise<{ data: ActivityLog[]; pagination: { page: number; total: number; totalPages: number; limit: number } }> {
-  const params = new URLSearchParams({ page: String(page), limit: "50" });
-  if (action) params.set("action", action);
-  const res = await fetch(`${API_BASE_URL}/api/admin/activity-logs?${params}`);
-  if (!res.ok) throw new Error("Failed");
-  return res.json();
-}
 
 const actionColor: Record<string, string> = {
-  create: "bg-green-100 text-green-700",
-  update: "bg-blue-100 text-blue-700",
-  delete: "bg-red-100 text-red-700",
-  bulk: "bg-amber-100 text-amber-700",
+  create: "bg-green-500/10 text-green-400 border-green-500/20",
+  update: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  delete: "bg-red-500/10 text-red-400 border-red-500/20",
+  reply: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+  assign: "bg-pink-500/10 text-pink-400 border-pink-500/20",
 };
 
 function getActionColor(action: string): string {
   const prefix = Object.keys(actionColor).find((k) => action.startsWith(k));
-  return prefix ? actionColor[prefix] : "bg-gray-100 text-gray-600";
+  return prefix ? actionColor[prefix] : "bg-slate-800 text-slate-400 border-slate-700";
 }
 
 export default function ActivityLogsPage() {
@@ -44,55 +26,72 @@ export default function ActivityLogsPage() {
   const [action, setAction] = useState("");
   const [debouncedAction, setDebouncedAction] = useState("");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "activity-logs", page, debouncedAction],
-    queryFn: () => fetchLogs(page, debouncedAction),
-    staleTime: 30 * 1000,
+  const { data, isLoading } = useAdminActivityLogs({
+    page,
+    limit: 50,
+    action: debouncedAction || undefined,
   });
 
   const handleSearch = (v: string) => {
     setAction(v);
-    clearTimeout((window as unknown as { _aTimer?: ReturnType<typeof setTimeout> })._aTimer);
-    (window as unknown as { _aTimer?: ReturnType<typeof setTimeout> })._aTimer = setTimeout(() => { setDebouncedAction(v); setPage(1); }, 400);
+    clearTimeout((window as any)._aTimer);
+    (window as any)._aTimer = setTimeout(() => {
+      setDebouncedAction(v);
+      setPage(1);
+    }, 400);
   };
 
+  const pagination = data?.pagination;
+
   return (
-    <div className="p-6 md:p-8 space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
-        <p className="text-gray-500 text-sm mt-0.5">{data?.pagination.total ?? "–"} total events</p>
+        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <Activity className="w-8 h-8 text-indigo-400" />
+          Activity Logs
+        </h1>
+        <p className="text-slate-400 mt-2">{(pagination?.total !== undefined) ? pagination.total : "–"} total tracked actions and operations</p>
       </div>
 
       <div className="relative max-w-xs">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input value={action} onChange={(e) => handleSearch(e.target.value)} placeholder="Filter by action..." className="pl-9" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+        <Input
+          value={action}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Filter by action name..."
+          className="pl-9 bg-slate-900 border-slate-800 text-white placeholder-slate-500 rounded-lg text-sm h-10"
+        />
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-12 bg-gray-100 animate-pulse rounded-lg" />)}</div>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-12 bg-slate-900 border border-slate-800 animate-pulse rounded-lg" />
+          ))}
+        </div>
       ) : (
         <>
-          <Card className="border-0 shadow-sm overflow-hidden">
-            <div className="divide-y">
+          <Card className="border-slate-800 bg-slate-900 shadow-sm overflow-hidden">
+            <div className="divide-y divide-slate-800">
               {data?.data.length === 0 && (
-                <div className="py-12 text-center text-gray-400">
-                  <Activity className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                  No activity logs found
+                <div className="py-12 text-center text-slate-500 flex flex-col items-center gap-2">
+                  <Activity className="h-10 w-10 opacity-30" />
+                  No action logs found
                 </div>
               )}
               {data?.data.map((log) => (
-                <div key={log.id} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 mt-0.5 ${getActionColor(log.action)}`}>
+                <div key={log.id} className="flex items-start gap-4 px-4 py-3.5 hover:bg-slate-800/30 transition-colors">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase shrink-0 mt-0.5 border ${getActionColor(log.action)}`}>
                     {log.action.replace(/_/g, " ")}
                   </span>
                   <div className="flex-1 min-w-0">
                     {log.entityType && (
-                      <Badge variant="outline" className="text-xs mr-1.5">{log.entityType}</Badge>
+                      <Badge variant="outline" className="text-[10px] uppercase font-bold mr-1.5 border-slate-700 text-slate-300">{log.entityType}</Badge>
                     )}
-                    <span className="font-mono text-xs text-gray-500">{log.userId.slice(0, 20)}…</span>
-                    {log.ipAddress && <span className="text-xs text-gray-400 ml-2">{log.ipAddress}</span>}
+                    <span className="font-mono text-xs text-slate-400">by {log.userId.slice(0, 20)}...</span>
+                    {log.ipAddress && <span className="text-[10px] text-slate-500 ml-2 font-mono">({log.ipAddress})</span>}
                   </div>
-                  <time className="text-xs text-gray-400 flex-shrink-0">
+                  <time className="text-xs text-slate-500 shrink-0 font-mono">
                     {new Date(log.createdAt).toLocaleString()}
                   </time>
                 </div>
@@ -100,12 +99,12 @@ export default function ActivityLogsPage() {
             </div>
           </Card>
 
-          {data && data.pagination.totalPages > 1 && (
+          {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-500">Page {data.pagination.page} of {data.pagination.totalPages}</span>
+              <span className="text-sm text-slate-400">Page {pagination.page} of {pagination.totalPages}</span>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" disabled={page >= data.pagination.totalPages} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" className="bg-slate-900 border-slate-800 text-slate-300 hover:text-white" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" className="bg-slate-900 border-slate-800 text-slate-300 hover:text-white" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
               </div>
             </div>
           )}
