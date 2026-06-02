@@ -1,6 +1,5 @@
 import { pgTable, serial, text, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const previousYearPapersTable = pgTable("previous_year_papers", {
   id: serial("id").primaryKey(),
@@ -12,7 +11,7 @@ export const previousYearPapersTable = pgTable("previous_year_papers", {
 });
 
 export const insertPreviousYearPaperSchema = createInsertSchema(previousYearPapersTable).omit({ id: true });
-export type InsertPreviousYearPaper = z.infer<typeof insertPreviousYearPaperSchema>;
+export type InsertPreviousYearPaper = typeof previousYearPapersTable.$inferInsert;
 export type PreviousYearPaper = typeof previousYearPapersTable.$inferSelect;
 
 export const syllabusTable = pgTable("syllabus", {
@@ -23,5 +22,5 @@ export const syllabusTable = pgTable("syllabus", {
 });
 
 export const insertSyllabusSchema = createInsertSchema(syllabusTable).omit({ id: true });
-export type InsertSyllabus = z.infer<typeof insertSyllabusSchema>;
+export type InsertSyllabus = typeof syllabusTable.$inferInsert;
 export type Syllabus = typeof syllabusTable.$inferSelect;

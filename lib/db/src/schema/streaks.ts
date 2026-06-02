@@ -1,6 +1,5 @@
 import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const userStreaksTable = pgTable("user_streaks", {
   id: serial("id").primaryKey(),
@@ -18,5 +17,5 @@ export const userStreaksTable = pgTable("user_streaks", {
 });
 
 export const insertUserStreakSchema = createInsertSchema(userStreaksTable).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertUserStreak = z.infer<typeof insertUserStreakSchema>;
+export type InsertUserStreak = typeof userStreaksTable.$inferInsert;
 export type UserStreak = typeof userStreaksTable.$inferSelect;

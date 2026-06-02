@@ -2,7 +2,6 @@ import {
   pgTable, serial, text, integer, real, boolean, timestamp, jsonb, index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const examsTable = pgTable("exams", {
   id: serial("id").primaryKey(),
@@ -103,7 +102,7 @@ export const insertDraftSchema = createInsertSchema(draftsTable).omit({ id: true
 export const insertActivityLogSchema = createInsertSchema(activityLogsTable).omit({ id: true, createdAt: true });
 
 export type Exam = typeof examsTable.$inferSelect;
-export type InsertExam = z.infer<typeof insertExamSchema>;
+export type InsertExam = typeof examsTable.$inferInsert;
 export type QuestionDraft = typeof questionDraftsTable.$inferSelect;
 export type ExamDraft = typeof examDraftsTable.$inferSelect;
 export type Draft = typeof draftsTable.$inferSelect;

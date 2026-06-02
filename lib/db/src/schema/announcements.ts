@@ -1,6 +1,5 @@
 import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const announcementsTable = pgTable("announcements", {
   id: serial("id").primaryKey(),
@@ -14,5 +13,5 @@ export const announcementsTable = pgTable("announcements", {
 });
 
 export const insertAnnouncementSchema = createInsertSchema(announcementsTable).omit({ id: true, createdAt: true });
-export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type InsertAnnouncement = typeof announcementsTable.$inferInsert;
 export type Announcement = typeof announcementsTable.$inferSelect;

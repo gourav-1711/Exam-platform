@@ -1,6 +1,5 @@
 import { pgTable, serial, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const studyNotesTable = pgTable("study_notes", {
   id: serial("id").primaryKey(),
@@ -12,5 +11,5 @@ export const studyNotesTable = pgTable("study_notes", {
 });
 
 export const insertStudyNoteSchema = createInsertSchema(studyNotesTable).omit({ id: true });
-export type InsertStudyNote = z.infer<typeof insertStudyNoteSchema>;
+export type InsertStudyNote = typeof studyNotesTable.$inferInsert;
 export type StudyNote = typeof studyNotesTable.$inferSelect;

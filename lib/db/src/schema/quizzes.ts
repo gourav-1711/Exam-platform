@@ -1,6 +1,5 @@
 import { pgTable, serial, text, integer, real, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const quizzesTable = pgTable("quizzes", {
   id: serial("id").primaryKey(),
@@ -15,7 +14,7 @@ export const quizzesTable = pgTable("quizzes", {
 });
 
 export const insertQuizSchema = createInsertSchema(quizzesTable).omit({ id: true, createdAt: true });
-export type InsertQuiz = z.infer<typeof insertQuizSchema>;
+export type InsertQuiz = typeof quizzesTable.$inferInsert;
 export type Quiz = typeof quizzesTable.$inferSelect;
 
 export const questionsTable = pgTable("questions", {
@@ -37,5 +36,5 @@ export const questionsTable = pgTable("questions", {
 });
 
 export const insertQuestionSchema = createInsertSchema(questionsTable).omit({ id: true });
-export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
+export type InsertQuestion = typeof questionsTable.$inferInsert;
 export type Question = typeof questionsTable.$inferSelect;

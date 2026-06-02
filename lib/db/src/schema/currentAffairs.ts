@@ -1,6 +1,5 @@
 import { pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const currentAffairsTable = pgTable("current_affairs", {
   id: serial("id").primaryKey(),
@@ -12,5 +11,5 @@ export const currentAffairsTable = pgTable("current_affairs", {
 });
 
 export const insertCurrentAffairSchema = createInsertSchema(currentAffairsTable).omit({ id: true });
-export type InsertCurrentAffair = z.infer<typeof insertCurrentAffairSchema>;
+export type InsertCurrentAffair = typeof currentAffairsTable.$inferInsert;
 export type CurrentAffair = typeof currentAffairsTable.$inferSelect;

@@ -1,6 +1,5 @@
 import { pgTable, serial, text, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const ncertBooksTable = pgTable("ncert_books", {
   id: serial("id").primaryKey(),
@@ -13,5 +12,5 @@ export const ncertBooksTable = pgTable("ncert_books", {
 });
 
 export const insertNcertBookSchema = createInsertSchema(ncertBooksTable).omit({ id: true });
-export type InsertNcertBook = z.infer<typeof insertNcertBookSchema>;
+export type InsertNcertBook = typeof ncertBooksTable.$inferInsert;
 export type NcertBook = typeof ncertBooksTable.$inferSelect;

@@ -1,6 +1,5 @@
 import { pgTable, serial, text, integer, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const mockTestsTable = pgTable("mock_tests", {
   id: serial("id").primaryKey(),
@@ -14,5 +13,5 @@ export const mockTestsTable = pgTable("mock_tests", {
 });
 
 export const insertMockTestSchema = createInsertSchema(mockTestsTable).omit({ id: true });
-export type InsertMockTest = z.infer<typeof insertMockTestSchema>;
+export type InsertMockTest = typeof mockTestsTable.$inferInsert;
 export type MockTest = typeof mockTestsTable.$inferSelect;
