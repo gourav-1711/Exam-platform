@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={data.subjectStats} dataKey="count" nameKey="subject" cx="50%" cy="50%" outerRadius={80} label={({ subject, percent }) => `${subject} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                <Pie data={data.subjectStats} dataKey="count" nameKey="subject" cx="50%" cy="50%" outerRadius={80} label={(entry: any) => `${entry.subject} ${(entry.percent * 100).toFixed(0)}%`} labelLine={false}>
                   {data.subjectStats.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie>
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155' }} />
