@@ -4,13 +4,17 @@ import { pypPdfsTable } from '@workspace/db';
 import { eq } from 'drizzle-orm';
 import { uploadDoc } from '../middleware/upload';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary';
+import { routeParam } from '../lib/routeParams';
 
 const router = Router();
 
 // GET /api/document-pyp — list all (optionally filter ?year=&examType=&subject=)
 router.get('/', async (req, res) => {
   try {
-    const { year, examType, subject } = req.query;
+    const year = req.query.year ? routeParam(req.query.year) : undefined;
+    const examType = req.query.examType ? routeParam(req.query.examType) : undefined;
+    const subject = req.query.subject ? routeParam(req.query.subject) : undefined;
+    
     const allResults = await db.select().from(pypPdfsTable);
 
     let filtered = allResults;
@@ -35,8 +39,10 @@ router.post('/upload', uploadDoc.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const { title, subject, year, examType } = req.body;
-    if (!title || !subject || !year || !examType)
-      return res.status(400).json({ error: 'title, subject, year, examType are required' });
+    if (!title || !subject || !year || !examType) {
+      res.status(400).json({ error: 'title, subject, year, examType are required' });
+      return;
+    }
 
     const { secureUrl, publicId } = await uploadToCloudinary(
       req.file.buffer,
@@ -66,7 +72,10 @@ router.post('/upload', uploadDoc.single('file'), async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const record = await db.select().from(pypPdfsTable).where(eq(pypPdfsTable.id, Number(req.params.id))).limit(1);
-    if (!record.length) return res.status(404).json({ error: 'Not found' });
+    if (!record.length) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
 
     await deleteFromCloudinary(record[0].cloudinaryPublicId);
     await db.delete(pypPdfsTable).where(eq(pypPdfsTable.id, Number(req.params.id)));
