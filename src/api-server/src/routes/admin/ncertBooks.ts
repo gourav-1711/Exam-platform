@@ -18,67 +18,90 @@ router.get("/ncert-books", async (req, res) => {
 
 router.get("/ncert-books/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    const [book] = await db.select().from(ncertBooksTable).where(eq(ncertBooksTable.id, id));
+    const id = parseInt(req.params.id as string);
+    const [book] = await db
+      .select()
+      .from(ncertBooksTable)
+      .where(eq(ncertBooksTable.id, id));
     if (!book) return res.status(404).json({ error: "NCERT book not found" });
-    res.json(book);
+    return res.json(book);
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch NCERT book" });
+    return res.status(500).json({ error: "Failed to fetch NCERT book" });
   }
 });
 
-router.post("/ncert-books", logAdminActivity("create_ncert_book", "ncert_book"), async (req, res) => {
-  try {
-    const { title, classNum, subject, medium, readUrl, downloadUrl } = req.body;
-    if (!title || !subject || !classNum) {
-      return res.status(400).json({ error: "title, subject, and classNum are required" });
+router.post(
+  "/ncert-books",
+  logAdminActivity("create_ncert_book", "ncert_book"),
+  async (req, res) => {
+    try {
+      const { title, classNum, subject, medium, readUrl, downloadUrl } =
+        req.body;
+      if (!title || !subject || !classNum) {
+        return res
+          .status(400)
+          .json({ error: "title, subject, and classNum are required" });
+      }
+
+      const [book] = await db
+        .insert(ncertBooksTable)
+        .values({
+          title,
+          classNum: parseInt(classNum as string),
+          subject,
+          medium: medium || "English",
+          readUrl: readUrl || null,
+          downloadUrl: downloadUrl || null,
+        })
+        .returning();
+
+      return res.status(201).json(book);
+    } catch (err) {
+      req.log.error(err);
+      return res.status(500).json({ error: "Failed to create NCERT book" });
     }
+  },
+);
 
-    const [book] = await db.insert(ncertBooksTable).values({
-      title,
-      classNum: parseInt(classNum),
-      subject,
-      medium: medium || "English",
-      readUrl: readUrl || null,
-      downloadUrl: downloadUrl || null,
-    }).returning();
+router.patch(
+  "/ncert-books/:id",
+  logAdminActivity("update_ncert_book", "ncert_book"),
+  async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const [updated] = await db
+        .update(ncertBooksTable)
+        .set({
+          ...req.body,
+        })
+        .where(eq(ncertBooksTable.id, id))
+        .returning();
 
-    res.status(201).json(book);
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to create NCERT book" });
-  }
-});
+      if (!updated)
+        return res.status(404).json({ error: "NCERT book not found" });
 
-router.patch("/ncert-books/:id", logAdminActivity("update_ncert_book", "ncert_book"), async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const [updated] = await db.update(ncertBooksTable)
-      .set({
-        ...req.body,
-      })
-      .where(eq(ncertBooksTable.id, id))
-      .returning();
+      return res.json(updated);
+    } catch (err) {
+      req.log.error(err);
+      return res.status(500).json({ error: "Failed to update NCERT book" });
+    }
+  },
+);
 
-    if (!updated) return res.status(404).json({ error: "NCERT book not found" });
-
-    res.json(updated);
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to update NCERT book" });
-  }
-});
-
-router.delete("/ncert-books/:id", logAdminActivity("delete_ncert_book", "ncert_book"), async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    await db.delete(ncertBooksTable).where(eq(ncertBooksTable.id, id));
-    res.json({ success: true });
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to delete NCERT book" });
-  }
-});
+router.delete(
+  "/ncert-books/:id",
+  logAdminActivity("delete_ncert_book", "ncert_book"),
+  async (req, res) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      await db.delete(ncertBooksTable).where(eq(ncertBooksTable.id, id));
+      return res.json({ success: true });
+    } catch (err) {
+      req.log.error(err);
+      return res.status(500).json({ error: "Failed to delete NCERT book" });
+    }
+  },
+);
 
 export default router;

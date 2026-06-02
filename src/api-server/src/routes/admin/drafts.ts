@@ -21,34 +21,34 @@ router.get("/drafts", async (req, res) => {
       .where(and(...conditions))
       .orderBy(desc(draftsTable.lastSavedAt));
 
-    res.json(drafts.map(d => ({
+    return res.json(drafts.map(d => ({
       ...d,
       lastSavedAt: d.lastSavedAt.toISOString(),
       createdAt: d.createdAt.toISOString(),
     })));
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch drafts" });
+    return res.status(500).json({ error: "Failed to fetch drafts" });
   }
 });
 
 router.get("/drafts/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const auth = getAuth(req);
     const [draft] = await db.select().from(draftsTable)
       .where(and(eq(draftsTable.id, id), eq(draftsTable.createdBy, auth.userId!)));
 
     if (!draft) return res.status(404).json({ error: "Draft not found" });
 
-    res.json({
+    return res.json({
       ...draft,
       lastSavedAt: draft.lastSavedAt.toISOString(),
       createdAt: draft.createdAt.toISOString(),
     });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch draft" });
+    return res.status(500).json({ error: "Failed to fetch draft" });
   }
 });
 
@@ -68,20 +68,20 @@ router.post("/drafts", logAdminActivity("create_draft", "draft"), async (req, re
       createdBy: auth.userId!,
     }).returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       ...draft,
       lastSavedAt: draft.lastSavedAt.toISOString(),
       createdAt: draft.createdAt.toISOString(),
     });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to save draft" });
+    return res.status(500).json({ error: "Failed to save draft" });
   }
 });
 
 router.patch("/drafts/:id", logAdminActivity("update_draft", "draft"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const auth = getAuth(req);
     const { content } = req.body;
 
@@ -99,29 +99,29 @@ router.patch("/drafts/:id", logAdminActivity("update_draft", "draft"), async (re
 
     if (!draft) return res.status(404).json({ error: "Draft not found" });
 
-    res.json({
+    return res.json({
       ...draft,
       lastSavedAt: draft.lastSavedAt.toISOString(),
       createdAt: draft.createdAt.toISOString(),
     });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to update draft" });
+    return res.status(500).json({ error: "Failed to update draft" });
   }
 });
 
 router.delete("/drafts/:id", logAdminActivity("delete_draft", "draft"), async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const auth = getAuth(req);
 
     const deleted = await db.delete(draftsTable)
       .where(and(eq(draftsTable.id, id), eq(draftsTable.createdBy, auth.userId!)));
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
     req.log.error(err);
-    res.status(500).json({ error: "Failed to delete draft" });
+    return res.status(500).json({ error: "Failed to delete draft" });
   }
 });
 

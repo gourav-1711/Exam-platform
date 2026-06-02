@@ -9,17 +9,17 @@ const router = Router();
 
 router.get("/support-tickets", async (req, res): Promise<any> => {
   try {
-    const page = req.query.page ? routeParam(req.query.page) : "1";
-    const limit = req.query.limit ? routeParam(req.query.limit) : "20";
-    const status = req.query.status ? routeParam(req.query.status) : undefined;
-    const search = req.query.search ? routeParam(req.query.search) : undefined;
+    const page = req.query.page ? routeParam(req.query.page as string | string[]) : "1";
+    const limit = req.query.limit ? routeParam(req.query.limit as string | string[]) : "20";
+    const status = req.query.status ? routeParam(req.query.status as string | string[]) : "all";
+    const search = req.query.search ? routeParam(req.query.search as string | string[]) : "";
 
     const pageNum = Math.max(1, parseInt(page));
     const limitNum = Math.min(100, parseInt(limit));
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (status) conditions.push(eq(supportTicketsTable.status, status as any));
+    if (status !== "all") conditions.push(eq(supportTicketsTable.status, status as string));
     if (search) conditions.push(like(supportTicketsTable.title, `%${search}%`));
 
     const where = conditions.length ? and(...conditions) : undefined;

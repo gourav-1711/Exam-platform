@@ -56,11 +56,15 @@ router.get("/students", async (req, res) => {
 router.get("/students/:userId/attempts", async (req, res) => {
   try {
     const userId = routeParam(req.params.userId);
-    const attempts = await db.select().from(studentAttemptsTable)
+    const attempts = await db
+      .select()
+      .from(studentAttemptsTable)
       .where(eq(studentAttemptsTable.userId, userId))
       .orderBy(desc(studentAttemptsTable.attemptedAt))
       .limit(50);
-    res.json(attempts.map((a) => ({ ...a, attemptedAt: a.attemptedAt.toISOString() })));
+    res.json(
+      attempts.map((a) => ({ ...a, attemptedAt: a.attemptedAt.toISOString() })),
+    );
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Failed to fetch student attempts" });

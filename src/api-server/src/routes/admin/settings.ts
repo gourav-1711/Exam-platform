@@ -11,17 +11,20 @@ router.get("/settings", async (req, res) => {
     let [settings] = await db.select().from(settingsTable).limit(1);
     if (!settings) {
       // Seed default settings if empty
-      [settings] = await db.insert(settingsTable).values({
-        siteName: "Manish Ki Pathshala",
-        siteDescription: "Premium exam preparation platform",
-        supportEmail: "support@manishkipathshala.com",
-        supportPhone: "+919999999999",
-        maintenanceMode: false,
-        leaderboardEnabled: true,
-        quizEnabled: true,
-        currentAffairsEnabled: true,
-        registrationEnabled: true,
-      }).returning();
+      [settings] = await db
+        .insert(settingsTable)
+        .values({
+          siteName: "Manish Ki Pathshala",
+          siteDescription: "Premium exam preparation platform",
+          supportEmail: "support@manishkipathshala.com",
+          supportPhone: "+919999999999",
+          maintenanceMode: false,
+          leaderboardEnabled: true,
+          quizEnabled: true,
+          currentAffairsEnabled: true,
+          registrationEnabled: true,
+        })
+        .returning();
     }
     res.json({
       ...settings,
@@ -33,28 +36,33 @@ router.get("/settings", async (req, res) => {
   }
 });
 
-router.patch("/settings", logAdminActivity("update_settings", "settings"), async (req, res) => {
-  try {
-    let [settings] = await db.select().from(settingsTable).limit(1);
-    if (!settings) {
-      [settings] = await db.insert(settingsTable).values({}).returning();
-    }
-    const [updated] = await db.update(settingsTable)
-      .set({
-        ...req.body,
-        updatedAt: new Date(),
-      })
-      .where(eq(settingsTable.id, settings.id))
-      .returning();
+router.patch(
+  "/settings",
+  logAdminActivity("update_settings", "settings"),
+  async (req, res) => {
+    try {
+      let [settings] = await db.select().from(settingsTable).limit(1);
+      if (!settings) {
+        [settings] = await db.insert(settingsTable).values({}).returning();
+      }
+      const [updated] = await db
+        .update(settingsTable)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
+        .where(eq(settingsTable.id, settings.id))
+        .returning();
 
-    res.json({
-      ...updated,
-      updatedAt: updated.updatedAt.toISOString(),
-    });
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to update settings" });
-  }
-});
+      res.json({
+        ...updated,
+        updatedAt: updated.updatedAt.toISOString(),
+      });
+    } catch (err) {
+      req.log.error(err);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  },
+);
 
 export default router;
