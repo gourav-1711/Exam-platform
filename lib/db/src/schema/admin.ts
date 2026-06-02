@@ -50,6 +50,16 @@ export const examDraftsTable = pgTable("exam_drafts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => [index("edrafts_user_idx").on(t.createdBy)]);
 
+export const draftsTable = pgTable("drafts", {
+  id: serial("id").primaryKey(),
+  resourceType: text("resource_type").notNull(), // 'announcement', 'quiz', 'study_note', 'current_affair', 'question', 'exam'
+  resourceId: integer("resource_id"),
+  createdBy: text("created_by").notNull(),
+  content: jsonb("content").notNull(),
+  lastSavedAt: timestamp("last_saved_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [index("drafts_user_resource_idx").on(t.createdBy, t.resourceType)]);
+
 export const studentAttemptsTable = pgTable("student_attempts", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
@@ -89,11 +99,13 @@ export const adminNotificationsTable = pgTable("admin_notifications", {
 export const insertExamSchema = createInsertSchema(examsTable).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertQuestionDraftSchema = createInsertSchema(questionDraftsTable).omit({ id: true, createdAt: true, lastSavedAt: true });
 export const insertExamDraftSchema = createInsertSchema(examDraftsTable).omit({ id: true, createdAt: true, lastSavedAt: true });
+export const insertDraftSchema = createInsertSchema(draftsTable).omit({ id: true, createdAt: true, lastSavedAt: true });
 export const insertActivityLogSchema = createInsertSchema(activityLogsTable).omit({ id: true, createdAt: true });
 
 export type Exam = typeof examsTable.$inferSelect;
 export type InsertExam = z.infer<typeof insertExamSchema>;
 export type QuestionDraft = typeof questionDraftsTable.$inferSelect;
 export type ExamDraft = typeof examDraftsTable.$inferSelect;
+export type Draft = typeof draftsTable.$inferSelect;
 export type StudentAttempt = typeof studentAttemptsTable.$inferSelect;
 export type ActivityLog = typeof activityLogsTable.$inferSelect;

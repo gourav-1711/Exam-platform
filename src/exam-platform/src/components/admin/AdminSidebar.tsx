@@ -8,7 +8,7 @@ import { toggleAdminSidebar } from "@/store/slices/uiSlice";
 import {
   LayoutDashboard, HelpCircle, ClipboardList, Users, BarChart3,
   FileEdit, Activity, Settings, ChevronLeft, ChevronRight,
-  GraduationCap, BookOpen,
+  GraduationCap, BookOpen, MessageSquare,
 } from "lucide-react";
 
 const NAV = [
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/admin/questions", icon: HelpCircle, label: "Questions" },
   { href: "/admin/exams", icon: GraduationCap, label: "Exams" },
   { href: "/admin/students", icon: Users, label: "Students" },
+  { href: "/admin/support-tickets", icon: MessageSquare, label: "Support Tickets" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/admin/drafts", icon: FileEdit, label: "Drafts" },
   { href: "/admin/activity-logs", icon: Activity, label: "Activity Logs" },

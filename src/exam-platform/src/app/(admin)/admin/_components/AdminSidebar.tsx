@@ -2,12 +2,13 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useClerk } from '@clerk/nextjs';
-import { Shield, BookOpen, FileText, Settings, LogOut } from 'lucide-react';
+import { Shield, BookOpen, FileText, Settings, LogOut, MessageSquare } from 'lucide-react';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: Shield },
   { href: '/admin/ncert', label: 'NCERT Books', icon: BookOpen },
   { href: '/admin/pyp', label: 'Previous Year Papers', icon: FileText },
+  { href: '/admin/support-tickets', label: 'Support Tickets', icon: MessageSquare },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
