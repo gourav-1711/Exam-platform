@@ -31,14 +31,12 @@ export default function Footer() {
       <div className="p-5">
         {/* Brand Section */}
         <div className="flex items-center gap-2.5 mb-3">
-          {/* Logo */}
-          <img
-            src={logoImg}
-            alt="Manish Ki Pathshala"
-            className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shrink-0"
-          />
-          {/* Brand Name */}
-          <span className="font-extrabold text-base text-foreground">Manish Ki Pathshala</span>
+          <div className="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shrink-0">
+            <span className="text-white font-extrabold text-xs">MK</span>
+          </div>
+          <span className="font-extrabold text-base text-foreground">
+            Manish Ki Pathshala
+          </span>
         </div>
 
         {/* Description */}
@@ -87,7 +85,7 @@ export default function Footer() {
           {/* Company Links */}
           <div>
             <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2.5">COMPANY</p>
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               {companyLinks.map((item) => (
                 <Link
                   key={item.href}
