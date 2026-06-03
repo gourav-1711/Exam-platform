@@ -4,6 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageTransition } from "./PageTransition";
+import { Button } from "./../ui/button";
 
 interface StaticPageLayoutProps {
   title: string;
@@ -19,21 +20,41 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
   return (
     <PageTransition className="min-h-screen bg-gray-50 flex flex-col">
 
-      <div className="bg-white border-b border-border/60 px-4 py-3">
-        <button
-          onClick={() => router.push("/")}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-        >
-          <ArrowLeft className="size-5" />
-          <span className="font-semibold text-lg">Back</span>
-        </button>
-        {/* <h2 className="text-base font-bold text-foreground leading-tight">{title}</h2>
-        <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p> */}
+      <div className="relative overflow-hidden border-b bg-background p-2">
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, currentColor 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+
+        <div className="relative flex items-center gap-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/")}
+            className="h-8 rounded-lg px-3 shadow-sm"
+          >
+            <ArrowLeft className="size-4" />
+            Back
+          </Button>
+
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              {title}
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {subtitle}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 px-4 pt-6 pb-4 max-w-2xl w-full mx-auto">
         <div className="mb-5">
-          <h1 className="text-2xl font-extrabold text-foreground">{heading}</h1>
+          <h2 className="text-2xl font-extrabold text-foreground">{heading}</h2>
           <div className="mt-1.5 w-14 h-[3px] rounded-full bg-primary" />
         </div>
 

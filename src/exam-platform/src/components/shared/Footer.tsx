@@ -102,7 +102,7 @@ export default function Footer() {
         {/* Copyright */}
         <p className="text-center text-[10px] text-muted-foreground mt-4">
           © 2026 MANISH KI PATHSHALA •
-          <span className="text-violet-600 font-semibold">DESIGNED BY ❤️ Gaurav Dadhich</span>
+          <Link href="https://my-portfolio-nine-eta-bo1n0vx4mt.vercel.app/" className="text-violet-600 font-semibold">DESIGNED BY ❤️ Gaurav Dadhich</Link>
         </p>
       </div>
     </div>
