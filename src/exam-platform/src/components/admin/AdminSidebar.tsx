@@ -6,9 +6,18 @@ import { cn } from "@/lib/utils";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { toggleAdminSidebar } from "@/store/slices/uiSlice";
 import {
-  LayoutDashboard, HelpCircle, ClipboardList, Users, BarChart3,
-  FileEdit, Activity, Settings, ChevronLeft, ChevronRight,
-  GraduationCap, BookOpen, MessageSquare,
+  LayoutDashboard,
+  HelpCircle,
+  GraduationCap,
+  Users,
+  BarChart3,
+  FileEdit,
+  Activity,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Newspaper,
+  MessageSquare,
 } from "lucide-react";
 
 const NAV = [
@@ -16,6 +25,7 @@ const NAV = [
   { href: "/admin/questions", icon: HelpCircle, label: "Questions" },
   { href: "/admin/exams", icon: GraduationCap, label: "Exams" },
   { href: "/admin/students", icon: Users, label: "Students" },
+  { href: "/admin/current-affairs", icon: Newspaper, label: "Current Affairs" },
   { href: "/admin/support-tickets", icon: MessageSquare, label: "Support Tickets" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/admin/drafts", icon: FileEdit, label: "Drafts" },
@@ -31,20 +41,20 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-gray-900 text-white transition-all duration-300 sticky top-0",
+        "flex flex-col h-screen bg-white text-gray-900 transition-all duration-300 sticky top-0 border-r",
         collapsed ? "w-16" : "w-60"
       )}
     >
-      <div className="flex items-center justify-between px-4 py-4 border-b border-gray-700">
+      <div className="flex items-center justify-between px-4 py-4 border-b">
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <BookOpen className="h-5 w-5 text-violet-400 flex-shrink-0" />
+            <Newspaper className="h-5 w-5 text-violet-600 flex-shrink-0" />
             <span className="font-bold text-sm truncate">Admin Panel</span>
           </div>
         )}
         <button
           onClick={() => dispatch(toggleAdminSidebar())}
-          className="p-1 rounded hover:bg-gray-700 transition-colors ml-auto"
+          className="p-1 rounded hover:bg-gray-100 transition-colors ml-auto"
           aria-label="Toggle sidebar"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -61,8 +71,8 @@ export function AdminSidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
                 isActive
-                  ? "bg-violet-600 text-white"
-                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                  ? "bg-violet-50 text-violet-700 font-semibold"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               )}
               title={collapsed ? label : undefined}
             >
@@ -73,8 +83,8 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-gray-700 px-4 py-3">
-        <Link href="/" className="text-xs text-gray-400 hover:text-white transition-colors">
+      <div className="border-t px-4 py-3">
+        <Link href="/" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">
           {collapsed ? "←" : "← Back to App"}
         </Link>
       </div>
