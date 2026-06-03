@@ -5,44 +5,12 @@ import { useRouter } from "next/navigation";
 import { useCurrentAffairs, useDeleteCurrentAffair } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Search, Plus, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { CurrentAffairsSearch } from "@/components/admin/CurrentAffairsSearch";
+import { CurrentAffairsFilters } from "@/components/admin/CurrentAffairsFilters";
+import { CurrentAffairsTable } from "@/components/admin/CurrentAffairsTable";
+import { CurrentAffairsPagination } from "@/components/admin/CurrentAffairsPagination";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 
 const CATEGORIES = ["All", "General", "National", "International", "Economy", "Science & Tech"];
@@ -90,157 +58,29 @@ export default function CurrentAffairsAdminPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search by title..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        <CurrentAffairsSearch value={search} onChange={setSearch} />
+        <CurrentAffairsFilters category={category} onCategoryChange={setCategory} />
       </div>
 
       <Card className="border-0 shadow-sm">
         <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-4 space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : isError ? (
+          {isError ? (
             <div className="p-8 text-center text-red-500">
               Failed to load current affairs
             </div>
-          ) : data?.data.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No current affairs found
-            </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Published</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.data.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">
-                        <div className="line-clamp-1">{item.title}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {item.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(item.publishedAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/current-affairs/${item.id}`}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/current-affairs/${item.id}/edit`}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </Link>
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                  onSelect={(e) => e.preventDefault()}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete Current Affair
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(item.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
+              <CurrentAffairsTable 
+                data={data?.data || []} 
+                onDelete={handleDelete}
+                isLoading={isLoading}
+              />
               {data && data.totalPages > 1 && (
-                <div className="p-4 border-t">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setPage((p) => Math.max(1, p - 1))}
-                          className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: data.totalPages }).map((_, i) => (
-                        <PaginationItem key={i}>
-                          <PaginationLink
-                            onClick={() => setPage(i + 1)}
-                            isActive={page === i + 1}
-                            className="cursor-pointer"
-                          >
-                            {i + 1}
-                          </PaginationLink>
-                        </PaginationItem>
-                      ))}
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                          className={page === data.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
+                <CurrentAffairsPagination
+                  currentPage={page}
+                  totalPages={data.totalPages}
+                  onPageChange={setPage}
+                />
               )}
             </>
           )}
