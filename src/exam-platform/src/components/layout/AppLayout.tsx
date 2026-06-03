@@ -48,6 +48,7 @@ import {
   useListAnnouncements,
   getListAnnouncementsQueryKey,
 } from "@workspace/api-client-react";
+import Footer from "../shared/Footer";
 
 function useClientMounted() {
   const [mounted, setMounted] = useState(false);
@@ -232,12 +233,12 @@ function SearchBar({
     query.trim().length === 0
       ? []
       : ALL_NAV_ITEMS.filter((item) => {
-          const q = query.toLowerCase();
-          return (
-            item.label.toLowerCase().includes(q) ||
-            (item.keywords ?? "").toLowerCase().includes(q)
-          );
-        }).slice(0, 6);
+        const q = query.toLowerCase();
+        return (
+          item.label.toLowerCase().includes(q) ||
+          (item.keywords ?? "").toLowerCase().includes(q)
+        );
+      }).slice(0, 6);
 
   const showDropdown = focused && query.trim().length > 0;
 
@@ -489,6 +490,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <MobileTopNav />
         <main className="flex-1 pb-20 md:pb-0 overflow-x-hidden bg-gray-50 md:bg-background">
           {children}
+          <Footer />
         </main>
         <MobileBottomNav />
       </div>
