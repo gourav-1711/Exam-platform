@@ -10,11 +10,14 @@ try {
   execSync("pnpm run push", {
     cwd: dbPath,
     stdio: "inherit",
-    env: { ...process.env }
+    env: { ...process.env },
   });
   logger.info("Database schema synced successfully!");
 } catch (err) {
-  logger.error({ err }, "Database sync failed. Please ensure your PostgreSQL connection is active and DATABASE_URL is set correctly.");
+  logger.error(
+    { err },
+    "Database sync failed. Please ensure your PostgreSQL connection is active and DATABASE_URL is set correctly.",
+  );
 }
 
 const rawPort =
