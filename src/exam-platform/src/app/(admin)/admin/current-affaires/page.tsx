@@ -6,12 +6,13 @@ import { useCurrentAffairs, useDeleteCurrentAffair } from "@workspace/api-client
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CurrentAffairsSearch } from "@/components/admin/CurrentAffairsSearch";
-import { CurrentAffairsFilters } from "@/components/admin/CurrentAffairsFilters";
+
 import { CurrentAffairsTable } from "@/components/admin/CurrentAffairsTable";
 import { CurrentAffairsPagination } from "@/components/admin/CurrentAffairsPagination";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { CurrentAffairsSearch } from "@/components/admin/CurrentAffairesSearch";
+import { CurrentAffairsFilters } from "@/components/admin/CurrentAffairsFilters";
 
 const CATEGORIES = ["All", "General", "National", "International", "Economy", "Science & Tech"];
 

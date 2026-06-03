@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useCurrentAffairs, useDeleteCurrentAffair } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,28 +11,42 @@ import { CurrentAffairsTable } from "@/components/admin/CurrentAffairsTable";
 import { CurrentAffairsPagination } from "@/components/admin/CurrentAffairsPagination";
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { customFetch } from "@workspace/api-client-react";
+import type { CurrentAffair } from "@workspace/api-client-react";
+
+interface CurrentAffairsResponse {
+  data: CurrentAffair[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
 
 const CATEGORIES = ["All", "General", "National", "International", "Economy", "Science & Tech"];
 
 export default function CurrentAffairsAdminPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError } = useCurrentAffairs({
-    page,
-    limit: 10,
-    search: search || undefined,
-    category: category !== "All" ? category : undefined,
+  const { data, isLoading, isError } = useQuery<CurrentAffairsResponse>({
+    queryKey: ["admin", "current-affairs", page, search, category],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: "10",
+      });
+      if (search) params.set("search", search);
+      if (category !== "All") params.set("category", category);
+      
+      return customFetch<CurrentAffairsResponse>(`/api/admin/current-affairs?${params}`);
+    },
+    staleTime: 60000,
   });
-
-  const deleteMutation = useDeleteCurrentAffair();
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteMutation.mutateAsync(id);
+      await customFetch(`/api/admin/current-affairs/${id}`, { method: "DELETE" });
       toast({ title: "Current affair deleted successfully" });
     } catch {
       toast({ title: "Failed to delete current affair", variant: "destructive" });
