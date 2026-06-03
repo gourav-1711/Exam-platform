@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QuestionForm, type QuestionFormData } from "@/components/admin/QuestionForm";
+import {
+  QuestionForm,
+  type QuestionFormData,
+} from "@/components/admin/QuestionForm";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch } from "@/store/hooks";
 import { resetDraft } from "@/store/slices/draftSlice";
@@ -32,7 +35,8 @@ export default function NewQuestionPage() {
       toast({ title: "Question published!" });
       router.push("/admin/questions");
     },
-    onError: (err: Error) => toast({ title: err.message, variant: "destructive" }),
+    onError: (err: Error) =>
+      toast({ title: err.message, variant: "destructive" }),
   });
 
   const saveDraftMutation = async (data: QuestionFormData) => {
@@ -47,18 +51,24 @@ export default function NewQuestionPage() {
     <div className="p-6 md:p-8 space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/admin/questions"><ArrowLeft className="h-4 w-4" /></Link>
+          <Link href="/admin/questions">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
         </Button>
         <div>
           <h1 className="text-xl font-bold text-gray-900">New Question</h1>
-          <p className="text-sm text-gray-500">Drafts auto-save every 3 seconds</p>
+          <p className="text-sm text-gray-500">
+            Drafts auto-save every 3 seconds
+          </p>
         </div>
       </div>
 
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
           <QuestionForm
-            onSubmit={async (data) => { createMutation.mutate(data); }}
+            onSubmit={async (data) => {
+              createMutation.mutate(data);
+            }}
             onSaveDraft={saveDraftMutation}
             isLoading={createMutation.isPending}
           />

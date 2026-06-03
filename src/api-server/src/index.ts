@@ -1,5 +1,21 @@
+import path from "path";
+import { execSync } from "child_process";
 import app from "./app";
 import { logger } from "./lib/logger";
+
+// Automatically sync database schema on startup in development
+try {
+  logger.info("Checking and syncing database schema...");
+  const dbPath = path.resolve(__dirname, "../../../lib/db");
+  execSync("pnpm run push", {
+    cwd: dbPath,
+    stdio: "inherit",
+    env: { ...process.env }
+  });
+  logger.info("Database schema synced successfully!");
+} catch (err) {
+  logger.error({ err }, "Database sync failed. Please ensure your PostgreSQL connection is active and DATABASE_URL is set correctly.");
+}
 
 const rawPort =
   process.env["API_PORT"] ??

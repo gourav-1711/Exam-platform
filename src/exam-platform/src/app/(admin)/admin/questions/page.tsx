@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2, Edit, ChevronLeft, ChevronRight, Download, Upload } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Trash2,
+  Edit,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Upload,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { toggleQuestionSelection, selectAllQuestions, clearQuestionSelection } from "@/store/slices/adminSlice";
+import {
+  toggleQuestionSelection,
+  selectAllQuestions,
+  clearQuestionSelection,
+} from "@/store/slices/adminSlice";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@workspace/api-client-react";
 
@@ -25,10 +38,18 @@ interface Question {
 
 interface QuestionsResponse {
   data: Question[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
-async function fetchQuestions(page: number, search: string): Promise<QuestionsResponse> {
+async function fetchQuestions(
+  page: number,
+  search: string,
+): Promise<QuestionsResponse> {
   const params = new URLSearchParams({ page: String(page), limit: "20" });
   if (search) params.set("search", search);
   return customFetch<QuestionsResponse>(`/api/admin/questions?${params}`);
@@ -51,7 +72,9 @@ export default function QuestionsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return customFetch<any>(`/api/admin/questions/${id}`, { method: "DELETE" });
+      return customFetch<any>(`/api/admin/questions/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "questions"] });
@@ -73,13 +96,19 @@ export default function QuestionsPage() {
       dispatch(clearQuestionSelection());
       toast({ title: `${selected.length} questions deleted` });
     },
-    onError: () => toast({ title: "Bulk delete failed", variant: "destructive" }),
+    onError: () =>
+      toast({ title: "Bulk delete failed", variant: "destructive" }),
   });
 
   const handleSearch = (v: string) => {
     setSearch(v);
-    clearTimeout((window as unknown as { _searchTimer?: ReturnType<typeof setTimeout> })._searchTimer);
-    (window as unknown as { _searchTimer?: ReturnType<typeof setTimeout> })._searchTimer = setTimeout(() => {
+    clearTimeout(
+      (window as unknown as { _searchTimer?: ReturnType<typeof setTimeout> })
+        ._searchTimer,
+    );
+    (
+      window as unknown as { _searchTimer?: ReturnType<typeof setTimeout> }
+    )._searchTimer = setTimeout(() => {
       setDebouncedSearch(v);
       setPage(1);
     }, 400);
@@ -139,7 +168,10 @@ export default function QuestionsPage() {
       {isLoading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-lg" />
+            <div
+              key={i}
+              className="h-16 bg-gray-100 animate-pulse rounded-lg"
+            />
           ))}
         </div>
       ) : (
@@ -147,9 +179,15 @@ export default function QuestionsPage() {
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <input
               type="checkbox"
-              checked={selected.length === (data?.data.length ?? 0) && selected.length > 0}
+              checked={
+                selected.length === (data?.data.length ?? 0) &&
+                selected.length > 0
+              }
               onChange={(e) => {
-                if (e.target.checked) dispatch(selectAllQuestions(data?.data.map((q) => q.id) ?? []));
+                if (e.target.checked)
+                  dispatch(
+                    selectAllQuestions(data?.data.map((q) => q.id) ?? []),
+                  );
                 else dispatch(clearQuestionSelection());
               }}
               className="accent-violet-600"
@@ -160,10 +198,15 @@ export default function QuestionsPage() {
           <Card className="border-0 shadow-sm overflow-hidden">
             <div className="divide-y">
               {data?.data.length === 0 && (
-                <div className="py-12 text-center text-gray-400">No questions found</div>
+                <div className="py-12 text-center text-gray-400">
+                  No questions found
+                </div>
               )}
               {data?.data.map((q) => (
-                <div key={q.id} className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors">
+                <div
+                  key={q.id}
+                  className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors"
+                >
                   <input
                     type="checkbox"
                     checked={selected.includes(q.id)}
@@ -171,12 +214,22 @@ export default function QuestionsPage() {
                     className="mt-1 accent-violet-600"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-2">{q.text}</p>
+                    <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                      {q.text}
+                    </p>
                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                      <Badge variant="outline" className="text-xs">{q.type}</Badge>
-                      {q.subject && <span className="text-xs text-gray-500">{q.subject}</span>}
+                      <Badge variant="outline" className="text-xs">
+                        {q.type}
+                      </Badge>
+                      {q.subject && (
+                        <span className="text-xs text-gray-500">
+                          {q.subject}
+                        </span>
+                      )}
                       {q.difficulty && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${difficultyColor[q.difficulty] ?? "bg-gray-100 text-gray-600"}`}>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${difficultyColor[q.difficulty] ?? "bg-gray-100 text-gray-600"}`}
+                        >
                           {q.difficulty}
                         </span>
                       )}
@@ -209,10 +262,20 @@ export default function QuestionsPage() {
                 Page {data.pagination.page} of {data.pagination.totalPages}
               </span>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= data.pagination.totalPages} onClick={() => setPage((p) => p + 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= data.pagination.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
