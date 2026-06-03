@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { toggleQuestionSelection, selectAllQuestions, clearQuestionSelection } from "@/store/slices/adminSlice";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api-config";
+import { customFetch } from "@workspace/api-client-react";
 
 interface Question {
   id: number;
@@ -28,12 +28,10 @@ interface QuestionsResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-async function fetchQuestions(page: number, search: string, apiUrl: string): Promise<QuestionsResponse> {
+async function fetchQuestions(page: number, search: string): Promise<QuestionsResponse> {
   const params = new URLSearchParams({ page: String(page), limit: "20" });
   if (search) params.set("search", search);
-  const res = await fetch(`${apiUrl}/api/admin/questions?${params}`);
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
+  return customFetch<QuestionsResponse>(`/api/admin/questions?${params}`);
 }
 
 export default function QuestionsPage() {
@@ -47,14 +45,13 @@ export default function QuestionsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "questions", page, debouncedSearch],
-    queryFn: () => fetchQuestions(page, debouncedSearch, API_BASE_URL),
+    queryFn: () => fetchQuestions(page, debouncedSearch),
     staleTime: 60 * 1000,
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${API_BASE_URL}/api/admin/questions/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
+      return customFetch<any>(`/api/admin/questions/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "questions"] });
@@ -65,12 +62,11 @@ export default function QuestionsPage() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
-      const res = await fetch(`${API_BASE_URL}/api/admin/questions/bulk-delete`, {
+      return customFetch<any>("/api/admin/questions/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       });
-      if (!res.ok) throw new Error("Failed");
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "questions"] });

@@ -16,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Save, Send } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api-config";
+import { customFetch } from "@workspace/api-client-react";
 
 interface ExamFormData {
   title: string;
@@ -58,13 +58,11 @@ export default function NewExamPage() {
   const saveDraft = useCallback(async (data: ExamFormData) => {
     dispatch(setDraftStatus("saving"));
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/drafts/exams`, {
+      const draft = await customFetch<any>("/api/admin/drafts/exams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: data }),
       });
-      if (!res.ok) throw new Error();
-      const draft = await res.json() as { id: number };
       dispatch(setExamDraftId(draft.id));
       dispatch(setDraftSaved());
     } catch {
@@ -84,13 +82,11 @@ export default function NewExamPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
-      const res = await fetch(`${API_BASE_URL}/api/admin/exams`, {
+      return customFetch<any>("/api/admin/exams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create exam");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "exams"] });

@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Save, Send } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { customFetch } from "@workspace/api-client-react";
 
 interface ExamFormData {
   title: string;
@@ -44,9 +45,7 @@ export default function EditExamPage() {
   const { data: exam, isLoading } = useQuery({
     queryKey: ["admin", "exams", id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/exams/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch exam");
-      return res.json() as Promise<ExamFormData & { id: number }>;
+      return customFetch<any>(`/api/admin/exams/${id}`);
     },
   });
 
@@ -59,7 +58,7 @@ export default function EditExamPage() {
   const saveDraft = useCallback(async (data: ExamFormData) => {
     dispatch(setDraftStatus("saving"));
     try {
-      await fetch(`/api/admin/exams/${id}`, {
+      await customFetch<any>(`/api/admin/exams/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, status: "draft" }),
@@ -82,13 +81,11 @@ export default function EditExamPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
-      const res = await fetch(`/api/admin/exams/${id}`, {
+      return customFetch<any>(`/api/admin/exams/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update exam");
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "exams"] });

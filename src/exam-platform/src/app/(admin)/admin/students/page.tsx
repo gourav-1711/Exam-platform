@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { API_BASE_URL } from "@/lib/api-config";
+import { customFetch } from "@workspace/api-client-react";
 
 interface StudentStat {
   userId: string;
@@ -17,15 +17,13 @@ interface StudentStat {
   lastAttemptAt: string | null;
 }
 
-async function fetchStudents(page: number, apiUrl: string): Promise<{ data: StudentStat[]; pagination: { page: number; total: number; totalPages: number; limit: number } }> {
-  const res = await fetch(`${apiUrl}/api/admin/students?page=${page}&limit=20`);
-  if (!res.ok) throw new Error("Failed");
-  return res.json();
+async function fetchStudents(page: number): Promise<{ data: StudentStat[]; pagination: { page: number; total: number; totalPages: number; limit: number } }> {
+  return customFetch<{ data: StudentStat[]; pagination: { page: number; total: number; totalPages: number; limit: number } }>(`/api/admin/students?page=${page}&limit=20`);
 }
 
 export default function StudentsPage() {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useQuery({ queryKey: ["admin", "students", page], queryFn: () => fetchStudents(page, API_BASE_URL), staleTime: 60 * 1000 });
+  const { data, isLoading } = useQuery({ queryKey: ["admin", "students", page], queryFn: () => fetchStudents(page), staleTime: 60 * 1000 });
 
   return (
     <div className="p-6 md:p-8 space-y-6">

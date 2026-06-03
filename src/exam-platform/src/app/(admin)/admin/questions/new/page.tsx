@@ -10,7 +10,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { API_BASE_URL } from "@/lib/api-config";
+import { customFetch } from "@workspace/api-client-react";
 
 export default function NewQuestionPage() {
   const router = useRouter();
@@ -20,16 +20,11 @@ export default function NewQuestionPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: QuestionFormData) => {
-      const res = await fetch(`${API_BASE_URL}/api/admin/questions`, {
+      return customFetch<any>("/api/admin/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed to create");
-      }
-      return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "questions"] });
@@ -41,13 +36,11 @@ export default function NewQuestionPage() {
   });
 
   const saveDraftMutation = async (data: QuestionFormData) => {
-    const res = await fetch(`${API_BASE_URL}/api/admin/drafts/questions`, {
+    return customFetch<any>("/api/admin/drafts/questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: data }),
     });
-    if (!res.ok) throw new Error("Failed to save draft");
-    return res.json();
   };
 
   return (

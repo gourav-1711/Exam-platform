@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api-config";
+import { customFetch } from "@workspace/api-client-react";
 
 interface Exam {
   id: number;
@@ -21,10 +21,8 @@ interface Exam {
   createdAt: string;
 }
 
-async function fetchExams(page: number, apiUrl: string): Promise<{ data: Exam[]; pagination: { page: number; total: number; totalPages: number; limit: number } }> {
-  const res = await fetch(`${apiUrl}/api/admin/exams?page=${page}&limit=20`);
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
+async function fetchExams(page: number): Promise<{ data: Exam[]; pagination: { page: number; total: number; totalPages: number; limit: number } }> {
+  return customFetch<{ data: Exam[]; pagination: { page: number; total: number; totalPages: number; limit: number } }>(`/api/admin/exams?page=${page}&limit=20`);
 }
 
 const statusColor: Record<string, string> = {
@@ -40,14 +38,13 @@ export default function ExamsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "exams", page],
-    queryFn: () => fetchExams(page, API_BASE_URL),
+    queryFn: () => fetchExams(page),
     staleTime: 60 * 1000,
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${API_BASE_URL}/api/admin/exams/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed");
+      return customFetch<any>(`/api/admin/exams/${id}`, { method: "DELETE" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "exams"] }); toast({ title: "Exam deleted" }); },
     onError: () => toast({ title: "Delete failed", variant: "destructive" }),

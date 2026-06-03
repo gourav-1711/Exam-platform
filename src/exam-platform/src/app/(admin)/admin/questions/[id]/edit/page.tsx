@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { customFetch } from "@workspace/api-client-react";
 
 export default function EditQuestionPage() {
   const params = useParams<{ id: string }>();
@@ -18,21 +19,17 @@ export default function EditQuestionPage() {
   const { data: question, isLoading: isFetching } = useQuery({
     queryKey: ["admin", "questions", id],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/questions/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch question");
-      return res.json() as Promise<QuestionFormData & { id: number }>;
+      return customFetch<any>(`/api/admin/questions/${id}`);
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async (data: QuestionFormData) => {
-      const res = await fetch(`/api/admin/questions/${id}`, {
+      return customFetch<any>(`/api/admin/questions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to update question");
-      return res.json() as Promise<{ id: number }>;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "questions"] });
