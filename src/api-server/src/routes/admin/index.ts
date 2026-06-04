@@ -15,6 +15,8 @@ import quizzesRouter from "./quizzes";
 import mockTestsRouter from "./mockTests";
 import studyNotesRouter from "./studyNotes";
 import ncertBooksRouter from "./ncertBooks";
+import pyqSubjectsRouter from "./pyqSubjects";
+import dailyQuizRouter from "./dailyQuiz";
 
 const router = Router();
 
@@ -35,5 +37,7 @@ router.use(quizzesRouter);
 router.use(mockTestsRouter);
 router.use(studyNotesRouter);
 router.use(ncertBooksRouter);
+router.use(pyqSubjectsRouter);
+router.use(dailyQuizRouter);
 
 export default router;

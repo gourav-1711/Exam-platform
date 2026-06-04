@@ -44,6 +44,94 @@ Exam-platform/
 └── .env.example              ← Environment variables template
 ```
 
+## Workspace & File Details
+
+This section lists each workspace/package and the important files you will interact with while developing, plus where generated code lives.
+
+- **Root workspace**: repository orchestration, pnpm workspace config and top-level scripts
+  - `package.json` — root scripts (bootstrap, build, typecheck helpers)
+  - `pnpm-workspace.yaml` — workspace package globs
+  - `tsconfig.base.json` — shared TypeScript compiler options
+  - `tsconfig.json` — workspace-level TypeScript project used by CI and `pnpm build`
+  - `README.md`, `QUICKSTART.md` — developer docs
+
+- **lib/api-spec/**: OpenAPI source and Orval config
+  - `openapi.yaml` — canonical OpenAPI v3 spec for the backend API. Edit here when adding or changing endpoints.
+  - `orval.config.ts` — Orval configuration that controls how clients and Zod schemas are generated. See the "Orval generation" section below for details.
+  - `package.json` — contains the `codegen` script that runs Orval (run with `pnpm -C lib/api-spec run codegen`).
+
+- **lib/api-client-react/**: generated + custom client for React Query
+  - `package.json` / `tsconfig.json` — package config for building this library
+  - `src/custom-fetch.ts` — request mutator used by Orval generated client; exposes `setBaseUrl()` and `setAuthTokenGetter()` for runtime configuration.
+  - `src/index.ts` — wrapper exports used by the frontend app
+  - `src/admin-hooks.ts` — convenience hooks that call the generated client for admin flows
+  - `src/generated/` — Orval output for the React Query client (committed). Key files:
+    - `api.ts` — generated API functions, split-mode multiple files
+    - `api.schemas.ts` / `types/*` — generated type declarations
+
+- **lib/api-zod/**: Zod schemas generated from OpenAPI
+  - `src/generated/` — Orval-generated Zod schemas and type helpers used for runtime validation when needed
+
+- **lib/db/**: Drizzle models, migrations and DB client
+  - `drizzle.config.ts` — Drizzle CLI config
+  - `src/schema/` — table definitions (one file per domain area, e.g. `ncert.ts`, `pyp.ts`, `quizzes.ts`)
+  - migrations are produced by `drizzle-kit` and applied with the `push` script (see package scripts in `lib/db/package.json`).
+
+- **src/api-server/**: Express API server
+  - `src/app.ts` — Express app configuration (middlewares, routes wiring)
+  - `src/index.ts` — server bootstrap (reads env, starts the app)
+  - `src/routes/` — all route handlers (grouped by feature: `pyp`, `ncert`, `quizzes`, `admin`, etc.)
+  - `src/middleware/` and `src/middlewares/` — request-level middleware (auth, rate limit, file upload)
+  - `src/lib/` — helpers (db client wrapper, cache, logger)
+
+- **src/exam-platform/**: Next.js frontend (App Router)
+  - `next.config.ts`, `postcss.config.mjs`, `tsconfig.json` — app build configuration
+  - `src/app/` — App Router entry points, layout and route groups (`(admin)`, `(app)`, auth pages)
+  - `src/components/` — UI components split by domain: `admin`, `layout`, `shared`, `ui`
+  - `src/lib/` — frontend helpers and API wiring that call the client in `lib/api-client-react`
+  - `src/store/` — Redux Toolkit slices used by the app
+
+- **scripts/**: small utility scripts and dev tools (CI helpers, post-merge hooks)
+
+- **docs/**: design and spec notes (e.g. admin-panel auth design under `docs/superpowers/specs/`)
+
+If you need to find a file quickly, use the workspace search in VS Code or `pnpm -w -C <package> run <script>` to run per-package scripts.
+
+## Orval generation (OpenAPI → generated clients & Zod)
+
+Orval is used to generate two artifacts from `lib/api-spec/openapi.yaml`:
+
+- A React Query client placed into `lib/api-client-react/src/generated` (configured as `client: "react-query"`, `mode: "split"`). The generated client uses the project mutator `lib/api-client-react/src/custom-fetch.ts` (see `orval.config.ts`).
+- Zod schemas and TypeScript types placed into `lib/api-zod/src/generated` (configured as `client: "zod"`, with `schemas.path: "generated/types"`).
+
+How to regenerate after editing the OpenAPI spec:
+
+1. Edit `lib/api-spec/openapi.yaml` (add/modify paths, components, schemas).
+2. From repository root run:
+
+   ```bash
+   pnpm -C lib/api-spec run codegen
+   ```
+
+   This runs `orval --config ./orval.config.ts`. The `codegen` script in `lib/api-spec/package.json` also triggers a top-level typecheck for the libraries to catch issues early.
+
+3. After Orval runs you'll see updated files under:
+   - `lib/api-client-react/src/generated/` (React Query client API)
+   - `lib/api-zod/src/generated/` (Zod schemas + types)
+
+Notes about the Orval configuration (`lib/api-spec/orval.config.ts`):
+
+- `workspace` + `target` control where generated files are written; the config uses absolute workspace paths so generation is robust from the repo root.
+- `mode: 'split'` creates smaller per-endpoint files rather than a single large file.
+- The React Query client is hooked to `custom-fetch.ts` via `override.mutator`, so the generated code calls `customFetch()` rather than raw `fetch`.
+- `clean: true` means Orval will remove stale files in the `target` folder before writing new output.
+
+Best practices:
+
+- Keep `openapi.yaml` as the single source of truth for the API surface.
+- Make small, reversible changes and run `pnpm -C lib/api-spec run codegen` locally to validate TypeScript output.
+- Commit generated artifacts only if you want consumers (the Next.js app or other packages) to import them without running codegen; otherwise add them to `.gitignore` and run codegen in CI.
+
 ## Getting Started
 
 ### Prerequisites
@@ -168,7 +256,6 @@ Exam-platform/
   - File upload with drag-and-drop support
   - Validates file type (PDF/DOCX only)
   - Sends file + PIN header to `/api/document-ncert/upload`
-  
 - **PDF List Table:**
   - View all uploaded NCERT books
   - Download button → opens Cloudinary URL
@@ -181,7 +268,6 @@ Exam-platform/
   - Title, Subject, Year (dropdown), Exam Type (JEE/NEET/Board/etc.)
   - Similar file upload and validation
   - Posts to `/api/document-pyp/upload`
-  
 - **PDF List Table:**
   - All PYP papers with exam type and year filters
   - Download and delete functionality
@@ -360,18 +446,18 @@ cd src/exam-platform && pnpm start
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| DATABASE_URL | ✓ | PostgreSQL connection string |
-| API_PORT | ✓ | Express API port (default: 4000) |
-| NODE_ENV | ✓ | Environment (development/production) |
-| CLERK_SECRET_KEY | ✓ | Clerk backend secret |
-| CLOUDINARY_CLOUD_NAME | ✓ | Cloudinary cloud name |
-| CLOUDINARY_API_KEY | ✓ | Cloudinary API key |
-| CLOUDINARY_API_SECRET | ✓ | Cloudinary API secret |
-| ALLOWED_ORIGINS | - | CORS allowed origins (comma-separated) |
-| NEXT_PUBLIC_API_URL | - | Frontend API URL |
-| API_URL | - | Server-side API URL |
+| Variable              | Required | Description                            |
+| --------------------- | -------- | -------------------------------------- |
+| DATABASE_URL          | ✓        | PostgreSQL connection string           |
+| API_PORT              | ✓        | Express API port (default: 4000)       |
+| NODE_ENV              | ✓        | Environment (development/production)   |
+| CLERK_SECRET_KEY      | ✓        | Clerk backend secret                   |
+| CLOUDINARY_CLOUD_NAME | ✓        | Cloudinary cloud name                  |
+| CLOUDINARY_API_KEY    | ✓        | Cloudinary API key                     |
+| CLOUDINARY_API_SECRET | ✓        | Cloudinary API secret                  |
+| ALLOWED_ORIGINS       | -        | CORS allowed origins (comma-separated) |
+| NEXT_PUBLIC_API_URL   | -        | Frontend API URL                       |
+| API_URL               | -        | Server-side API URL                    |
 
 ## Performance Optimization
 

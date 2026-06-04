@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { customFetch } from "@workspace/api-client-react";
@@ -17,9 +18,7 @@ interface StudentStat {
   lastAttemptAt: string | null;
 }
 
-async function fetchStudents(
-  page: number,
-): Promise<{
+async function fetchStudents(page: number): Promise<{
   data: StudentStat[];
   pagination: {
     page: number;
@@ -70,8 +69,13 @@ export default function StudentsPage() {
           {data?.data.length === 0 ? (
             <Card className="border-0 shadow-sm">
               <CardContent className="py-16 text-center">
-                <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No student attempts yet</p>
+                <Empty>
+                  <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <EmptyTitle>No student attempts yet</EmptyTitle>
+                  <EmptyDescription>
+                    There are no student attempts recorded yet.
+                  </EmptyDescription>
+                </Empty>
               </CardContent>
             </Card>
           ) : (

@@ -1,4 +1,11 @@
-import { pgTable, serial, text, integer, real, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  serial,
+  text,
+  integer,
+  real,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const mockTestsTable = pgTable("mock_tests", {
@@ -12,6 +19,8 @@ export const mockTestsTable = pgTable("mock_tests", {
   isFeatured: boolean("is_featured").notNull().default(false),
 });
 
-export const insertMockTestSchema = createInsertSchema(mockTestsTable).omit({ id: true });
+export const insertMockTestSchema = createInsertSchema(mockTestsTable).omit({
+  id: true,
+});
 export type InsertMockTest = typeof mockTestsTable.$inferInsert;
 export type MockTest = typeof mockTestsTable.$inferSelect;
