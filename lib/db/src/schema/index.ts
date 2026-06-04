@@ -11,3 +11,4 @@ export * from "./streaks";
 export * from "./admin";
 export * from "./fileStorage";
 export * from "./settings";
+export * from "./dailyQuiz";

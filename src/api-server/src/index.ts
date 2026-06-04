@@ -6,7 +6,9 @@ import { logger } from "./lib/logger";
 // Automatically sync database schema on startup in development
 try {
   logger.info("Checking and syncing database schema...");
-  const dbPath = path.resolve(__dirname, "../../../lib/db");
+  // Since this is built to dist/index.mjs, __dirname is src/api-server/dist.
+  // Go up 2 levels (src/api-server/dist -> src/api-server -> workspace root) to find lib/db.
+  const dbPath = path.resolve(__dirname, "../../lib/db");
   execSync("pnpm run push", {
     cwd: dbPath,
     stdio: "inherit",

@@ -3,7 +3,7 @@ import express from "express";
 import authenticate from "../../middleware/auth.middleware";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { db } from "../../lib/db";
-import { dailyQuizzes } from "../../../lib/db/src/schema/dailyQuiz";
+import { dailyQuizzes } from "@workspace/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
