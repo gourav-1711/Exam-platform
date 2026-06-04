@@ -21,14 +21,15 @@ export function StaticPageLayout({ title, subtitle = "Explore premium educationa
     <PageTransition className="min-h-screen bg-gray-50 flex flex-col">
 
       <div className="relative overflow-hidden border-b bg-background p-2">
-        <div
+        {/* NOT NEEDED RIGHT NOW  */}
+        {/* <div
           className="absolute inset-0 opacity-40"
           style={{
             backgroundImage:
               "radial-gradient(circle, currentColor 1px, transparent 1px)",
             backgroundSize: "20px 20px",
           }}
-        />
+        /> */}
 
         <div className="relative flex items-center gap-6">
           <Button
