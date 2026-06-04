@@ -3,6 +3,22 @@ import { execSync } from "child_process";
 import app from "./app";
 import { logger } from "./lib/logger";
 
+// Startup checks for required environment variables (Task 0A)
+const REQUIRED_ENV = [
+  "DATABASE_URL",
+  "CLERK_SECRET_KEY",
+  "CLOUDINARY_API_SECRET",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_CLOUD_NAME"
+];
+
+for (const key of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    logger.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+
 // Automatically sync database schema on startup in development
 try {
   logger.info("Checking and syncing database schema...");
