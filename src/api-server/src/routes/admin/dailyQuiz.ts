@@ -1,6 +1,6 @@
 // src/api-server/src/routes/admin/dailyQuiz.ts
 import express from "express";
-import authenticate from "../../middleware/auth.middleware";
+import { getAuth } from "@clerk/express";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { db } from "../../lib/db";
 import { dailyQuizzes } from "@workspace/db";
@@ -10,7 +10,7 @@ import { z } from "zod";
 const router = express.Router();
 
 // GET /api/admin/daily-quiz
-router.get("/", authenticate, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -44,7 +44,7 @@ router.get("/", authenticate, async (req, res) => {
 });
 
 // GET /api/admin/daily-quiz/:id
-router.get("/:id", authenticate, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const quiz = await db
       .select()
@@ -64,10 +64,10 @@ router.get("/:id", authenticate, async (req, res) => {
 // POST /api/admin/daily-quiz
 router.post(
   "/",
-  authenticate,
   logAdminActivity("create_daily_quiz", "daily_quiz"),
   async (req, res) => {
     try {
+      const auth = getAuth(req);
       const schema = z.object({
         title: z.string(),
         description: z.string().optional(),
@@ -92,7 +92,7 @@ router.post(
         .insert(dailyQuizzes)
         .values({
           ...data,
-          createdBy: (req as any).user.userId,
+          createdBy: auth.userId || "system",
         })
         .returning();
 
@@ -106,7 +106,6 @@ router.post(
 // PATCH /api/admin/daily-quiz/:id
 router.patch(
   "/:id",
-  authenticate,
   logAdminActivity("update_daily_quiz", "daily_quiz"),
   async (req, res) => {
     try {
@@ -144,7 +143,7 @@ router.patch(
 );
 
 // DELETE /api/admin/daily-quiz/:id
-router.delete("/:id", authenticate, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     await db
       .delete(dailyQuizzes)
