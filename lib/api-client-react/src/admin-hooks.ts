@@ -204,6 +204,8 @@ const getAdminActivityLogs = (params?: { page?: number; limit?: number; userId?:
   return customFetch<AdminActivityLogsList>(url, { method: "GET" });
 };
 
+export const getDailyQuizById = (id: string | number) => customFetch<any>(`/api/admin/daily-quiz/${id}`, { method: "GET" });
+
 // --- HOOKS ---
 
 // --- DASHBOARD & ANALYTICS ---
