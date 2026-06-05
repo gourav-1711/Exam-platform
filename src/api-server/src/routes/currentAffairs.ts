@@ -9,11 +9,29 @@ import {
 
 const router = Router();
 
-// GET all current affairs
+// GET all current affairs with pagination matching OpenAPI spec
 router.get('/current-affairs', async (req, res) => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 12;
+    const offset = (page - 1) * limit;
+
     const currentAffairs = await getCurrentAffairs();
-    res.json(currentAffairs);
+    const total = currentAffairs.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginated = currentAffairs.slice(offset, offset + limit).map((a) => ({
+      ...a,
+      publishedAt: a.publishedAt.toISOString(),
+      prevId: null,
+      nextId: null,
+    }));
+
+    res.json({
+      data: paginated,
+      total,
+      page,
+      totalPages,
+    });
   } catch (error) {
     console.error('Error fetching current affairs:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -28,7 +46,12 @@ router.get('/current-affairs/:id', async (req, res) => {
     if (!currentAffair) {
       return res.status(404).json({ message: 'Current affair not found' });
     }
-    res.json(currentAffair);
+    res.json({
+      ...currentAffair,
+      publishedAt: currentAffair.publishedAt.toISOString(),
+      prevId: null,
+      nextId: null,
+    });
   } catch (error) {
     console.error('Error fetching current affair:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -40,7 +63,12 @@ router.post('/current-affairs', async (req, res) => {
   try {
     const { title, content, date } = req.body;
     const newCurrentAffair = await createCurrentAffair({ title, content, date });
-    res.status(201).json(newCurrentAffair);
+    res.status(201).json({
+      ...newCurrentAffair,
+      publishedAt: newCurrentAffair.publishedAt.toISOString(),
+      prevId: null,
+      nextId: null,
+    });
   } catch (error) {
     console.error('Error creating current affair:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -56,7 +84,12 @@ router.put('/current-affairs/:id', async (req, res) => {
     if (!updatedCurrentAffair) {
       return res.status(404).json({ message: 'Current affair not found' });
     }
-    res.json(updatedCurrentAffair);
+    res.json({
+      ...updatedCurrentAffair,
+      publishedAt: updatedCurrentAffair.publishedAt.toISOString(),
+      prevId: null,
+      nextId: null,
+    });
   } catch (error) {
     console.error('Error updating current affair:', error);
     res.status(500).json({ message: 'Internal server error' });
