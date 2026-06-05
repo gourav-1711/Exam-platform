@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import {
   Table,
   TableBody,
