@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useRecordActivity } from "@workspace/api-client-react";
+import { useRecordActivity } from "@/lib/api";
 import { Flame, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 

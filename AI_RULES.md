@@ -20,7 +20,7 @@
   - Do **not** add custom CSS files; rely on Tailwind utilities.  
 
 - **Data Fetching** – all API interactions must go through **TanStack Query** (`useQuery`, `useMutation`).  
-  - Never call `fetch` or `axios` directly from components; wrap calls in the generated client (`@workspace/api-client-react`).  
+  - Prefer the local API facade in `src/exam-platform/src/lib/api` for browser requests; keep direct `fetch` usage centralized there.  
 
 - **Authentication** – all protected routes must use **Clerk** (`useUser`, `useAuth`) and the `clerkMiddleware` on the server.  
   - Front‑end: use `useClerk` and `useSession`.  
@@ -30,7 +30,7 @@
 
 - **Icons** – use **Lucide React** for all UI icons; keep them consistent across the app.  
 
-- **Monorepo Structure** – shared libraries live under `lib/` (`@workspace/api-client-react`, `@workspace/api-zod`, `@workspace/db`, etc.).  
+- **Monorepo Structure** – shared libraries live under `lib/` (`@workspace/db`, etc.), while the front-end API facade now lives under `src/exam-platform/src/lib/api`.  
   - Do **not** edit files in `lib/` directly unless instructed; generate them via Orval if needed.  
 
 - **Package Management** – use **pnpm** workspaces for zero‑install dependency linking.  

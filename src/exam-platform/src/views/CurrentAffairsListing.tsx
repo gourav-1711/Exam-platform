@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListCurrentAffairs } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { currentAffairsApi } from "@/lib/api/endpoints";
+import { queryKeys } from "@/lib/api/query-keys";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,10 +21,13 @@ import {
 import { Search, Calendar, ChevronRight } from "lucide-react";
 
 export default function CurrentAffairsListing() {
-  const [page, setPage] = React.useState(1);
-  const { data, isLoading } = useListCurrentAffairs({ page, limit: 12 });
+  const [page, setPage] = useState(1);
 
-  console.log(data);
+  const { data, isLoading } = useQuery({
+    queryKey: queryKeys.currentAffairs.list({ page, limit: 12 }),
+    queryFn: () => currentAffairsApi.list({ page, limit: 12 }),
+    staleTime: 60 * 1000,
+  });
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -53,7 +58,7 @@ export default function CurrentAffairsListing() {
             No articles found.
           </div>
         ) : (
-          data?.data.map((article) => (
+          data?.data?.map((article: any) => (
             <Card
               key={article.id}
               className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden flex flex-col"
@@ -107,6 +112,7 @@ export default function CurrentAffairsListing() {
                 }
               />
             </PaginationItem>
+
             {Array.from({ length: data.totalPages }).map((_, i) => (
               <PaginationItem key={i}>
                 <PaginationLink
@@ -118,6 +124,7 @@ export default function CurrentAffairsListing() {
                 </PaginationLink>
               </PaginationItem>
             ))}
+
             <PaginationItem>
               <PaginationNext
                 onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}

@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { db, questionsTable } from "@workspace/db";
+import { db } from "../../db";
+import { questionsTable } from "@workspace/db";
+
 import { eq, like, and, sql, desc, asc } from "drizzle-orm";
 import { z } from "zod";
 import { questionCreationLimiter } from "../../middlewares/rateLimitMiddleware";
@@ -79,7 +81,6 @@ router.get("/questions", async (req, res) => {
       },
     });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch questions" });
   }
 });
@@ -97,7 +98,6 @@ router.get("/questions/:id", async (req, res) => {
     }
     res.json(question);
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch question" });
   }
 });
@@ -133,7 +133,6 @@ router.post(
       cacheDel("admin:dashboard:stats");
       res.status(201).json(created);
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to create question" });
     }
   },
@@ -174,7 +173,6 @@ router.patch(
       }
       res.json(updated);
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to update question" });
     }
   },
@@ -190,7 +188,6 @@ router.delete(
       cacheDel("admin:dashboard:stats");
       res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to delete question" });
     }
   },
@@ -215,7 +212,6 @@ router.post(
       cacheDel("admin:dashboard:stats");
       res.json({ success: true, deletedCount: ids.length });
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to bulk delete questions" });
     }
   },

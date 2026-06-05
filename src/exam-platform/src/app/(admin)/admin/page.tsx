@@ -1,10 +1,11 @@
 "use client";
 
-import { useAdminDashboard } from "@workspace/api-client-react";
+import { useAdminDashboard } from "@/lib/api";
+import type { AdminDashboardStats } from "@/lib/api";
 import { HelpCircle, GraduationCap, TrendingUp, Activity, CheckCircle, Shield } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const statCards = (s: any) => [
+const statCards = (s: AdminDashboardStats) => [
   { label: "Total Questions", value: s.totalQuestions, icon: HelpCircle, color: "text-violet-400", bg: "bg-violet-500/10" },
   { label: "Total Exams", value: s.totalExams, icon: GraduationCap, color: "text-blue-400", bg: "bg-blue-500/10" },
   { label: "Total Attempts", value: s.totalAttempts, icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10" },

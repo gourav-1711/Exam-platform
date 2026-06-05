@@ -21,7 +21,6 @@ router.get("/announcements", async (req, res): Promise<any> => {
       })),
     );
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch announcements" });
   }
 });
@@ -41,7 +40,6 @@ router.get("/announcements/:id", async (req, res): Promise<any> => {
       createdAt: ann.createdAt.toISOString(),
     });
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch announcement" });
   }
 });
@@ -72,7 +70,6 @@ router.post(
         createdAt: ann.createdAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create announcement" });
     }
   },
@@ -101,7 +98,6 @@ router.patch(
         createdAt: updated.createdAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update announcement" });
     }
   },
@@ -117,7 +113,6 @@ router.delete(
       cacheDel("announcements");
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete announcement" });
     }
   },

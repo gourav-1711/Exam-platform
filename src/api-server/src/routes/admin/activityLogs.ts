@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { db, activityLogsTable } from "@workspace/db";
+import { db } from "../../db";
+import { activityLogsTable } from "@workspace/db";
+
 import { eq, desc, like } from "drizzle-orm";
 
 const router = Router();
@@ -45,7 +47,6 @@ router.get("/activity-logs", async (req, res) => {
       },
     });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch activity logs" });
   }
 });

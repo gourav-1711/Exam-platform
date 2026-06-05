@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useGetQuiz, getGetQuizQueryKey } from "@workspace/api-client-react";
+import { useGetQuiz, getGetQuizQueryKey } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useGetMockTest, getGetMockTestQueryKey } from "@workspace/api-client-react";
+import { useGetMockTest, getGetMockTestQueryKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

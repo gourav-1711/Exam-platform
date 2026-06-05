@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListPyqSubjects } from "@workspace/api-client-react";
-import { customFetch } from "@workspace/api-client-react";
+import { useListPyqSubjects, customFetch } from "@/lib/api";
+import type { PyqSubject } from "@/lib/api";
+import { queryKeys } from "@/lib/api/query-keys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,7 +28,7 @@ export default function PyqSubjectsAdmin() {
   const { toast } = useToast();
 
   const invalidateSubjects = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/pyq/subjects"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.pyq.subjects() });
   };
 
   const createSubject = async (e: React.FormEvent) => {
@@ -40,20 +41,20 @@ export default function PyqSubjectsAdmin() {
         method: "POST",
         body: JSON.stringify({ name: trimmedName }),
         headers: { "Content-Type": "application/json" },
-      } as any);
+      });
       toast({ title: "Created", description: "Subject created" });
       setName("");
       invalidateSubjects();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Create failed",
-        description: err?.message || String(err),
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     }
   };
 
-  const startEdit = (subject: any) => {
+  const startEdit = (subject: PyqSubject) => {
     setEditingId(subject.id);
     setEditingName(subject.name);
   };
@@ -72,14 +73,14 @@ export default function PyqSubjectsAdmin() {
         method: "PATCH",
         body: JSON.stringify({ name: trimmedName }),
         headers: { "Content-Type": "application/json" },
-      } as any);
+      });
       toast({ title: "Updated", description: "Subject updated" });
       cancelEdit();
       invalidateSubjects();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Update failed",
-        description: err?.message || String(err),
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     }
@@ -90,13 +91,13 @@ export default function PyqSubjectsAdmin() {
     try {
       await customFetch(`/api/admin/pyq-subjects/${id}`, {
         method: "DELETE",
-      } as any);
+      });
       toast({ title: "Deleted", description: "Subject deleted" });
       invalidateSubjects();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Delete failed",
-        description: err?.message || String(err),
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     }
@@ -141,7 +142,7 @@ export default function PyqSubjectsAdmin() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {subjects.map((s: any) => (
+            {subjects.map((s: PyqSubject) => (
               <TableRow key={s.id}>
                 <TableCell>
                   {editingId === s.id ? (

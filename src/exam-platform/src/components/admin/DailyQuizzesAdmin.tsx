@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useAdminListDailyQuizzes, useDeleteDailyQuiz } from "@workspace/api-client-react";
+import { useAdminListDailyQuizzes, useDeleteDailyQuiz } from "@/lib/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

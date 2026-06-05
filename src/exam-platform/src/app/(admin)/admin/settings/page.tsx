@@ -1,6 +1,6 @@
 'use client';
 
-import { useAdminSettings, useUpdateSettings } from '@workspace/api-client-react';
+import { useAdminSettings, useUpdateSettings } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Settings, Save, AlertTriangle, ShieldCheck, Mail, Phone, Power } from 'lucide-react';

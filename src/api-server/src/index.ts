@@ -1,7 +1,13 @@
+import "./config/env";
+
 import path from "path";
 import { execSync } from "child_process";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { env } from "./config/env";
+
+// Parse env at startup (fail fast)
+void env;
 
 // Automatically sync database schema on startup in development
 try {
@@ -22,28 +28,11 @@ try {
   );
 }
 
-const rawPort =
-  process.env["API_PORT"] ??
-  (process.env.NODE_ENV === "production" ? process.env["PORT"] : undefined) ??
-  "4000";
-
-if (!rawPort) {
-  throw new Error(
-    "API_PORT or PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-app.listen(port, (err) => {
+app.listen(env.PORT, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
   }
 
-  logger.info({ port }, "Server listening");
+  logger.info({ port: env.PORT }, "Server listening");
 });

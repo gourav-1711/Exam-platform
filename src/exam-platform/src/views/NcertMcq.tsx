@@ -5,7 +5,7 @@ import { PageTransition } from "@/components/shared/PageTransition";
 import {
   useListNcertBooks,
   ListNcertBooksParams,
-} from "@workspace/api-client-react";
+} from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

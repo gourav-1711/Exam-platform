@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { db, announcementsTable } from "@workspace/db";
+import { db } from "../db";
+import { announcementsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -13,7 +14,7 @@ router.get("/announcements", async (req, res) => {
       .orderBy(announcementsTable.createdAt);
     res.json(announcements);
   } catch (err) {
-    req.log.error(err);
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch announcements" });
   }
 });

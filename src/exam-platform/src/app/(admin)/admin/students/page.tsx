@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch } from "@/lib/api";
 
 interface StudentStat {
   userId: string;

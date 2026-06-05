@@ -1,10 +1,22 @@
 import { Router } from "express";
-import { db, quizzesTable, questionsTable } from "@workspace/db";
+import { db } from "../db";
+import { quizzesTable, questionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
-function mapQuestion(q: { id: number; text: string; optionA: string; optionB: string; optionC: string; optionD: string; correctIndex: number; explanation: string | null; examLabel: string | null }) {
+function mapQuestion(q: {
+  id: number;
+  text: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctIndex: number;
+  explanation: string | null;
+  examLabel: string | null;
+}) {
   return {
     id: q.id,
     text: q.text,
@@ -15,40 +27,52 @@ function mapQuestion(q: { id: number; text: string; optionA: string; optionB: st
   };
 }
 
-router.get("/quizzes", async (req, res) => {
+router.get("/quizzes", async (req, res, next) => {
   try {
     const { status } = req.query as { status?: string };
     let quizzes;
     if (status) {
-      quizzes = await db.select().from(quizzesTable).where(eq(quizzesTable.status, status));
+      quizzes = await db
+        .select()
+        .from(quizzesTable)
+        .where(eq(quizzesTable.status, status));
     } else {
       quizzes = await db.select().from(quizzesTable);
     }
-    res.json(quizzes.map(q => ({
-      id: q.id,
-      title: q.title,
-      subject: q.subject,
-      durationMins: q.durationMins,
-      questionCount: q.questionCount,
-      negativeMarking: q.negativeMarking,
-      status: q.status,
-      createdAt: q.createdAt.toISOString(),
-    })));
+    res.json(
+      quizzes.map((q) => ({
+        id: q.id,
+        title: q.title,
+        subject: q.subject,
+        durationMins: q.durationMins,
+        questionCount: q.questionCount,
+        negativeMarking: q.negativeMarking,
+        status: q.status,
+        createdAt: q.createdAt.toISOString(),
+      })),
+    );
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch quizzes" });
+    next(err);
   }
 });
 
-router.get("/quizzes/:id", async (req, res) => {
+router.get("/quizzes/:id", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    const [quiz] = await db.select().from(quizzesTable).where(eq(quizzesTable.id, id));
-    if (!quiz) { res.status(404).json({ error: "Quiz not found" }); return; }
+    const [quiz] = await db
+      .select()
+      .from(quizzesTable)
+      .where(eq(quizzesTable.id, id));
+    if (!quiz) {
+      throw new AppError(404, "Quiz not found");
+    }
 
-    const questions = await db.select().from(questionsTable).where(
-      and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz"))
-    );
+    const questions = await db
+      .select()
+      .from(questionsTable)
+      .where(
+        and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz")),
+      );
 
     res.json({
       id: quiz.id,
@@ -63,21 +87,22 @@ router.get("/quizzes/:id", async (req, res) => {
       questions: questions.map(mapQuestion),
     });
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch quiz" });
+    next(err);
   }
 });
 
-router.get("/quizzes/:id/questions", async (req, res) => {
+router.get("/quizzes/:id/questions", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    const questions = await db.select().from(questionsTable).where(
-      and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz"))
-    );
+    const questions = await db
+      .select()
+      .from(questionsTable)
+      .where(
+        and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz")),
+      );
     res.json(questions.map(mapQuestion));
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch questions" });
+    next(err);
   }
 });
 

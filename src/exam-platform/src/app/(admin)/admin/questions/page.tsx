@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -24,7 +24,7 @@ import {
   clearQuestionSelection,
 } from "@/store/slices/adminSlice";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch } from "@/lib/api";
 
 interface Question {
   id: number;
@@ -59,6 +59,7 @@ export default function QuestionsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
   const qc = useQueryClient();
   const dispatch = useAppDispatch();
@@ -72,7 +73,7 @@ export default function QuestionsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return customFetch<any>(`/api/admin/questions/${id}`, {
+      return customFetch<{ success?: boolean }>(`/api/admin/questions/${id}`, {
         method: "DELETE",
       });
     },
@@ -85,7 +86,7 @@ export default function QuestionsPage() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: number[]) => {
-      return customFetch<any>("/api/admin/questions/bulk-delete", {
+      return customFetch<{ success?: boolean }>("/api/admin/questions/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
@@ -102,13 +103,10 @@ export default function QuestionsPage() {
 
   const handleSearch = (v: string) => {
     setSearch(v);
-    clearTimeout(
-      (window as unknown as { _searchTimer?: ReturnType<typeof setTimeout> })
-        ._searchTimer,
-    );
-    (
-      window as unknown as { _searchTimer?: ReturnType<typeof setTimeout> }
-    )._searchTimer = setTimeout(() => {
+    if (searchTimer.current) {
+      clearTimeout(searchTimer.current);
+    }
+    searchTimer.current = setTimeout(() => {
       setDebouncedSearch(v);
       setPage(1);
     }, 400);

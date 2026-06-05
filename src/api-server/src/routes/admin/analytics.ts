@@ -1,11 +1,12 @@
 import { Router } from "express";
 import {
-  db,
   questionsTable,
   examsTable,
   studentAttemptsTable,
   quizzesTable,
 } from "@workspace/db";
+import { db } from "../../db";
+
 import { sql, gte, desc } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 
@@ -106,7 +107,6 @@ router.get("/analytics", async (req, res) => {
     cacheSet(cacheKey, data, CacheTTL.ANALYTICS);
     res.json(data);
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch analytics" });
   }
 });

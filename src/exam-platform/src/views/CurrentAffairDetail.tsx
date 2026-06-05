@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useGetCurrentAffair, getGetCurrentAffairQueryKey } from "@workspace/api-client-react";
+import { useGetCurrentAffair, getGetCurrentAffairQueryKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Calendar, Share2, Tag, ChevronLeft, ChevronRight } from "lucide-react";

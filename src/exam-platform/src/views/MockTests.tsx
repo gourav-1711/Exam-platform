@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListMockTests } from "@workspace/api-client-react";
+import { useListMockTests } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";

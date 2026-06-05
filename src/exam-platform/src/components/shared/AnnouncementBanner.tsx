@@ -14,7 +14,7 @@ import { ChevronRight, X } from "lucide-react";
 import {
   getListAnnouncementsQueryKey,
   useListAnnouncements,
-} from "@workspace/api-client-react";
+} from "@/lib/api";
 
 // ─── Announcement config ───────────────────────────────────────────────────────
 const TYPE_CONFIG = {

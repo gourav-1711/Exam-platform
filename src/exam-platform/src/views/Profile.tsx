@@ -13,7 +13,7 @@ import {
   LogOut, ChevronRight, CheckCircle2, Star,
   Pencil, Save, X, Eye, EyeOff, Flame, Trophy, Zap
 } from "lucide-react";
-import { useGetMyStreak } from "@workspace/api-client-react";
+import { useGetMyStreak } from "@/lib/api";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, color }: {

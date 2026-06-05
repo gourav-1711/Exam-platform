@@ -6,9 +6,9 @@ import { PageTransition } from "@/components/shared/PageTransition";
 import { cn } from "@/lib/utils";
 import { Trophy, Star, Zap, BookOpen, RotateCcw, TrendingUp, Flame } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { useGetLeaderboard } from "@workspace/api-client-react";
+import { useGetLeaderboard } from "@/lib/api";
 
-import type { LeaderboardEntry } from "@workspace/api-client-react";
+import type { LeaderboardEntry } from "@/lib/api";
 
 function ClientSignedOut({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();

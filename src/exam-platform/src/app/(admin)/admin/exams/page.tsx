@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch } from "@/lib/api";
 
 interface Exam {
   id: number;
@@ -44,7 +44,7 @@ export default function ExamsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return customFetch<any>(`/api/admin/exams/${id}`, { method: "DELETE" });
+      return customFetch<{ success?: boolean }>(`/api/admin/exams/${id}`, { method: "DELETE" });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "exams"] }); toast({ title: "Exam deleted" }); },
     onError: () => toast({ title: "Delete failed", variant: "destructive" }),

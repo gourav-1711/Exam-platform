@@ -1,43 +1,54 @@
 import { Router } from "express";
-import { db, supportMessagesTable } from "@workspace/db";
-import { SendSupportMessageBody } from "@workspace/api-zod";
+import { z } from "zod";
+import { db } from "../db";
+import { supportMessagesTable } from "@workspace/db";
+import { AppError } from "../middleware/errorHandler";
+
+const SendSupportMessageBody = z.object({
+  message: z.string().min(1).max(2000),
+});
 
 const router = Router();
 
-router.get("/support/messages", async (req, res) => {
+router.get("/support/messages", async (req, res, next) => {
   try {
     const messages = await db.select().from(supportMessagesTable);
-    res.json(messages.map(m => ({
-      id: m.id,
-      message: m.message,
-      sender: m.sender,
-      createdAt: m.createdAt.toISOString(),
-    })));
+    return res.json(
+      messages.map((m) => ({
+        id: m.id,
+        message: m.message,
+        sender: m.sender,
+        createdAt: m.createdAt.toISOString(),
+      })),
+    );
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch messages" });
+    return next(err);
   }
 });
 
-router.post("/support/messages", async (req, res) => {
+router.post("/support/messages", async (req, res, next) => {
   try {
     const parse = SendSupportMessageBody.safeParse(req.body);
-    if (!parse.success) { res.status(400).json({ error: "Invalid body" }); return; }
+    if (!parse.success) {
+      return next(new AppError(400, "Invalid body"));
+    }
 
-    const [msg] = await db.insert(supportMessagesTable).values({
-      message: parse.data.message,
-      sender: "user",
-    }).returning();
+    const [msg] = await db
+      .insert(supportMessagesTable)
+      .values({
+        message: parse.data.message,
+        sender: "user",
+      })
+      .returning();
 
-    res.status(201).json({
+    return res.status(201).json({
       id: msg.id,
       message: msg.message,
       sender: msg.sender,
       createdAt: msg.createdAt.toISOString(),
     });
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to send message" });
+    return next(err);
   }
 });
 

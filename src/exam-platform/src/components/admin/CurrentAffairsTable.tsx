@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { CurrentAffair } from "@workspace/api-client-react";
+import type { CurrentAffair } from "@/lib/api";
 
 interface CurrentAffairsTableProps {
   data: CurrentAffair[];

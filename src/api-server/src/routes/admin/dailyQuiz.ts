@@ -1,5 +1,7 @@
 // src/api-server/src/routes/admin/dailyQuiz.ts
 import express from "express";
+
+type ParamsId = string | string[];
 import { getAuth } from "@clerk/express";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { db } from "../../lib/db";
@@ -13,6 +15,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
+
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
 
@@ -29,7 +32,7 @@ router.get("/", async (req, res) => {
       .limit(limit)
       .offset(offset);
 
-    res.json({
+    return res.json({
       quizzes,
       pagination: {
         page,
@@ -39,25 +42,28 @@ router.get("/", async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
 // GET /api/admin/daily-quiz/:id
 router.get("/:id", async (req, res) => {
   try {
+    const idRaw = req.params.id;
+    const id = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10);
+
     const quiz = await db
       .select()
       .from(dailyQuizzes)
-      .where(eq(dailyQuizzes.id, parseInt(req.params.id)));
+      .where(eq(dailyQuizzes.id, id));
 
     if (!quiz.length) {
       return res.status(404).json({ message: "Quiz not found" });
     }
 
-    res.json(quiz[0]);
+    return res.json(quiz[0]);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -96,9 +102,9 @@ router.post(
         })
         .returning();
 
-      res.status(201).json(result[0]);
+      return res.status(201).json(result[0]);
     } catch (error) {
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   },
 );
@@ -128,16 +134,19 @@ router.patch(
         });
       }
 
+      const idRaw = req.params.id;
+      const id = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10);
+
       const data = parseResult.data;
       const result = await db
         .update(dailyQuizzes)
         .set(data)
-        .where(eq(dailyQuizzes.id, parseInt(req.params.id)))
+        .where(eq(dailyQuizzes.id, id))
         .returning();
 
-      res.json(result[0]);
+      return res.json(result[0]);
     } catch (error) {
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "Server error" });
     }
   },
 );
@@ -145,13 +154,14 @@ router.patch(
 // DELETE /api/admin/daily-quiz/:id
 router.delete("/:id", async (req, res) => {
   try {
-    await db
-      .delete(dailyQuizzes)
-      .where(eq(dailyQuizzes.id, parseInt(req.params.id)));
+    const idRaw = req.params.id;
+    const id = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10);
 
-    res.json({ message: "Quiz deleted successfully" });
+    await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));
+
+    return res.json({ message: "Quiz deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

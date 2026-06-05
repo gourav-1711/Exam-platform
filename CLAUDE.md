@@ -9,10 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Monorepo** managed by **pnpm workspaces** (`pnpm-workspace.yaml`).
 - Central TypeScript configuration in `tsconfig.base.json` that all packages extend.
 - Primary packages:
-  - `@workspace/api-client-react` – thin wrapper around the generated OpenAPI client for React Query.
-  - `@workspace/api-zod` – Zod schemas for request/response validation.
   - `@workspace/db` – Drizzle‑ORM definitions, migrations and a pre‑configured `db` instance.
-  - `@workspace/api-spec` – Orval configuration used to generate the TypeScript client (`lib/api-client-react/src/generated/api.ts`).
 - Two main applications:
   - **API Server** (`src/api-server`) – Express server exposing JSON routes (`/pyp`, `/syllabus`, `/mock-tests`, …) and delegating to the `@workspace/db` package.
   - **Exam Platform** (`src/exam-platform`) – Next.js (v15) front‑end using Clerk for auth, Redux Toolkit for global state, React‑Query for data fetching, and Tailwind CSS for styling.
@@ -46,9 +43,6 @@ root
 ├─ pnpm-workspace.yaml          # workspace definition
 ├─ tsconfig.base.json           # shared TS compiler options
 ├─ lib/                         # reusable libraries (internal packages)
-│   ├─ api-client-react/        # React‑Query wrapper + generated client
-│   ├─ api-spec/                # Orval OpenAPI spec & generator config
-│   ├─ api-zod/                 # Zod schema definitions
 │   └─ db/                      # Drizzle ORM models & migrations
 ├─ src/                         # Applications
 │   ├─ api-server/              # Express API server
@@ -62,9 +56,8 @@ root
 ```
 
 ### Data Flow
-1. **OpenAPI Spec** (`lib/api-spec/openapi.yaml`) → generated client (`lib/api-client-react/src/generated/api.ts`).
-2. **Front‑end** uses **React‑Query** (`@workspace/api-client-react`) to call the API server endpoints.
-3. **API Server** (`src/api-server`) imports the **DB layer** (`@workspace/db`) and **Zod schemas** (`@workspace/api-zod`) for validation.
+1. **Front‑end** uses the local API facade in `src/exam-platform/src/lib/api` for React Query hooks and fetch helpers.
+2. **API Server** (`src/api-server`) imports the **DB layer** (`@workspace/db`) for schema access.
 4. **Authentication** is handled by **Clerk** (`@clerk/nextjs` on the front‑end, `@clerk/express` on the server) – the server trusts the `sessionToken` passed from the client.
 5. Global state (e.g., selected mock test) is managed with **Redux Toolkit**; UI components are built with **Tailwind CSS**, **Radix UI**, and **Lucide icons**.
 
@@ -85,7 +78,7 @@ root
 
 - **Environment variables** are loaded via `--env-file-if-exists=../../.env` when running the API server. Ensure a `.env` file at the repository root contains the required DB connection string and Clerk keys.
 - **Database migrations** must be run (`pnpm -C lib/db run push`) before starting the API server for the first time.
-- **Generating the API client**: after modifying `lib/api-spec/openapi.yaml`, run `pnpm -C lib/api-spec run generate` (the script is defined in the `orval` config) – the generated files live under `lib/api-client-react/src/generated/`.
+- **API facade**: update `src/exam-platform/src/lib/api` when changing browser-side API calls or React Query hooks.
 - **Linting / Formatting**: The repo uses **Prettier** (via the `prettier` dev dependency). Run `pnpm exec prettier --write .` if you need to reformat files. No separate ESLint configuration is present.
 - **Testing**: No testing framework is currently set up. Adding `jest` or `vitest` at the workspace root and creating test files under a `__tests__` directory in each package is the recommended approach.
 

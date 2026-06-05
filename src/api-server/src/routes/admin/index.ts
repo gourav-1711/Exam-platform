@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { requireAdmin } from "../../middlewares/adminMiddleware";
+import { requireAuth } from "../../middleware/auth";
+import { requireAdmin } from "../../middleware/adminAuth";
+
 import dashboardRouter from "./dashboard";
 import questionsRouter from "./questions";
 import draftsRouter from "./drafts";
@@ -20,6 +22,7 @@ import dailyQuizRouter from "./dailyQuiz";
 
 const router = Router();
 
+router.use(requireAuth);
 router.use(requireAdmin);
 
 router.use(dashboardRouter);

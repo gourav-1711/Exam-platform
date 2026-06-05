@@ -25,7 +25,6 @@ router.get("/pyq-subjects", async (req, res): Promise<any> => {
 
     return res.json(subjects);
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch subjects" });
   }
 });
@@ -44,7 +43,6 @@ router.post(
         .returning();
       return res.status(201).json(subject);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create subject" });
     }
   },
@@ -64,7 +62,6 @@ router.patch(
       if (!updated) return res.status(404).json({ error: "Subject not found" });
       return res.json(updated);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update subject" });
     }
   },
@@ -79,7 +76,6 @@ router.delete(
       await db.delete(pyqSubjectsTable).where(eq(pyqSubjectsTable.id, id));
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete subject" });
     }
   },

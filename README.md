@@ -39,7 +39,6 @@ Exam-platform/
 │       └── package.json
 ├── lib/
 │   ├── db/                   ← Drizzle schema & client
-│   ├── api-client-react/     ← React hooks for API
 │   └── api-zod/              ← Zod validation schemas
 └── .env.example              ← Environment variables template
 ```
@@ -60,7 +59,6 @@ This section lists each workspace/package and the important files you will inter
   - `orval.config.ts` — Orval configuration that controls how clients and Zod schemas are generated. See the "Orval generation" section below for details.
   - `package.json` — contains the `codegen` script that runs Orval (run with `pnpm -C lib/api-spec run codegen`).
 
-- **lib/api-client-react/**: generated + custom client for React Query
   - `package.json` / `tsconfig.json` — package config for building this library
   - `src/custom-fetch.ts` — request mutator used by Orval generated client; exposes `setBaseUrl()` and `setAuthTokenGetter()` for runtime configuration.
   - `src/index.ts` — wrapper exports used by the frontend app
@@ -88,7 +86,6 @@ This section lists each workspace/package and the important files you will inter
   - `next.config.ts`, `postcss.config.mjs`, `tsconfig.json` — app build configuration
   - `src/app/` — App Router entry points, layout and route groups (`(admin)`, `(app)`, auth pages)
   - `src/components/` — UI components split by domain: `admin`, `layout`, `shared`, `ui`
-  - `src/lib/` — frontend helpers and API wiring that call the client in `lib/api-client-react`
   - `src/store/` — Redux Toolkit slices used by the app
 
 - **scripts/**: small utility scripts and dev tools (CI helpers, post-merge hooks)
@@ -101,7 +98,7 @@ If you need to find a file quickly, use the workspace search in VS Code or `pnpm
 
 Orval is used to generate two artifacts from `lib/api-spec/openapi.yaml`:
 
-- A React Query client placed into `lib/api-client-react/src/generated` (configured as `client: "react-query"`, `mode: "split"`). The generated client uses the project mutator `lib/api-client-react/src/custom-fetch.ts` (see `orval.config.ts`).
+- The front-end now uses a local API facade under `src/exam-platform/src/lib/api` for React Query hooks and fetch helpers.
 - Zod schemas and TypeScript types placed into `lib/api-zod/src/generated` (configured as `client: "zod"`, with `schemas.path: "generated/types"`).
 
 How to regenerate after editing the OpenAPI spec:
@@ -116,7 +113,7 @@ How to regenerate after editing the OpenAPI spec:
    This runs `orval --config ./orval.config.ts`. The `codegen` script in `lib/api-spec/package.json` also triggers a top-level typecheck for the libraries to catch issues early.
 
 3. After Orval runs you'll see updated files under:
-   - `lib/api-client-react/src/generated/` (React Query client API)
+   - `src/exam-platform/src/lib/api/` (React Query hooks and fetch helpers)
    - `lib/api-zod/src/generated/` (Zod schemas + types)
 
 Notes about the Orval configuration (`lib/api-spec/orval.config.ts`):

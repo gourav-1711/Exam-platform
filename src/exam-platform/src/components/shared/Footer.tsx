@@ -1,12 +1,8 @@
 "use client";
 import React from "react";
 import { MessageCircle, Send, Youtube } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-/* Import the logo image from the ui_images folder */
-import logoImg from "../../ui_images/IMG_20260529_113941_447.jpg";
 
 export default function Footer() {
   const router = useRouter();
@@ -27,7 +23,7 @@ export default function Footer() {
   ];
 
   return (
-    <div className="mx-4 mt-4 bg-white border border-border/50 shadow-sm overflow-hidden">
+    <div className=" mt-4 bg-white border border-border/50 shadow-sm overflow-hidden">
       <div className="p-5">
         {/* Brand Section */}
         <div className="flex items-center gap-2.5 mb-3">
@@ -41,7 +37,8 @@ export default function Footer() {
 
         {/* Description */}
         <p className="text-xs text-muted-foreground leading-relaxed mb-4 max-w-[220px]">
-          A premium learning platform dedicated to providing the best study materials and tools for competitive exam aspirants.
+          A premium learning platform dedicated to providing the best study
+          materials and tools for competitive exam aspirants.
         </p>
 
         {/* Social Icons */}
@@ -71,12 +68,20 @@ export default function Footer() {
         {/* Resources Grid */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-0 mb-6">
           <div>
-            <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2.5">RESOURCES</p>
+            <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2.5">
+              RESOURCES
+            </p>
             <div className="space-y-2">
               {resources.map((item) => (
-                <Link key={item.href} href={item.href} className="flex items-center gap-1.5">
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-1.5"
+                >
                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {item.label}
+                  </span>
                 </Link>
               ))}
             </div>
@@ -84,7 +89,9 @@ export default function Footer() {
 
           {/* Company Links */}
           <div>
-            <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2.5">COMPANY</p>
+            <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest mb-2.5">
+              COMPANY
+            </p>
             <div className="space-y-2 flex flex-col">
               {companyLinks.map((item) => (
                 <Link
@@ -102,7 +109,12 @@ export default function Footer() {
         {/* Copyright */}
         <p className="text-center text-[10px] text-muted-foreground mt-4">
           © 2026 MANISH KI PATHSHALA •
-          <Link href="https://my-portfolio-nine-eta-bo1n0vx4mt.vercel.app/" className="text-violet-600 font-semibold">DESIGNED BY ❤️ Gaurav Dadhich</Link>
+          <Link
+            href="https://my-portfolio-nine-eta-bo1n0vx4mt.vercel.app/"
+            className="text-violet-600 font-semibold"
+          >
+            DESIGNED BY ❤️ Gaurav Dadhich
+          </Link>
         </p>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import DailyQuizForm from '@/components/admin/DailyQuizForm';
-import { getDailyQuizById } from '@workspace/api-client-react';
+import { getDailyQuizById } from '@/lib/api/server';
 
 export default async function EditDailyQuizPage({ params }: { params: { id: string } }) {
   const { id } = params;

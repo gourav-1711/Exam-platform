@@ -1,16 +1,35 @@
 import { Router } from "express";
-import { db, quizzesTable, questionsTable, currentAffairsTable, studyNotesTable, mockTestsTable, pyqSubjectsTable, supportMessagesTable } from "@workspace/db";
+import { db } from "../db";
+import {
+  quizzesTable,
+  questionsTable,
+  currentAffairsTable,
+  studyNotesTable,
+  mockTestsTable,
+  pyqSubjectsTable,
+  supportMessagesTable,
+} from "@workspace/db";
 import { sql } from "drizzle-orm";
 
 const router = Router();
 
-router.get("/stats", async (req, res) => {
+router.get("/stats", async (req, res, next) => {
   try {
-    const [subjectsRow] = await db.select({ count: sql<number>`count(*)` }).from(pyqSubjectsTable);
-    const [questionsRow] = await db.select({ count: sql<number>`count(*)` }).from(questionsTable);
-    const [caRow] = await db.select({ count: sql<number>`count(*)` }).from(currentAffairsTable);
-    const [notesRow] = await db.select({ count: sql<number>`count(*)` }).from(studyNotesTable);
-    const [mockRow] = await db.select({ count: sql<number>`count(*)` }).from(mockTestsTable);
+    const [subjectsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pyqSubjectsTable);
+    const [questionsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(questionsTable);
+    const [caRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(currentAffairsTable);
+    const [notesRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(studyNotesTable);
+    const [mockRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mockTestsTable);
 
     res.json({
       users: 22,
@@ -22,8 +41,7 @@ router.get("/stats", async (req, res) => {
       mockTestsCount: Number(mockRow.count),
     });
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch stats" });
+    next(err);
   }
 });
 

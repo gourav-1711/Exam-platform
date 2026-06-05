@@ -12,6 +12,7 @@ const protectUserId = (req: Request, res: Response, next: NextFunction) => {
   }
 
   next();
+  return;
 };
 
 export default protectUserId;

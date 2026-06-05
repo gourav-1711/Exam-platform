@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useCreateDailyQuiz, useUpdateDailyQuiz } from "@workspace/api-client-react";
+import { useCreateDailyQuiz, useUpdateDailyQuiz } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Props = {

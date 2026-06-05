@@ -15,8 +15,9 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
     (req as any).user = decoded;
     next();
+    return;
   } catch (error) {
-    res.status(400).json({ message: "Invalid token." });
+    return res.status(400).json({ message: "Invalid token." });
   }
 };
 

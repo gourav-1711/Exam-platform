@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAdminDailyQuiz, useDeleteDailyQuiz } from "@workspace/api-client-react";
+import { useAdminDailyQuiz, useDeleteDailyQuiz } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,10 +42,10 @@ export default function DailyQuizDetailPage() {
       await deleteMutation.mutateAsync(id);
       toast({ title: "Deleted", description: "Daily quiz was deleted." });
       router.push("/admin/daily-quizzes");
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast({
         title: "Delete failed",
-        description: err.message || String(err),
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     }

@@ -1,50 +1,64 @@
 import { Router } from "express";
-import { db, previousYearPapersTable, syllabusTable, mockTestsTable } from "@workspace/db";
+import { db } from "../db";
+import {
+  previousYearPapersTable,
+  syllabusTable,
+  mockTestsTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 const router = Router();
 
-router.get("/pyp", async (req, res) => {
+import { AppError } from "../middleware/errorHandler";
+
+router.get("/pyp", async (req, res, next) => {
   try {
     const { examName } = req.query as Record<string, string>;
     let all = await db.select().from(previousYearPapersTable);
-    if (examName) all = all.filter(p => p.examName.toLowerCase().includes(examName.toLowerCase()));
-    res.json(all);
+    if (examName)
+      all = all.filter((p) =>
+        p.examName.toLowerCase().includes(examName.toLowerCase()),
+      );
+
+    return res.json(all);
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch papers" });
+    return next(err);
   }
 });
 
-router.get("/syllabus", async (req, res) => {
+router.get("/syllabus", async (req, res, next) => {
   try {
     const all = await db.select().from(syllabusTable);
-    res.json(all);
+    return res.json(all);
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch syllabus" });
+    return next(err);
   }
 });
 
-router.get("/mock-tests", async (req, res) => {
+router.get("/mock-tests", async (req, res, next) => {
   try {
     const all = await db.select().from(mockTestsTable);
-    res.json(all);
+    return res.json(all);
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch mock tests" });
+    return next(err);
   }
 });
 
-router.get("/mock-tests/:id", async (req, res) => {
+router.get("/mock-tests/:id", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    const [test] = await db.select().from(mockTestsTable).where(eq(mockTestsTable.id, id));
-    if (!test) { res.status(404).json({ error: "Not found" }); return; }
-    res.json(test);
+    const [test] = await db
+      .select()
+      .from(mockTestsTable)
+      .where(eq(mockTestsTable.id, id));
+
+    if (!test) {
+      return next(new AppError(404, "Not found"));
+    }
+
+    return res.json(test);
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch mock test" });
+    return next(err);
   }
 });
 

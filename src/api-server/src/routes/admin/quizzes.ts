@@ -20,7 +20,6 @@ router.get("/quizzes", async (req, res): Promise<any> => {
       })),
     );
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch quizzes" });
   }
 });
@@ -38,7 +37,6 @@ router.get("/quizzes/:id", async (req, res): Promise<any> => {
       createdAt: quiz.createdAt.toISOString(),
     });
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch quiz" });
   }
 });
@@ -84,7 +82,6 @@ router.post(
         createdAt: quiz.createdAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create quiz" });
     }
   },
@@ -111,7 +108,6 @@ router.patch(
         createdAt: updated.createdAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update quiz" });
     }
   },
@@ -126,7 +122,6 @@ router.delete(
       await db.delete(quizzesTable).where(eq(quizzesTable.id, id));
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete quiz" });
     }
   },

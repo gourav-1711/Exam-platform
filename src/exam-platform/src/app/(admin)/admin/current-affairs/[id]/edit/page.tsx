@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
-import { useCurrentAffair, useUpdateCurrentAffair } from "@workspace/api-client-react";
+import { useCurrentAffair, useUpdateCurrentAffair } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

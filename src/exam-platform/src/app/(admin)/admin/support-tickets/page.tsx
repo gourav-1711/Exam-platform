@@ -1,6 +1,6 @@
 'use client';
 
-import { useAdminListSupportTickets, useAdminSupportTicket, useCreateSupportTicketReply, useUpdateSupportTicketStatus, useAssignSupportTicket } from '@workspace/api-client-react';
+import { useAdminListSupportTickets, useAdminSupportTicket, useCreateSupportTicketReply, useUpdateSupportTicketStatus, useAssignSupportTicket } from '@/lib/api';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { MessageSquare, User, Clock, CheckCircle2, ChevronRight, Send, HelpCircle } from 'lucide-react';

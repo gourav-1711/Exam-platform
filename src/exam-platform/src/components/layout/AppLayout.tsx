@@ -44,10 +44,7 @@ import {
 import { StreakTracker } from "@/components/shared/StreakTracker";
 import { cn } from "@/lib/utils";
 import { SignedIn, SignedOut, useUser, useClerk } from "@clerk/nextjs";
-import {
-  useListAnnouncements,
-  getListAnnouncementsQueryKey,
-} from "@workspace/api-client-react";
+import { useListAnnouncements, getListAnnouncementsQueryKey } from "@/lib/api";
 import Footer from "../shared/Footer";
 
 function useClientMounted() {

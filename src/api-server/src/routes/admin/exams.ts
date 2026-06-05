@@ -1,10 +1,7 @@
 import { Router } from "express";
-import {
-  db,
-  examsTable,
-  examQuestionsTable,
-  questionsTable,
-} from "@workspace/db";
+import { examsTable, examQuestionsTable, questionsTable } from "@workspace/db";
+import { db } from "../../db";
+
 import { eq, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { examCreationLimiter } from "../../middlewares/rateLimitMiddleware";
@@ -65,7 +62,6 @@ router.get("/exams", async (req, res) => {
       },
     });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch exams" });
   }
 });
@@ -104,7 +100,6 @@ router.get("/exams/:id", async (req, res) => {
       })),
     });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch exam" });
   }
 });
@@ -135,7 +130,6 @@ router.post(
         updatedAt: exam.updatedAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to create exam" });
     }
   },
@@ -169,7 +163,6 @@ router.patch(
         updatedAt: exam.updatedAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to update exam" });
     }
   },
@@ -188,7 +181,6 @@ router.delete(
       cacheDel("admin:dashboard:stats");
       res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to delete exam" });
     }
   },
@@ -208,7 +200,6 @@ router.post("/exams/:id/questions", async (req, res) => {
     await db.insert(examQuestionsTable).values(values).onConflictDoNothing();
     res.json({ success: true });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to add questions to exam" });
   }
 });

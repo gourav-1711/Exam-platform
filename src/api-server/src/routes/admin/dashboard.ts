@@ -1,6 +1,6 @@
 import { Router } from "express";
+import { db } from "../../db";
 import {
-  db,
   questionsTable,
   quizzesTable,
   studentAttemptsTable,
@@ -67,7 +67,6 @@ router.get("/dashboard", async (req, res) => {
     cacheSet(cacheKey, stats, CacheTTL.DASHBOARD);
     res.json(stats);
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch dashboard stats" });
   }
 });

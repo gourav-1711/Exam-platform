@@ -12,7 +12,6 @@ router.get("/mock-tests", async (req, res): Promise<any> => {
     const mockTests = await db.select().from(mockTestsTable);
     return res.json(mockTests);
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch mock tests" });
   }
 });
@@ -27,7 +26,6 @@ router.get("/mock-tests/:id", async (req, res): Promise<any> => {
     if (!test) return res.status(404).json({ error: "Mock test not found" });
     return res.json(test);
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch mock test" });
   }
 });
@@ -70,7 +68,6 @@ router.post(
 
       return res.status(201).json(test);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create mock test" });
     }
   },
@@ -95,7 +92,6 @@ router.patch(
 
       return res.json(updated);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update mock test" });
     }
   },
@@ -110,7 +106,6 @@ router.delete(
       await db.delete(mockTestsTable).where(eq(mockTestsTable.id, id));
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete mock test" });
     }
   },

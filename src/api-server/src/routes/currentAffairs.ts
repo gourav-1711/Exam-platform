@@ -1,16 +1,19 @@
-import { Router } from 'express';
-import { 
-  getCurrentAffairs, 
-  getCurrentAffairById, 
-  createCurrentAffair, 
-  updateCurrentAffair, 
-  deleteCurrentAffair 
-} from '../services/currentAffairsService';
+import { Router } from "express";
+import {
+  getCurrentAffairs,
+  getCurrentAffairById,
+  createCurrentAffair,
+  updateCurrentAffair,
+  deleteCurrentAffair,
+} from "../services/currentAffairsService";
 
 const router = Router();
 
 // GET all current affairs with pagination matching OpenAPI spec
-router.get('/current-affairs', async (req, res) => {
+import { AppError } from "../middleware/errorHandler";
+
+// GET all current affairs with pagination matching OpenAPI spec
+router.get("/current-affairs", async (req, res, next) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 12;
@@ -26,88 +29,102 @@ router.get('/current-affairs', async (req, res) => {
       nextId: null,
     }));
 
-    res.json({
+    return res.json({
       data: paginated,
       total,
       page,
       totalPages,
     });
-  } catch (error) {
-    console.error('Error fetching current affairs:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (err) {
+    return next(err);
   }
 });
 
 // GET single current affair by ID
-router.get('/current-affairs/:id', async (req, res) => {
+router.get("/current-affairs/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const idRaw = req.params.id;
+    const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
+
     const currentAffair = await getCurrentAffairById(id);
     if (!currentAffair) {
-      return res.status(404).json({ message: 'Current affair not found' });
+      return next(new AppError(404, "Current affair not found"));
     }
-    res.json({
+
+    return res.json({
       ...currentAffair,
       publishedAt: currentAffair.publishedAt.toISOString(),
       prevId: null,
       nextId: null,
     });
-  } catch (error) {
-    console.error('Error fetching current affair:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (err) {
+    return next(err);
   }
 });
 
 // POST create new current affair
-router.post('/current-affairs', async (req, res) => {
+router.post("/current-affairs", async (req, res, next) => {
   try {
     const { title, content, date } = req.body;
-    const newCurrentAffair = await createCurrentAffair({ title, content, date });
-    res.status(201).json({
+    const newCurrentAffair = await createCurrentAffair({
+      title,
+      content,
+      date,
+    });
+
+    return res.status(201).json({
       ...newCurrentAffair,
       publishedAt: newCurrentAffair.publishedAt.toISOString(),
       prevId: null,
       nextId: null,
     });
-  } catch (error) {
-    console.error('Error creating current affair:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (err) {
+    return next(err);
   }
 });
 
 // PUT update existing current affair
-router.put('/current-affairs/:id', async (req, res) => {
+router.put("/current-affairs/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const idRaw = req.params.id;
+    const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
+
     const { title, content, date } = req.body;
-    const updatedCurrentAffair = await updateCurrentAffair(id, { title, content, date });
+    const updatedCurrentAffair = await updateCurrentAffair(id, {
+      title,
+      content,
+      date,
+    });
+
     if (!updatedCurrentAffair) {
-      return res.status(404).json({ message: 'Current affair not found' });
+      return next(new AppError(404, "Current affair not found"));
     }
-    res.json({
+
+    return res.json({
       ...updatedCurrentAffair,
       publishedAt: updatedCurrentAffair.publishedAt.toISOString(),
       prevId: null,
       nextId: null,
     });
-  } catch (error) {
-    console.error('Error updating current affair:', error);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (err) {
+    return next(err);
   }
 });
 
 // DELETE current affair
-router.delete('/current-affairs/:id', async (req, res) => {
+router.delete("/current-affairs/:id", async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const idRaw = req.params.id;
+    const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
+
     const deletedCurrentAffair = await deleteCurrentAffair(id);
     if (!deletedCurrentAffair) {
-      return res.status(404).json({ message: 'Current affair not found' });
+      return next(new AppError(404, "Current affair not found"));
     }
-    res.json({ message: 'Current affair deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting current affair:', error);
-    res.status(500).json({ message: 'Internal server error' });
+
+    return res.json({ message: "Current affair deleted successfully" });
+  } catch (err) {
+    return next(err);
   }
 });
 

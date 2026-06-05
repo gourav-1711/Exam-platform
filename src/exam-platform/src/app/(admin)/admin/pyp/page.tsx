@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/api-config";
 import { Upload, Trash2, Download, AlertCircle } from "lucide-react";
-import { useListPyqSubjects } from "@workspace/api-client-react";
+import { useListPyqSubjects } from "@/lib/api";
+import type { PyqSubject } from "@/lib/api";
 
 interface PypPdf {
   id: number;
@@ -151,7 +152,7 @@ export default function PypAdminPage() {
               className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
             >
               <option value="">Select Subject</option>
-              {subjects.map((s: any) => (
+              {subjects.map((s: PyqSubject) => (
                 <option key={s.id} value={s.name}>
                   {s.name}
                 </option>

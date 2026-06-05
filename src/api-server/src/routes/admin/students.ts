@@ -1,5 +1,7 @@
 import { Router } from "express";
-import { db, studentAttemptsTable } from "@workspace/db";
+import { db } from "../../db";
+import { studentAttemptsTable } from "@workspace/db";
+
 import { eq, desc, sql } from "drizzle-orm";
 import { routeParam } from "../../lib/routeParams";
 
@@ -48,7 +50,6 @@ router.get("/students", async (req, res) => {
       },
     });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch students" });
   }
 });
@@ -66,7 +67,6 @@ router.get("/students/:userId/attempts", async (req, res) => {
       attempts.map((a) => ({ ...a, attemptedAt: a.attemptedAt.toISOString() })),
     );
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch student attempts" });
   }
 });

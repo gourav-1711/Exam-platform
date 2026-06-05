@@ -13,7 +13,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch } from "@/lib/api";
 
 export default function NewQuestionPage() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function NewQuestionPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: QuestionFormData) => {
-      return customFetch<any>("/api/admin/questions", {
+      return customFetch<{ id: number }>("/api/admin/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -40,7 +40,7 @@ export default function NewQuestionPage() {
   });
 
   const saveDraftMutation = async (data: QuestionFormData) => {
-    return customFetch<any>("/api/admin/drafts/questions", {
+    return customFetch<{ id: number }>("/api/admin/drafts/questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: data }),

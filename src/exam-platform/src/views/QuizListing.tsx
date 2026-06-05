@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListQuizzes } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
+import { quizzesApi } from "@/lib/api/endpoints";
+import { queryKeys } from "@/lib/api/query-keys";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,16 +14,27 @@ import { Clock, Play, FileText, CheckCircle2 } from "lucide-react";
 
 export default function QuizListing() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history">("ongoing");
-  const { data: quizzes, isLoading } = useListQuizzes({ status: activeTab as any });
+
+  const { data: quizzes, isLoading } = useQuery({
+    queryKey: queryKeys.quizzes.list({ status: activeTab }),
+    queryFn: () => quizzesApi.list({ status: activeTab }),
+    staleTime: 5 * 60 * 1000,
+  });
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Daily Quizzes</h1>
-        <p className="text-muted-foreground">Test your knowledge with our daily curated quizzes.</p>
+        <p className="text-muted-foreground">
+          Test your knowledge with our daily curated quizzes.
+        </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as any)}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
           <TabsTrigger value="ongoing">Ongoing</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
@@ -30,13 +43,17 @@ export default function QuizListing() {
         <TabsContent value="ongoing" className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {isLoading ? (
-              Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-48 rounded-2xl" />)
+              Array(6)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-48 rounded-2xl" />
+                ))
             ) : quizzes?.length === 0 ? (
               <div className="col-span-full py-12 text-center text-muted-foreground">
                 No ongoing quizzes found. Check back tomorrow!
               </div>
             ) : (
-              quizzes?.map((quiz) => (
+              quizzes?.map((quiz: any) => (
                 <QuizCard key={quiz.id} quiz={quiz} type="ongoing" />
               ))
             )}
@@ -46,13 +63,17 @@ export default function QuizListing() {
         <TabsContent value="history" className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {isLoading ? (
-              Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-48 rounded-2xl" />)
+              Array(6)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-48 rounded-2xl" />
+                ))
             ) : quizzes?.length === 0 ? (
               <div className="col-span-full py-12 text-center text-muted-foreground">
                 You haven't attempted any quizzes yet.
               </div>
             ) : (
-              quizzes?.map((quiz) => (
+              quizzes?.map((quiz: any) => (
                 <QuizCard key={quiz.id} quiz={quiz} type="history" />
               ))
             )}
@@ -72,7 +93,9 @@ function QuizCard({ quiz, type }: { quiz: any; type: "ongoing" | "history" }) {
             <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-md inline-block mb-1">
               {quiz.subject}
             </span>
-            <h3 className="font-bold text-foreground line-clamp-2 leading-tight">{quiz.title}</h3>
+            <h3 className="font-bold text-foreground line-clamp-2 leading-tight">
+              {quiz.title}
+            </h3>
           </div>
           {type === "history" && (
             <div className="shrink-0 p-1.5 bg-emerald-500/10 rounded-full text-emerald-600">
@@ -80,7 +103,7 @@ function QuizCard({ quiz, type }: { quiz: any; type: "ongoing" | "history" }) {
             </div>
           )}
         </div>
-        
+
         <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mt-auto pt-4 border-t border-border/50">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4" /> {quiz.durationMins} mins

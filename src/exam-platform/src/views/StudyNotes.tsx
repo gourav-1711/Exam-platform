@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListStudyNotes } from "@workspace/api-client-react";
+import { useListStudyNotes } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

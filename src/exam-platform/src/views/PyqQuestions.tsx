@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListPyqQuestions, getListPyqQuestionsQueryKey } from "@workspace/api-client-react";
+import { useListPyqQuestions, getListPyqQuestionsQueryKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,7 +46,7 @@ export default function PyqQuestions() {
     );
   }
 
-  const currentQ = questions[currentQIndex];
+  const currentQ = questions[currentQIndex]!;
   const isLastQ = currentQIndex === questions.length - 1;
   const isFirstQ = currentQIndex === 0;
   const isCorrect = selectedOption === currentQ.correctIndex;

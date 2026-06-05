@@ -22,7 +22,6 @@ router.get("/current-affairs", async (req, res): Promise<any> => {
       })),
     );
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch current affairs" });
   }
 });
@@ -42,7 +41,6 @@ router.get("/current-affairs/:id", async (req, res): Promise<any> => {
       nextId: null,
     });
   } catch (err) {
-    req.log.error(err);
     return res
       .status(500)
       .json({ error: "Failed to fetch current affairs article" });
@@ -78,7 +76,6 @@ router.post(
         nextId: null,
       });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create current affair" });
     }
   },
@@ -107,7 +104,6 @@ router.patch(
         nextId: null,
       });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update current affair" });
     }
   },
@@ -124,7 +120,6 @@ router.delete(
         .where(eq(currentAffairsTable.id, id));
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete current affair" });
     }
   },

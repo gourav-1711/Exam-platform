@@ -1,20 +1,11 @@
 "use client";
 
-import { useAdminListDrafts, useDeleteDraft } from "@workspace/api-client-react";
+import { useAdminListDrafts, useDeleteDraft, type DraftItem } from "@/lib/api";
 import { FileEdit, Trash2, Clock, HelpCircle, GraduationCap, ArrowRight, MessageSquare, Newspaper, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
-interface DraftItem {
-  id: number;
-  resourceType: string;
-  resourceId: number | null;
-  createdBy: string;
-  content: any;
-  lastSavedAt: string;
-}
 
 function DraftCard({ draft, onDelete }: { draft: DraftItem; onDelete: () => void }) {
   const content = draft.content || {};
@@ -119,7 +110,7 @@ export default function DraftsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {drafts.map((d: any) => (
+              {drafts.map((d) => (
                 <DraftCard key={d.id} draft={d} onDelete={() => handleDelete(d.id)} />
               ))}
             </div>

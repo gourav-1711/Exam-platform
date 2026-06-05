@@ -12,7 +12,6 @@ router.get("/study-notes", async (req, res): Promise<any> => {
     const studyNotes = await db.select().from(studyNotesTable);
     return res.json(studyNotes);
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch study notes" });
   }
 });
@@ -27,7 +26,6 @@ router.get("/study-notes/:id", async (req, res): Promise<any> => {
     if (!note) return res.status(404).json({ error: "Study note not found" });
     return res.json(note);
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch study note" });
   }
 });
@@ -57,7 +55,6 @@ router.post(
 
       return res.status(201).json(note);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create study note" });
     }
   },
@@ -82,7 +79,6 @@ router.patch(
 
       return res.json(updated);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update study note" });
     }
   },
@@ -97,7 +93,6 @@ router.delete(
       await db.delete(studyNotesTable).where(eq(studyNotesTable.id, id));
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete study note" });
     }
   },

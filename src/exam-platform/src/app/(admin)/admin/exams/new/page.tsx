@@ -28,7 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Save, Send } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch } from "@/lib/api";
 
 interface ExamFormData {
   title: string;
@@ -88,7 +88,7 @@ export default function NewExamPage() {
     async (data: ExamFormData) => {
       dispatch(setDraftStatus("saving"));
       try {
-        const draft = await customFetch<any>("/api/admin/drafts/exams", {
+        const draft = await customFetch<{ id: number }>("/api/admin/drafts/exams", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ content: data }),
@@ -120,7 +120,7 @@ export default function NewExamPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
-      return customFetch<any>("/api/admin/exams", {
+      return customFetch<{ id: number }>("/api/admin/exams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, userStreaksTable } from "@workspace/db";
+import { userStreaksTable } from "@workspace/db";
+import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
 
 const router = Router();
@@ -20,17 +21,33 @@ function yesterdayStr(): string {
 }
 
 // ── GET /streaks/me ──────────────────────────────────────────────────────────
-router.get("/streaks/me", async (req, res) => {
+router.get("/streaks/me", async (req, res, next) => {
   const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) {
+    return next(
+      new (require("../middleware/errorHandler").AppError)(401, "Unauthorized"),
+    );
+  }
 
   try {
-    const [row] = await db.select().from(userStreaksTable).where(eq(userStreaksTable.userId, userId));
+    const [row] = await db
+      .select()
+      .from(userStreaksTable)
+      .where(eq(userStreaksTable.userId, userId));
+
     if (!row) {
-      res.json({ currentStreak: 0, longestStreak: 0, totalPoints: 0, quizCount: 0, mockCount: 0, pyqCount: 0, lastActivityDate: null });
-      return;
+      return res.json({
+        currentStreak: 0,
+        longestStreak: 0,
+        totalPoints: 0,
+        quizCount: 0,
+        mockCount: 0,
+        pyqCount: 0,
+        lastActivityDate: null,
+      });
     }
-    res.json({
+
+    return res.json({
       currentStreak: row.currentStreak,
       longestStreak: row.longestStreak,
       totalPoints: row.totalPoints,
@@ -40,21 +57,31 @@ router.get("/streaks/me", async (req, res) => {
       lastActivityDate: row.lastActivityDate ?? null,
     });
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch streak" });
+    return next(err);
   }
 });
 
 // ── POST /streaks/activity ───────────────────────────────────────────────────
-router.post("/streaks/activity", async (req, res) => {
+router.post("/streaks/activity", async (req, res, next) => {
   const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  if (!userId) {
+    return next(
+      new (require("../middleware/errorHandler").AppError)(401, "Unauthorized"),
+    );
+  }
 
-  const { activityType, displayName } = req.body as { activityType?: string; displayName?: string };
+  const { activityType, displayName } = req.body as {
+    activityType?: string;
+    displayName?: string;
+  };
 
   if (!activityType || !["quiz", "mock", "pyq"].includes(activityType)) {
-    res.status(400).json({ error: "activityType must be quiz | mock | pyq" });
-    return;
+    return next(
+      new (require("../middleware/errorHandler").AppError)(
+        400,
+        "activityType must be quiz | mock | pyq",
+      ),
+    );
   }
 
   const today = todayStr();
@@ -63,7 +90,10 @@ router.post("/streaks/activity", async (req, res) => {
   const safeDisplayName = (displayName ?? "Learner").trim() || "Learner";
 
   try {
-    const [existing] = await db.select().from(userStreaksTable).where(eq(userStreaksTable.userId, userId));
+    const [existing] = await db
+      .select()
+      .from(userStreaksTable)
+      .where(eq(userStreaksTable.userId, userId));
 
     if (!existing) {
       await db.insert(userStreaksTable).values({
@@ -77,8 +107,14 @@ router.post("/streaks/activity", async (req, res) => {
         pyqCount: activityType === "pyq" ? 1 : 0,
         lastActivityDate: today,
       });
-      res.json({ currentStreak: 1, longestStreak: 1, totalPoints: pointsEarned, pointsEarned, streakIncremented: true });
-      return;
+
+      return res.json({
+        currentStreak: 1,
+        longestStreak: 1,
+        totalPoints: pointsEarned,
+        pointsEarned,
+        streakIncremented: true,
+      });
     }
 
     const alreadyToday = existing.lastActivityDate === today;
@@ -97,19 +133,25 @@ router.post("/streaks/activity", async (req, res) => {
     const newLongest = Math.max(existing.longestStreak, newStreak);
     const newPoints = existing.totalPoints + pointsEarned;
 
-    await db.update(userStreaksTable).set({
-      displayName: safeDisplayName,
-      totalPoints: newPoints,
-      currentStreak: newStreak,
-      longestStreak: newLongest,
-      lastActivityDate: today,
-      quizCount: activityType === "quiz" ? existing.quizCount + 1 : existing.quizCount,
-      mockCount: activityType === "mock" ? existing.mockCount + 1 : existing.mockCount,
-      pyqCount: activityType === "pyq" ? existing.pyqCount + 1 : existing.pyqCount,
-      updatedAt: new Date(),
-    }).where(eq(userStreaksTable.userId, userId));
+    await db
+      .update(userStreaksTable)
+      .set({
+        displayName: safeDisplayName,
+        totalPoints: newPoints,
+        currentStreak: newStreak,
+        longestStreak: newLongest,
+        lastActivityDate: today,
+        quizCount:
+          activityType === "quiz" ? existing.quizCount + 1 : existing.quizCount,
+        mockCount:
+          activityType === "mock" ? existing.mockCount + 1 : existing.mockCount,
+        pyqCount:
+          activityType === "pyq" ? existing.pyqCount + 1 : existing.pyqCount,
+        updatedAt: new Date(),
+      })
+      .where(eq(userStreaksTable.userId, userId));
 
-    res.json({
+    return res.json({
       currentStreak: newStreak,
       longestStreak: newLongest,
       totalPoints: newPoints,
@@ -117,13 +159,12 @@ router.post("/streaks/activity", async (req, res) => {
       streakIncremented,
     });
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to record activity" });
+    return next(err);
   }
 });
 
 // ── GET /leaderboard ─────────────────────────────────────────────────────────
-router.get("/leaderboard", async (req, res) => {
+router.get("/leaderboard", async (req, res, next) => {
   const limit = Math.min(Number(req.query.limit ?? 20), 50);
 
   try {
@@ -145,10 +186,9 @@ router.get("/leaderboard", async (req, res) => {
       pyqCount: row.pyqCount,
     }));
 
-    res.json(entries);
+    return res.json(entries);
   } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch leaderboard" });
+    return next(err);
   }
 });
 

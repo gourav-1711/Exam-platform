@@ -31,7 +31,6 @@ router.get("/settings", async (req, res) => {
       updatedAt: settings.updatedAt.toISOString(),
     });
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch settings" });
   }
 });
@@ -59,7 +58,6 @@ router.patch(
         updatedAt: updated.updatedAt.toISOString(),
       });
     } catch (err) {
-      req.log.error(err);
       res.status(500).json({ error: "Failed to update settings" });
     }
   },

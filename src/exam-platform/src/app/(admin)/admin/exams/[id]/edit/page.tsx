@@ -27,7 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Save, Send } from "lucide-react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@workspace/api-client-react";
+import { customFetch } from "@/lib/api";
 
 interface ExamFormData {
   title: string;
@@ -67,7 +67,7 @@ export default function EditExamPage() {
   const { data: exam, isLoading } = useQuery({
     queryKey: ["admin", "exams", id],
     queryFn: async () => {
-      return customFetch<any>(`/api/admin/exams/${id}`);
+      return customFetch<ExamFormData>(`/api/admin/exams/${id}`);
     },
   });
 
@@ -88,7 +88,7 @@ export default function EditExamPage() {
     async (data: ExamFormData) => {
       dispatch(setDraftStatus("saving"));
       try {
-        await customFetch<any>(`/api/admin/exams/${id}`, {
+        await customFetch<ExamFormData>(`/api/admin/exams/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...data, status: "draft" }),
@@ -119,7 +119,7 @@ export default function EditExamPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
-      return customFetch<any>(`/api/admin/exams/${id}`, {
+      return customFetch<ExamFormData>(`/api/admin/exams/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

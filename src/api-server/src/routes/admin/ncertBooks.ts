@@ -11,7 +11,6 @@ router.get("/ncert-books", async (req, res) => {
     const books = await db.select().from(ncertBooksTable);
     res.json(books);
   } catch (err) {
-    req.log.error(err);
     res.status(500).json({ error: "Failed to fetch NCERT books" });
   }
 });
@@ -26,7 +25,6 @@ router.get("/ncert-books/:id", async (req, res) => {
     if (!book) return res.status(404).json({ error: "NCERT book not found" });
     return res.json(book);
   } catch (err) {
-    req.log.error(err);
     return res.status(500).json({ error: "Failed to fetch NCERT book" });
   }
 });
@@ -58,7 +56,6 @@ router.post(
 
       return res.status(201).json(book);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to create NCERT book" });
     }
   },
@@ -83,7 +80,6 @@ router.patch(
 
       return res.json(updated);
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to update NCERT book" });
     }
   },
@@ -98,7 +94,6 @@ router.delete(
       await db.delete(ncertBooksTable).where(eq(ncertBooksTable.id, id));
       return res.json({ success: true });
     } catch (err) {
-      req.log.error(err);
       return res.status(500).json({ error: "Failed to delete NCERT book" });
     }
   },

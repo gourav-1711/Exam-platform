@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListSupportMessages, useSendSupportMessage, getListSupportMessagesQueryKey } from "@workspace/api-client-react";
+import { useListSupportMessages, useSendSupportMessage, getListSupportMessagesQueryKey } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
