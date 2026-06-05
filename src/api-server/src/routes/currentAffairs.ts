@@ -10,7 +10,7 @@ import {
 const router = Router();
 
 // GET all current affairs
-router.get('/', async (req, res) => {
+router.get('/current-affairs', async (req, res) => {
   try {
     const currentAffairs = await getCurrentAffairs();
     res.json(currentAffairs);
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 });
 
 // GET single current affair by ID
-router.get('/:id', async (req, res) => {
+router.get('/current-affairs/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const currentAffair = await getCurrentAffairById(id);
@@ -36,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST create new current affair
-router.post('/', async (req, res) => {
+router.post('/current-affairs', async (req, res) => {
   try {
     const { title, content, date } = req.body;
     const newCurrentAffair = await createCurrentAffair({ title, content, date });
@@ -48,7 +48,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update existing current affair
-router.put('/:id', async (req, res) => {
+router.put('/current-affairs/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, date } = req.body;
@@ -64,7 +64,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE current affair
-router.delete('/:id', async (req, res) => {
+router.delete('/current-affairs/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const deletedCurrentAffair = await deleteCurrentAffair(id);
