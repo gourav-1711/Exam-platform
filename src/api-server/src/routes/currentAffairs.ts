@@ -1,55 +1,80 @@
-import { Router } from "express";
-import { db, currentAffairsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { Router } from 'express';
+import { 
+  getCurrentAffairs, 
+  getCurrentAffairById, 
+  createCurrentAffair, 
+  updateCurrentAffair, 
+  deleteCurrentAffair 
+} from '../services/currentAffairsService';
 
 const router = Router();
 
-router.get("/current-affairs", async (req, res) => {
+// GET all current affairs
+router.get('/', async (req, res) => {
   try {
-    const page = parseInt((req.query as any).page as string) || 1;
-    const limit = parseInt((req.query as any).limit as string) || 10;
-    const offset = (page - 1) * limit;
-
-    const all = await db.select().from(currentAffairsTable).orderBy(desc(currentAffairsTable.publishedAt));
-    const total = all.length;
-    const data = all.slice(offset, offset + limit).map(a => ({
-      id: a.id,
-      title: a.title,
-      summary: a.summary,
-      content: a.content,
-      category: a.category,
-      publishedAt: a.publishedAt.toISOString(),
-      prevId: null,
-      nextId: null,
-    }));
-
-    res.json({ data, total, page, totalPages: Math.ceil(total / limit) });
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch current affairs" });
+    const currentAffairs = await getCurrentAffairs();
+    res.json(currentAffairs);
+  } catch (error) {
+    console.error('Error fetching current affairs:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-router.get("/current-affairs/:id", async (req, res) => {
+// GET single current affair by ID
+router.get('/:id', async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    const all = await db.select().from(currentAffairsTable).orderBy(desc(currentAffairsTable.publishedAt));
-    const idx = all.findIndex(a => a.id === id);
-    if (idx === -1) { res.status(404).json({ error: "Not found" }); return; }
-    const article = all[idx];
-    res.json({
-      id: article.id,
-      title: article.title,
-      summary: article.summary,
-      content: article.content,
-      category: article.category,
-      publishedAt: article.publishedAt.toISOString(),
-      prevId: idx > 0 ? all[idx - 1].id : null,
-      nextId: idx < all.length - 1 ? all[idx + 1].id : null,
-    });
-  } catch (err) {
-    req.log.error(err);
-    res.status(500).json({ error: "Failed to fetch article" });
+    const { id } = req.params;
+    const currentAffair = await getCurrentAffairById(id);
+    if (!currentAffair) {
+      return res.status(404).json({ message: 'Current affair not found' });
+    }
+    res.json(currentAffair);
+  } catch (error) {
+    console.error('Error fetching current affair:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// POST create new current affair
+router.post('/', async (req, res) => {
+  try {
+    const { title, content, date } = req.body;
+    const newCurrentAffair = await createCurrentAffair({ title, content, date });
+    res.status(201).json(newCurrentAffair);
+  } catch (error) {
+    console.error('Error creating current affair:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// PUT update existing current affair
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, date } = req.body;
+    const updatedCurrentAffair = await updateCurrentAffair(id, { title, content, date });
+    if (!updatedCurrentAffair) {
+      return res.status(404).json({ message: 'Current affair not found' });
+    }
+    res.json(updatedCurrentAffair);
+  } catch (error) {
+    console.error('Error updating current affair:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// DELETE current affair
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedCurrentAffair = await deleteCurrentAffair(id);
+    if (!deletedCurrentAffair) {
+      return res.status(404).json({ message: 'Current affair not found' });
+    }
+    res.json({ message: 'Current affair deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting current affair:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
