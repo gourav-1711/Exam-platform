@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAdminDailyQuiz, useDeleteDailyQuiz } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -9,52 +10,19 @@ export default function DailyQuizDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const id = params?.id;
-  const [quiz, setQuiz] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const id = params?.id ? String(params.id) : "";
 
-  useEffect(() => {
-    if (!id) return;
+  const { data: quiz, isLoading, error } = useAdminDailyQuiz(id);
+  const deleteMutation = useDeleteDailyQuiz();
 
-    setLoading(true);
-    setError(null);
-
-    fetch(`/api/admin/daily-quiz/${id}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Failed to load quiz");
-        }
-        return res.json();
-      })
-      .then((data) => setQuiz(data))
-      .catch((err: any) => setError(err.message || String(err)))
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  if (loading) {
+  if (isLoading) {
     return <div className="p-6">Loading…</div>;
   }
 
-  if (error) {
+  if (error || !quiz) {
     return (
       <div className="p-6 text-red-600">
-        <p>Error loading quiz: {error}</p>
-        <Button
-          variant="outline"
-          onClick={() => router.push("/admin/daily-quizzes")}
-        >
-          Back
-        </Button>
-      </div>
-    );
-  }
-
-  if (!quiz) {
-    return (
-      <div className="p-6">
-        <p className="text-red-600">Quiz not found.</p>
+        <p>Error loading quiz or quiz not found.</p>
         <Button
           variant="outline"
           onClick={() => router.push("/admin/daily-quizzes")}
@@ -71,15 +39,7 @@ export default function DailyQuizDetailPage() {
     }
 
     try {
-      const res = await fetch(`/api/admin/daily-quiz/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed to delete quiz");
-      }
-
+      await deleteMutation.mutateAsync(id);
       toast({ title: "Deleted", description: "Daily quiz was deleted." });
       router.push("/admin/daily-quizzes");
     } catch (err: any) {
@@ -105,8 +65,8 @@ export default function DailyQuizDetailPage() {
           >
             Edit
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            Delete
+          <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </Button>
           <Button
             variant="outline"

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useCreateDailyQuiz, useUpdateDailyQuiz } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Props = {
@@ -33,6 +34,9 @@ export default function DailyQuizForm({ initial, mode, id }: Props) {
   const [isPublished, setIsPublished] = useState(initial?.isPublished ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const createMutation = useCreateDailyQuiz();
+  const updateMutation = useUpdateDailyQuiz(id ?? 0);
 
   React.useEffect(() => {
     if (!initial) return;
@@ -67,21 +71,10 @@ export default function DailyQuizForm({ initial, mode, id }: Props) {
         isPublished,
       } as any;
 
-      const url =
-        mode === "create"
-          ? "/api/admin/daily-quiz"
-          : `/api/admin/daily-quiz/${id}`;
-      const method = mode === "create" ? "POST" : "PATCH";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed");
+      if (mode === "create") {
+        await createMutation.mutateAsync(payload);
+      } else {
+        await updateMutation.mutateAsync(payload);
       }
 
       toast({
@@ -199,10 +192,10 @@ export default function DailyQuizForm({ initial, mode, id }: Props) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || createMutation.isPending || updateMutation.isPending}
           className="px-4 py-2 bg-indigo-600 text-white rounded-md"
         >
-          {loading ? "Saving…" : mode === "create" ? "Create" : "Update"}
+          {loading || createMutation.isPending || updateMutation.isPending ? "Saving…" : mode === "create" ? "Create" : "Update"}
         </button>
         <button
           type="button"

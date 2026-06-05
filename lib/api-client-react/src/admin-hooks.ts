@@ -142,6 +142,29 @@ export interface AdminSuccessResponse {
   success: boolean;
 }
 
+export interface DailyQuiz {
+  id: number;
+  title: string;
+  description?: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  durationMinutes: number;
+  totalQuestions: number;
+  questionIds: number[];
+  isPublished: boolean;
+  createdBy: string;
+}
+
+export interface DailyQuizzesResponse {
+  quizzes: DailyQuiz[];
+  pagination: {
+    page: number;
+    total: number;
+    totalPages: number;
+    limit: number;
+  };
+}
+
 // --- API FUNCTIONS ---
 const getAdminDashboard = () =>
   customFetch<AdminDashboardStats>("/api/admin/dashboard", { method: "GET" });
@@ -351,8 +374,35 @@ const getAdminActivityLogs = (params?: {
   return customFetch<AdminActivityLogsList>(url, { method: "GET" });
 };
 
+// Daily quiz API Functions
+export const getAdminDailyQuizzes = (params?: { page?: number; limit?: number }) => {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.append("page", params.page.toString());
+  if (params?.limit) queryParams.append("limit", params.limit.toString());
+  const qStr = queryParams.toString();
+  const url = qStr ? `/api/admin/daily-quiz?${qStr}` : "/api/admin/daily-quiz";
+  return customFetch<DailyQuizzesResponse>(url, { method: "GET" });
+};
+
 export const getDailyQuizById = (id: string | number) =>
-  customFetch<any>(`/api/admin/daily-quiz/${id}`, { method: "GET" });
+  customFetch<DailyQuiz>(`/api/admin/daily-quiz/${id}`, { method: "GET" });
+
+export const createAdminDailyQuiz = (data: Partial<DailyQuiz>) =>
+  customFetch<DailyQuiz>("/api/admin/daily-quiz", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+
+export const updateAdminDailyQuiz = (id: string | number, data: Partial<DailyQuiz>) =>
+  customFetch<DailyQuiz>(`/api/admin/daily-quiz/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+
+export const deleteAdminDailyQuiz = (id: string | number) =>
+  customFetch<AdminSuccessResponse>(`/api/admin/daily-quiz/${id}`, {
+    method: "DELETE",
+  });
 
 // --- HOOKS ---
 
@@ -526,7 +576,7 @@ export const useUpdateCurrentAffair = (id: number) => {
   const qc = useQueryClient();
   return useMutation<CurrentAffair, Error, Partial<CurrentAffair>>({
     mutationFn: (data: Partial<CurrentAffair>) => updateCurrentAffair(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["current-affair", id] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["current-air", id] }),
   });
 };
 
@@ -898,5 +948,66 @@ export function useAdminActivityLogs(params?: {
   return useQuery({
     queryKey: ["admin", "activity-logs", params],
     queryFn: () => getAdminActivityLogs(params),
+  });
+}
+
+// --- DAILY QUIZZES ---
+export function useAdminListDailyQuizzes(params?: {
+  page?: number;
+  limit?: number;
+}): UseQueryResult<DailyQuizzesResponse, Error> {
+  return useQuery({
+    queryKey: ["admin", "daily-quizzes", params?.page],
+    queryFn: () => getAdminDailyQuizzes(params),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useAdminDailyQuiz(id: string | number): UseQueryResult<DailyQuiz, Error> {
+  return useQuery({
+    queryKey: ["admin", "daily-quizzes", id],
+    queryFn: () => getDailyQuizById(id),
+    enabled: !!id,
+  });
+}
+
+export function useCreateDailyQuiz(): UseMutationResult<
+  DailyQuiz,
+  Error,
+  Partial<DailyQuiz>
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createAdminDailyQuiz,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "daily-quizzes"] });
+    },
+  });
+}
+
+export function useUpdateDailyQuiz(
+  id: string | number,
+): UseMutationResult<DailyQuiz, Error, Partial<DailyQuiz>> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<DailyQuiz>) => updateAdminDailyQuiz(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "daily-quizzes"] });
+      qc.invalidateQueries({ queryKey: ["admin", "daily-quizzes", id] });
+    },
+  });
+}
+
+export function useDeleteDailyQuiz(): UseMutationResult<
+  AdminSuccessResponse,
+  Error,
+  string | number
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAdminDailyQuiz,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "daily-quizzes"] });
+    },
   });
 }

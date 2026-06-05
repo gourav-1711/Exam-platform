@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { customFetch } from "@workspace/api-client-react";
+import { useAdminListDailyQuizzes, useDeleteDailyQuiz } from "@workspace/api-client-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,44 +23,16 @@ import {
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type Quiz = {
-  id: number;
-  title: string;
-  description?: string;
-  scheduledDate: string;
-  scheduledTime: string;
-  durationMinutes: number;
-  totalQuestions: number;
-  isPublished: boolean;
-};
-
-type QuizzesResponse = {
-  quizzes: Quiz[];
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-    limit: number;
-  };
-};
-
-async function fetchQuizzes(pageNum = 1) {
-  return customFetch<QuizzesResponse>(
-    `/api/admin/daily-quiz?page=${pageNum}&limit=20`,
-  );
-}
-
 export default function DailyQuizzesAdmin() {
   const [page, setPage] = useState(1);
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["admin", "daily-quizzes", page],
-    queryFn: () => fetchQuizzes(page),
-    staleTime: 60 * 1000,
+  const { data, isLoading, error } = useAdminListDailyQuizzes({
+    page,
+    limit: 20,
   });
 
+  const deleteMutation = useDeleteDailyQuiz();
   const quizzes = data?.quizzes ?? [];
 
   async function handleDelete(id: number) {
@@ -70,10 +41,7 @@ export default function DailyQuizzesAdmin() {
     }
 
     try {
-      await customFetch(`/api/admin/daily-quiz/${id}`, {
-        method: "DELETE",
-      } as any);
-      queryClient.invalidateQueries(["admin", "daily-quizzes"]);
+      await deleteMutation.mutateAsync(id);
       toast({ title: "Deleted", description: "Quiz deleted." });
     } catch (err: any) {
       toast({
