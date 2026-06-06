@@ -2,20 +2,30 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { useAppDispatch } from "@/store/hooks";
-import { setDraftStatus, setDraftSaved, markUnsaved, setQuestionDraftId } from "@/store/slices/draftSlice";
 import { DraftStatus } from "./DraftStatus";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Save, Send } from "lucide-react";
 
 export interface QuestionFormData {
   text: string;
-  questionType: "single" | "multiple" | "truefalse" | "fillblank" | "subjective";
+  questionType:
+    | "single"
+    | "multiple"
+    | "truefalse"
+    | "fillblank"
+    | "subjective";
   optionA: string;
   optionB: string;
   optionC: string;
@@ -40,14 +50,38 @@ interface QuestionFormProps {
   isLoading?: boolean;
 }
 
-const SUBJECTS = ["History", "Geography", "Polity", "Economy", "Science", "Current Affairs", "Environment", "Mathematics", "English", "Hindi", "Reasoning"];
+const SUBJECTS = [
+  "History",
+  "Geography",
+  "Polity",
+  "Economy",
+  "Science",
+  "Current Affairs",
+  "Environment",
+  "Mathematics",
+  "English",
+  "Hindi",
+  "Reasoning",
+];
 
-export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSaveDraft, isLoading }: QuestionFormProps) {
-  const dispatch = useAppDispatch();
+export function QuestionForm({
+  initialData,
+  questionId,
+  draftId,
+  onSubmit,
+  onSaveDraft,
+  isLoading,
+}: QuestionFormProps) {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentDraftId = useRef<number | undefined>(draftId);
 
-  const { register, handleSubmit, watch, setValue, formState: { isDirty } } = useForm<QuestionFormData>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { isDirty },
+  } = useForm<QuestionFormData>({
     defaultValues: {
       text: "",
       questionType: "single",
@@ -74,20 +108,16 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
     (formData: QuestionFormData) => {
       if (!onSaveDraft) return;
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-      dispatch(markUnsaved());
       autoSaveTimer.current = setTimeout(async () => {
-        dispatch(setDraftStatus("saving"));
         try {
           const result = await onSaveDraft(formData);
           currentDraftId.current = result.id;
-          dispatch(setQuestionDraftId(result.id));
-          dispatch(setDraftSaved());
         } catch {
-          dispatch(setDraftStatus("error"));
+          // Draft system removed; ignore autosave errors.
         }
       }, 3000);
     },
-    [dispatch, onSaveDraft]
+    [onSaveDraft],
   );
 
   useEffect(() => {
@@ -102,14 +132,11 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
 
   const handleManualSave = async () => {
     if (!onSaveDraft) return;
-    dispatch(setDraftStatus("saving"));
     try {
       const data = watch();
-      const result = await onSaveDraft(data as QuestionFormData);
-      dispatch(setDraftSaved());
-      dispatch(setQuestionDraftId(result.id));
+      await onSaveDraft(data as QuestionFormData);
     } catch {
-      dispatch(setDraftStatus("error"));
+      // Draft system removed; ignore manual save errors.
     }
   };
 
@@ -122,7 +149,12 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
         <div className="flex items-center gap-3">
           <DraftStatus />
           {onSaveDraft && (
-            <Button type="button" variant="outline" size="sm" onClick={handleManualSave}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleManualSave}
+            >
               <Save className="h-3.5 w-3.5 mr-1" /> Save Draft
             </Button>
           )}
@@ -132,7 +164,12 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="sm:col-span-1">
           <Label>Question Type</Label>
-          <Select defaultValue="single" onValueChange={(v) => setValue("questionType", v as QuestionFormData["questionType"])}>
+          <Select
+            defaultValue="single"
+            onValueChange={(v) =>
+              setValue("questionType", v as QuestionFormData["questionType"])
+            }
+          >
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
@@ -148,21 +185,35 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
 
         <div className="sm:col-span-1">
           <Label>Difficulty</Label>
-          <Select defaultValue="medium" onValueChange={(v) => setValue("difficulty", v as QuestionFormData["difficulty"])}>
+          <Select
+            defaultValue="medium"
+            onValueChange={(v) =>
+              setValue("difficulty", v as QuestionFormData["difficulty"])
+            }
+          >
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="easy"><span className="text-green-600">Easy</span></SelectItem>
-              <SelectItem value="medium"><span className="text-amber-600">Medium</span></SelectItem>
-              <SelectItem value="hard"><span className="text-red-600">Hard</span></SelectItem>
+              <SelectItem value="easy">
+                <span className="text-green-600">Easy</span>
+              </SelectItem>
+              <SelectItem value="medium">
+                <span className="text-amber-600">Medium</span>
+              </SelectItem>
+              <SelectItem value="hard">
+                <span className="text-red-600">Hard</span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div>
           <Label>Category</Label>
-          <Select defaultValue="quiz" onValueChange={(v) => setValue("type", v)}>
+          <Select
+            defaultValue="quiz"
+            onValueChange={(v) => setValue("type", v)}
+          >
             <SelectTrigger className="mt-1">
               <SelectValue />
             </SelectTrigger>
@@ -177,7 +228,9 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
       </div>
 
       <div>
-        <Label>Question Text <span className="text-red-500">*</span></Label>
+        <Label>
+          Question Text <span className="text-red-500">*</span>
+        </Label>
         <Textarea
           {...register("text", { required: true })}
           className="mt-1 min-h-[100px]"
@@ -198,7 +251,10 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
                 onChange={() => setValue("correctIndex", i)}
                 className="accent-violet-600"
               />
-              <Badge variant="outline" className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+              <Badge
+                variant="outline"
+                className="w-7 h-7 flex items-center justify-center flex-shrink-0"
+              >
                 {letter}
               </Badge>
               <Input
@@ -216,11 +272,30 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
           <Label>Correct Answer</Label>
           <div className="flex gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="correctIndex" value={0} defaultChecked onChange={() => { setValue("optionA", "True"); setValue("optionB", "False"); setValue("correctIndex", 0); }} />
+              <input
+                type="radio"
+                name="correctIndex"
+                value={0}
+                defaultChecked
+                onChange={() => {
+                  setValue("optionA", "True");
+                  setValue("optionB", "False");
+                  setValue("correctIndex", 0);
+                }}
+              />
               <span className="text-green-600 font-medium">True</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="correctIndex" value={1} onChange={() => { setValue("optionA", "True"); setValue("optionB", "False"); setValue("correctIndex", 1); }} />
+              <input
+                type="radio"
+                name="correctIndex"
+                value={1}
+                onChange={() => {
+                  setValue("optionA", "True");
+                  setValue("optionB", "False");
+                  setValue("correctIndex", 1);
+                }}
+              />
               <span className="text-red-600 font-medium">False</span>
             </label>
           </div>
@@ -230,13 +305,22 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
       {questionType === "fillblank" && (
         <div>
           <Label>Correct Answer</Label>
-          <Input {...register("optionA")} className="mt-1" placeholder="Enter the correct answer..." />
+          <Input
+            {...register("optionA")}
+            className="mt-1"
+            placeholder="Enter the correct answer..."
+          />
         </div>
       )}
 
       <div>
         <Label>Explanation</Label>
-        <Textarea {...register("explanation")} className="mt-1" placeholder="Explain the correct answer..." rows={3} />
+        <Textarea
+          {...register("explanation")}
+          className="mt-1"
+          placeholder="Explain the correct answer..."
+          rows={3}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -247,33 +331,61 @@ export function QuestionForm({ initialData, questionId, draftId, onSubmit, onSav
               <SelectValue placeholder="Select subject" />
             </SelectTrigger>
             <SelectContent>
-              {SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              {SUBJECTS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label>Chapter</Label>
-          <Input {...register("chapter")} className="mt-1" placeholder="Chapter name..." />
+          <Input
+            {...register("chapter")}
+            className="mt-1"
+            placeholder="Chapter name..."
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <Label>Marks</Label>
-          <Input {...register("marks", { valueAsNumber: true })} type="number" step="0.5" min="0" className="mt-1" />
+          <Input
+            {...register("marks", { valueAsNumber: true })}
+            type="number"
+            step="0.5"
+            min="0"
+            className="mt-1"
+          />
         </div>
         <div>
           <Label>Negative Marks</Label>
-          <Input {...register("negativeMarking", { valueAsNumber: true })} type="number" step="0.25" min="0" className="mt-1" />
+          <Input
+            {...register("negativeMarking", { valueAsNumber: true })}
+            type="number"
+            step="0.25"
+            min="0"
+            className="mt-1"
+          />
         </div>
         <div>
           <Label>Tags</Label>
-          <Input {...register("tags")} className="mt-1" placeholder="tag1, tag2..." />
+          <Input
+            {...register("tags")}
+            className="mt-1"
+            placeholder="tag1, tag2..."
+          />
         </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button type="submit" disabled={isLoading} className="bg-violet-600 hover:bg-violet-700">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="bg-violet-600 hover:bg-violet-700"
+        >
           <Send className="h-4 w-4 mr-1.5" />
           {isLoading ? "Publishing..." : "Publish Question"}
         </Button>

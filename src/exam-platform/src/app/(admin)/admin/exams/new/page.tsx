@@ -4,15 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useAppDispatch } from "@/store/hooks";
-import {
-  setDraftStatus,
-  setDraftSaved,
-  markUnsaved,
-  setExamDraftId,
-  resetDraft,
-} from "@/store/slices/draftSlice";
 import { DraftStatus } from "@/components/admin/DraftStatus";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,14 +53,16 @@ export default function NewExamPage() {
   const router = useRouter();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const dispatch = useAppDispatch();
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const localDraftKey = "draft:exam:new";
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { isDirty },
   } = useForm<ExamFormData>({
     defaultValues: {
@@ -86,37 +81,36 @@ export default function NewExamPage() {
 
   const saveDraft = useCallback(
     async (data: ExamFormData) => {
-      dispatch(setDraftStatus("saving"));
-      try {
-        const draft = await customFetch<{ id: number }>("/api/admin/drafts/exams", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: data }),
-        });
-        dispatch(setExamDraftId(draft.id));
-        dispatch(setDraftSaved());
-      } catch {
-        dispatch(setDraftStatus("error"));
-      }
+      // Local autosave only (no DB-backed drafts).
+      localStorage.setItem(localDraftKey, JSON.stringify(data));
     },
-    [dispatch],
+    [localDraftKey],
   );
 
   useEffect(() => {
+    const saved = localStorage.getItem(localDraftKey);
+    if (saved) {
+      try {
+        reset(JSON.parse(saved) as ExamFormData);
+      } catch {
+        // ignore
+      }
+    }
+
     const subscription = watch((data) => {
       if (!isDirty) return;
-      dispatch(markUnsaved());
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = setTimeout(
         () => saveDraft(data as ExamFormData),
         3000,
       );
     });
+
     return () => {
       subscription.unsubscribe();
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [watch, isDirty, saveDraft, dispatch]);
+  }, [watch, isDirty, saveDraft]);
 
   const createMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
@@ -128,10 +122,11 @@ export default function NewExamPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "exams"] });
-      dispatch(resetDraft());
+      localStorage.removeItem(localDraftKey);
       toast({ title: "Exam created!" });
       router.push("/admin/exams");
     },
+
     onError: () =>
       toast({ title: "Failed to create exam", variant: "destructive" }),
   });
@@ -146,9 +141,7 @@ export default function NewExamPage() {
         </Button>
         <div>
           <h1 className="text-xl font-bold text-gray-900">New Exam</h1>
-          <p className="text-sm text-gray-500">
-            Drafts auto-save every 3 seconds
-          </p>
+          <p className="text-sm text-gray-500">Autosave enabled (local only)</p>
         </div>
         <div className="ml-auto">
           <DraftStatus />

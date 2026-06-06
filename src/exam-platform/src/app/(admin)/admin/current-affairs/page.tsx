@@ -18,10 +18,10 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { CurrentAffairsSearch } from "@/components/admin/CurrentAffairesSearch";
 
 interface CurrentAffairsResponse {
-  data: CurrentAffair[];
+  items: CurrentAffair[];
   total: number;
   page: number;
-  totalPages: number;
+  limit: number;
 }
 
 const DEFAULT_CATEGORY = "All";
@@ -100,14 +100,17 @@ export default function CurrentAffairsAdminPage() {
           ) : (
             <>
               <CurrentAffairsTable
-                data={data?.data || []}
+                data={data?.items || []}
                 onDelete={handleDelete}
                 isLoading={isLoading}
               />
-              {data && data.totalPages > 1 && (
+              {data && data.total > 0 && (
                 <CurrentAffairsPagination
                   currentPage={page}
-                  totalPages={data.totalPages}
+                  totalPages={Math.max(
+                    1,
+                    Math.ceil(data.total / (data.limit ?? 10)),
+                  )}
                   onPageChange={setPage}
                 />
               )}

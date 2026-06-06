@@ -16,7 +16,12 @@ import type {
   PyqSubject as DbPyqSubject,
 } from "@workspace/db";
 import { apiFetch, ApiError } from "./client";
-import { adminApi, currentAffairsApi, quizzesApi, streaksApi } from "./endpoints";
+import {
+  adminApi,
+  currentAffairsApi,
+  quizzesApi,
+  streaksApi,
+} from "./endpoints";
 import { queryKeys } from "./query-keys";
 export type PyqSubject = DbPyqSubject;
 
@@ -103,15 +108,6 @@ export type AdminDashboardStats = {
   recentActivity: AdminActivityLog[];
 };
 
-export type DraftItem = Omit<Draft, "content" | "lastSavedAt" | "createdAt"> & {
-  content: Record<string, unknown> & {
-    title?: string;
-    text?: string;
-  };
-  lastSavedAt: string;
-  createdAt: string;
-};
-
 type QueryHookOptions = {
   query?: Record<string, any>;
 };
@@ -165,7 +161,9 @@ function normalizeId(id: string | number) {
 }
 
 function adminPath(path: string) {
-  return path.startsWith("/api/") ? path : `/api${path.startsWith("/") ? path : `/${path}`}`;
+  return path.startsWith("/api/")
+    ? path
+    : `/api${path.startsWith("/") ? path : `/${path}`}`;
 }
 
 export const customFetch = apiFetch;
@@ -227,15 +225,28 @@ export function useSendSupportMessage(options?: MutationHookOptions) {
 }
 
 export function useListStudyNotes(
-  params?: { subject?: string; medium?: string; search?: string; page?: number },
+  params?: {
+    subject?: string;
+    medium?: string;
+    search?: string;
+    page?: number;
+  },
   options?: QueryHookOptions,
 ) {
-  return useTokenizedQuery<{ data: StudyNote[]; total: number; page: number; totalPages: number }>(
+  return useTokenizedQuery<{
+    data: StudyNote[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(
     ["studyNotes", "list", params ?? {}] as const,
     () =>
-      apiFetch<{ data: StudyNote[]; total: number; page: number; totalPages: number }>(
-        "/study-notes" + toSearchParams(params ?? {}),
-      ),
+      apiFetch<{
+        data: StudyNote[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>("/study-notes" + toSearchParams(params ?? {})),
     options,
   );
 }
@@ -345,7 +356,10 @@ export function useCurrentAffair(id: number, options?: QueryHookOptions) {
   );
 }
 
-export function useUpdateCurrentAffair(id: number, options?: MutationHookOptions) {
+export function useUpdateCurrentAffair(
+  id: number,
+  options?: MutationHookOptions,
+) {
   return useTokenizedMutation<Record<string, unknown>, CurrentAffair>(
     async (body) =>
       apiFetch<CurrentAffair>(`/admin/current-affairs/${normalizeId(id)}`, {
@@ -364,10 +378,16 @@ export function useGetMyStreak(options?: QueryHookOptions) {
   );
 }
 
-export function useGetLeaderboard(params?: { limit?: number }, options?: QueryHookOptions) {
+export function useGetLeaderboard(
+  params?: { limit?: number },
+  options?: QueryHookOptions,
+) {
   return useTokenizedQuery<LeaderboardEntry[]>(
     ["stats", "leaderboard", params ?? {}] as const,
-    () => apiFetch<LeaderboardEntry[]>(`/leaderboard${toSearchParams(params ?? {})}`),
+    () =>
+      apiFetch<LeaderboardEntry[]>(
+        `/leaderboard${toSearchParams(params ?? {})}`,
+      ),
     options,
   );
 }
@@ -376,12 +396,14 @@ export function useRecordActivity(options?: MutationHookOptions) {
   return useTokenizedMutation<
     { data: { activityType: string; displayName: string } },
     RecordActivityResponse
-  >(async (variables) =>
-    apiFetch<RecordActivityResponse>("/streaks/activity", {
-      method: "POST",
-      body: JSON.stringify(variables.data),
-    }),
-  options);
+  >(
+    async (variables) =>
+      apiFetch<RecordActivityResponse>("/streaks/activity", {
+        method: "POST",
+        body: JSON.stringify(variables.data),
+      }),
+    options,
+  );
 }
 
 export function useAdminDashboard(options?: QueryHookOptions) {
@@ -411,40 +433,38 @@ export function useUpdateSettings(options?: MutationHookOptions) {
   );
 }
 
-export function useAdminListDrafts(options?: QueryHookOptions) {
-  return useTokenizedQuery<DraftItem[]>(
-    ["admin", "drafts", "list"] as const,
-    () => apiFetch<DraftItem[]>("/admin/drafts"),
-    options,
-  );
-}
-
-export function useDeleteDraft(options?: MutationHookOptions) {
-  return useTokenizedMutation<number, { success: boolean }>(
-    async (id) =>
-      apiFetch<{ success: boolean }>(`/admin/drafts/${normalizeId(id)}`, {
-        method: "DELETE",
-      }),
-    options,
-  );
-}
-
 export function useAdminListDailyQuizzes(
   params?: { page?: number; limit?: number },
   options?: QueryHookOptions,
 ) {
-  return useTokenizedQuery<{ quizzes: DailyQuiz[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
+  return useTokenizedQuery<{
+    quizzes: DailyQuiz[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>(
     ["admin", "dailyQuizzes", "list", params ?? {}] as const,
     () =>
       apiFetch<{
         quizzes: DailyQuiz[];
-        pagination: { page: number; limit: number; total: number; totalPages: number };
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
       }>(`/admin/daily-quizzes${toSearchParams(params ?? {})}`),
     options,
   );
 }
 
-export function useAdminDailyQuiz(id: string | number, options?: QueryHookOptions) {
+export function useAdminDailyQuiz(
+  id: string | number,
+  options?: QueryHookOptions,
+) {
   return useTokenizedQuery<DailyQuiz>(
     ["admin", "dailyQuizzes", "detail", normalizeId(id)] as const,
     () => apiFetch<DailyQuiz>(`/admin/daily-quizzes/${normalizeId(id)}`),
@@ -455,9 +475,12 @@ export function useAdminDailyQuiz(id: string | number, options?: QueryHookOption
 export function useDeleteDailyQuiz(options?: MutationHookOptions) {
   return useTokenizedMutation<string | number, Record<string, unknown>>(
     async (id) =>
-      apiFetch<Record<string, unknown>>(`/admin/daily-quizzes/${normalizeId(id)}`, {
-        method: "DELETE",
-      }),
+      apiFetch<Record<string, unknown>>(
+        `/admin/daily-quizzes/${normalizeId(id)}`,
+        {
+          method: "DELETE",
+        },
+      ),
     options,
   );
 }
@@ -473,7 +496,10 @@ export function useCreateDailyQuiz(options?: MutationHookOptions) {
   );
 }
 
-export function useUpdateDailyQuiz(id: string | number, options?: MutationHookOptions) {
+export function useUpdateDailyQuiz(
+  id: string | number,
+  options?: MutationHookOptions,
+) {
   return useTokenizedMutation<Record<string, unknown>, DailyQuiz>(
     async (body) =>
       apiFetch<DailyQuiz>(`/admin/daily-quizzes/${normalizeId(id)}`, {
@@ -506,7 +532,10 @@ export function useAdminListSupportTickets(
   );
 }
 
-export function useAdminSupportTicket(id: string | number, options?: QueryHookOptions) {
+export function useAdminSupportTicket(
+  id: string | number,
+  options?: QueryHookOptions,
+) {
   return useTokenizedQuery<{
     ticket: SupportTicket;
     messages: SupportMessage[];
@@ -521,13 +550,19 @@ export function useAdminSupportTicket(id: string | number, options?: QueryHookOp
   );
 }
 
-export function useCreateSupportTicketReply(id: string | number, options?: MutationHookOptions) {
+export function useCreateSupportTicketReply(
+  id: string | number,
+  options?: MutationHookOptions,
+) {
   return useTokenizedMutation<{ message: string }, SupportMessage>(
     async (body) =>
-      apiFetch<SupportMessage>(`/admin/support-tickets/${normalizeId(id)}/replies`, {
-        method: "POST",
-        body: JSON.stringify(body),
-      }),
+      apiFetch<SupportMessage>(
+        `/admin/support-tickets/${normalizeId(id)}/replies`,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+      ),
     options,
   );
 }
@@ -538,10 +573,13 @@ export function useUpdateSupportTicketStatus(
 ) {
   return useTokenizedMutation<string, SupportTicket>(
     async (status) =>
-      apiFetch<SupportTicket>(`/admin/support-tickets/${normalizeId(id)}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      }),
+      apiFetch<SupportTicket>(
+        `/admin/support-tickets/${normalizeId(id)}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status }),
+        },
+      ),
     options,
   );
 }
@@ -552,15 +590,19 @@ export function useAssignSupportTicket(
 ) {
   return useTokenizedMutation<string, SupportTicket>(
     async (assignedTo) =>
-      apiFetch<SupportTicket>(`/admin/support-tickets/${normalizeId(id)}/assign`, {
-        method: "PATCH",
-        body: JSON.stringify({ assignedTo }),
-      }),
+      apiFetch<SupportTicket>(
+        `/admin/support-tickets/${normalizeId(id)}/assign`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ assignedTo }),
+        },
+      ),
     options,
   );
 }
 
 export { ApiError, adminApi, currentAffairsApi, quizzesApi, streaksApi };
+
 export type {
   Announcement,
   CurrentAffair,

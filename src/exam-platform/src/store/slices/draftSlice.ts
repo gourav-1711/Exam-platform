@@ -1,62 +1,55 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-type DraftStatus = "idle" | "saving" | "saved" | "error";
+/**
+ * Draft system is being removed.
+ *
+ * Some admin pages still import these action creators during the migration.
+ * Keep lightweight no-op/thin slice exports so builds/typecheck pass
+ * until those pages are fully migrated to localStorage autosave.
+ */
 
-interface DraftState {
-  questionDraftId: number | null;
-  examDraftId: number | null;
-  status: DraftStatus;
-  lastSavedAt: string | null;
-  hasUnsavedChanges: boolean;
-  errorMessage: string | null;
-}
+export type DraftStatusValue = "idle" | "saving" | "saved" | "error";
+
+type DraftState = {
+  status: DraftStatusValue;
+  draftId?: number;
+  examDraftId?: number;
+};
 
 const initialState: DraftState = {
-  questionDraftId: null,
-  examDraftId: null,
   status: "idle",
-  lastSavedAt: null,
-  hasUnsavedChanges: false,
-  errorMessage: null,
 };
 
 const draftSlice = createSlice({
-  name: "draft",
+  name: "drafts",
   initialState,
   reducers: {
-    setQuestionDraftId(state, action: PayloadAction<number | null>) {
-      state.questionDraftId = action.payload;
+    setDraftStatus: (state, action: PayloadAction<DraftStatusValue>) => {
+      state.status = action.payload;
     },
-    setExamDraftId(state, action: PayloadAction<number | null>) {
+    setDraftSaved: (state) => {
+      state.status = "saved";
+    },
+    setExamDraftId: (state, action: PayloadAction<number>) => {
       state.examDraftId = action.payload;
     },
-    setDraftStatus(state, action: PayloadAction<DraftStatus>) {
-      state.status = action.payload;
-      if (action.payload === "error") {
-        state.errorMessage = "Failed to save draft";
-      } else {
-        state.errorMessage = null;
-      }
-    },
-    setDraftSaved(state) {
-      state.status = "saved";
-      state.lastSavedAt = new Date().toISOString();
-      state.hasUnsavedChanges = false;
-      state.errorMessage = null;
-    },
-    markUnsaved(state) {
-      state.hasUnsavedChanges = true;
-    },
-    resetDraft(state) {
-      state.questionDraftId = null;
-      state.examDraftId = null;
+    markUnsaved: (state) => {
       state.status = "idle";
-      state.lastSavedAt = null;
-      state.hasUnsavedChanges = false;
-      state.errorMessage = null;
+    },
+    resetDraft: (state) => {
+      state.status = "idle";
+      state.draftId = undefined;
+      state.examDraftId = undefined;
     },
   },
 });
 
-export const { setQuestionDraftId, setExamDraftId, setDraftStatus, setDraftSaved, markUnsaved, resetDraft } = draftSlice.actions;
+export const {
+  setDraftStatus,
+  setDraftSaved,
+  setExamDraftId,
+  markUnsaved,
+  resetDraft,
+} = draftSlice.actions;
+
 export default draftSlice.reducer;

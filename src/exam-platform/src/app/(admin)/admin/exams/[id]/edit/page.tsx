@@ -4,14 +4,9 @@ import { useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useAppDispatch } from "@/store/hooks";
-import {
-  setDraftStatus,
-  setDraftSaved,
-  markUnsaved,
-  resetDraft,
-} from "@/store/slices/draftSlice";
+
 import { DraftStatus } from "@/components/admin/DraftStatus";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,8 +56,10 @@ export default function EditExamPage() {
   const router = useRouter();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const dispatch = useAppDispatch();
+
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const localDraftKey = `draft:exam:${id || ""}`;
 
   const { data: exam, isLoading } = useQuery({
     queryKey: ["admin", "exams", id],
@@ -86,25 +83,25 @@ export default function EditExamPage() {
 
   const saveDraft = useCallback(
     async (data: ExamFormData) => {
-      dispatch(setDraftStatus("saving"));
-      try {
-        await customFetch<ExamFormData>(`/api/admin/exams/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, status: "draft" }),
-        });
-        dispatch(setDraftSaved());
-      } catch {
-        dispatch(setDraftStatus("error"));
-      }
+      // Local autosave only (no DB-backed drafts).
+      localStorage.setItem(localDraftKey, JSON.stringify(data));
     },
-    [dispatch, id],
+    [localDraftKey],
   );
 
   useEffect(() => {
+    const saved = localStorage.getItem(localDraftKey);
+    if (saved) {
+      try {
+        reset(JSON.parse(saved) as ExamFormData);
+      } catch {
+        // ignore
+      }
+    }
+
     const subscription = watch((data) => {
       if (!isDirty) return;
-      dispatch(markUnsaved());
+
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
       autoSaveTimer.current = setTimeout(
         () => saveDraft(data as ExamFormData),
@@ -115,7 +112,7 @@ export default function EditExamPage() {
       subscription.unsubscribe();
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [watch, isDirty, saveDraft, dispatch]);
+  }, [watch, isDirty, saveDraft]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: ExamFormData) => {
@@ -127,10 +124,11 @@ export default function EditExamPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "exams"] });
-      dispatch(resetDraft());
+      localStorage.removeItem(localDraftKey);
       toast({ title: "Exam updated!" });
       router.push("/admin/exams");
     },
+
     onError: () =>
       toast({ title: "Failed to update exam", variant: "destructive" }),
   });

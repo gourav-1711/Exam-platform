@@ -8,7 +8,7 @@ import {
 } from "@/components/admin/QuestionForm";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch } from "@/store/hooks";
-import { resetDraft } from "@/store/slices/draftSlice";
+
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -31,20 +31,20 @@ export default function NewQuestionPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "questions"] });
-      dispatch(resetDraft());
+      localStorage.removeItem(`draft:question:new`);
       toast({ title: "Question published!" });
       router.push("/admin/questions");
     },
+
     onError: (err: Error) =>
       toast({ title: err.message, variant: "destructive" }),
   });
 
   const saveDraftMutation = async (data: QuestionFormData) => {
-    return customFetch<{ id: number }>("/api/admin/drafts/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: data }),
-    });
+    // Local autosave only (no DB drafts).
+    const key = `draft:question:new`;
+    localStorage.setItem(key, JSON.stringify(data));
+    return { id: 0 };
   };
 
   return (
@@ -57,9 +57,7 @@ export default function NewQuestionPage() {
         </Button>
         <div>
           <h1 className="text-xl font-bold text-gray-900">New Question</h1>
-          <p className="text-sm text-gray-500">
-            Drafts auto-save every 3 seconds
-          </p>
+          <p className="text-sm text-gray-500">Autosave enabled (local only)</p>
         </div>
       </div>
 

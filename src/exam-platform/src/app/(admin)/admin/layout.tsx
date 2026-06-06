@@ -1,4 +1,6 @@
 "use client";
+
+import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { useUser } from "@clerk/nextjs";
 
@@ -25,9 +27,12 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-950">
+    <div className="flex h-screen overflow-hidden bg-background">
       <AdminSidebar />
-      <main className="flex-1 overflow-y-auto p-8">{children}</main>
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <AdminHeader />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
     </div>
   );
 }

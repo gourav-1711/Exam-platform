@@ -11,7 +11,6 @@ import {
   GraduationCap,
   Users,
   BarChart3,
-  FileEdit,
   Activity,
   Settings,
   ChevronLeft,
@@ -36,7 +35,7 @@ const NAV = [
     label: "Support Tickets",
   },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
-  { href: "/admin/drafts", icon: FileEdit, label: "Drafts" },
+
   { href: "/admin/activity-logs", icon: Activity, label: "Activity Logs" },
   { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];

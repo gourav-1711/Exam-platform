@@ -1,49 +1,93 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { currentAffairsTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { desc, sql, and, ilike, eq } from "drizzle-orm";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
 
 const router = Router();
 
-router.get("/current-affairs", async (req, res): Promise<any> => {
+// GET /admin/current-affairs
+router.get("/", async (req, res): Promise<any> => {
   try {
-    const all = await db
-      .select()
-      .from(currentAffairsTable)
-      .orderBy(desc(currentAffairsTable.publishedAt));
-    return res.json(
-      all.map((a) => ({
+    const {
+      page = "1",
+      limit = "20",
+      search = "",
+      filter = "all",
+    } = req.query as Record<string, string>;
+
+    const p = Math.max(1, Number(page));
+    const l = Math.max(1, Number(limit));
+    const offset = (p - 1) * l;
+
+    const where = and(
+      search ? ilike(currentAffairsTable.title, `%${search}%`) : undefined,
+      filter !== "all" ? eq(currentAffairsTable.category, filter) : undefined,
+    );
+
+    // current_affairs schema might differ; prefer publishedAt for ordering.
+    const orderCol: any = (currentAffairsTable as any).publishedAt;
+
+    const [items, countRows] = await Promise.all([
+      db
+        .select()
+        .from(currentAffairsTable)
+        .where(where)
+        .orderBy(desc(orderCol))
+        .limit(l)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(currentAffairsTable)
+        .where(where),
+    ]);
+
+    const total = Number((countRows?.[0] as any)?.count ?? 0);
+
+    res.json({
+      items: items.map((a: any) => ({
         ...a,
-        publishedAt: a.publishedAt.toISOString(),
+        publishedAt: a.publishedAt ? a.publishedAt.toISOString() : null,
         prevId: null,
         nextId: null,
       })),
-    );
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch current affairs" });
+      total,
+      page: p,
+      limit: l,
+    });
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({
+        error: (err as any)?.message ?? "Failed to fetch current affairs",
+      });
   }
 });
 
-router.get("/current-affairs/:id", async (req, res): Promise<any> => {
+// GET /admin/current-affairs/:id
+router.get("/current-affairs/:id", async (req, res) => {
   try {
     const id = routeParamInt(req.params.id);
     const [article] = await db
       .select()
       .from(currentAffairsTable)
       .where(eq(currentAffairsTable.id, id));
+
     if (!article) return res.status(404).json({ error: "Article not found" });
+
     return res.json({
       ...article,
-      publishedAt: article.publishedAt.toISOString(),
+      publishedAt: (article as any).publishedAt
+        ? (article as any).publishedAt.toISOString()
+        : null,
       prevId: null,
       nextId: null,
     });
-  } catch (err) {
-    return res
-      .status(500)
-      .json({ error: "Failed to fetch current affairs article" });
+  } catch (err: any) {
+    return res.status(500).json({
+      error: err?.message ?? "Failed to fetch current affairs article",
+    });
   }
 });
 
@@ -71,12 +115,16 @@ router.post(
 
       return res.status(201).json({
         ...article,
-        publishedAt: article.publishedAt.toISOString(),
+        publishedAt: (article as any).publishedAt
+          ? (article as any).publishedAt.toISOString()
+          : null,
         prevId: null,
         nextId: null,
       });
-    } catch (err) {
-      return res.status(500).json({ error: "Failed to create current affair" });
+    } catch (err: any) {
+      return res
+        .status(500)
+        .json({ error: err?.message ?? "Failed to create current affair" });
     }
   },
 );
@@ -99,12 +147,16 @@ router.patch(
 
       return res.json({
         ...updated,
-        publishedAt: updated.publishedAt.toISOString(),
+        publishedAt: (updated as any).publishedAt
+          ? (updated as any).publishedAt.toISOString()
+          : null,
         prevId: null,
         nextId: null,
       });
-    } catch (err) {
-      return res.status(500).json({ error: "Failed to update current affair" });
+    } catch (err: any) {
+      return res
+        .status(500)
+        .json({ error: err?.message ?? "Failed to update current affair" });
     }
   },
 );
@@ -119,8 +171,10 @@ router.delete(
         .delete(currentAffairsTable)
         .where(eq(currentAffairsTable.id, id));
       return res.json({ success: true });
-    } catch (err) {
-      return res.status(500).json({ error: "Failed to delete current affair" });
+    } catch (err: any) {
+      return res
+        .status(500)
+        .json({ error: err?.message ?? "Failed to delete current affair" });
     }
   },
 );

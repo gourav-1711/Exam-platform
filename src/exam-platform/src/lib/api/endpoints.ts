@@ -46,10 +46,10 @@ export type AdminActivityLogsResponse = {
 };
 
 export type AdminCurrentAffairsResponse = {
-  data: CurrentAffair[];
+  items: CurrentAffair[];
   total: number;
   page: number;
-  totalPages: number;
+  limit: number;
 };
 
 type Paginated<T> = {
@@ -104,6 +104,8 @@ export const adminApi = {
     params: { page: number; limit: number; search?: string; category?: string },
   ): Promise<AdminCurrentAffairsResponse> => {
     const sp = new URLSearchParams();
+    // Current API route currently does not support pagination/search.
+    // Keep params for frontend contract; server will be updated next.
     sp.set("page", String(params.page));
     sp.set("limit", String(params.limit));
     if (params.search) sp.set("search", params.search);
@@ -152,13 +154,8 @@ export const dailyQuizzesApi = {
     apiFetch<any>(`/admin/daily-quizzes/${id}`, { method: "DELETE", token }),
 };
 
-export const draftsApi = {
-  list: (token: string) => apiFetch<any>(`/admin/drafts`, { token }),
-  delete: (token: string, id: number) =>
-    apiFetch<any>(`/admin/drafts/${id}`, { method: "DELETE", token }),
-};
-
 // Streaks (auth required)
+
 export const streaksApi = {
   get: (token: string) => apiFetch<any>("/streaks", { token }),
 };
