@@ -8,6 +8,8 @@ import {
   mockTestsTable,
   supportTicketsTable,
   userStreaksTable,
+  examsTable,
+  activityLogsTable,
 } from "@workspace/db";
 import { sql, gte, desc, eq } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
@@ -29,7 +31,11 @@ router.get("/dashboard", async (req, res) => {
     const [questionCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(questionsTable);
-    
+
+    const [examCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(examsTable);
+
     const [quizCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(quizzesTable);
@@ -51,6 +57,15 @@ router.get("/dashboard", async (req, res) => {
       .select({ count: sql<number>`count(*)` })
       .from(userStreaksTable);
 
+    const [attemptCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(studentAttemptsTable);
+
+    const [passedAttemptsCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(studentAttemptsTable)
+      .where(eq(studentAttemptsTable.isPassed, true));
+
     // Calculate new students this week
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [newStudentsThisWeek] = await db
@@ -58,12 +73,20 @@ router.get("/dashboard", async (req, res) => {
       .from(userStreaksTable)
       .where(gte(userStreaksTable.createdAt, oneWeekAgo));
 
+    // Fetch recent activity logs for standard dashboard view
+    const recentActivityLogs = await db
+      .select()
+      .from(activityLogsTable)
+      .orderBy(desc(activityLogsTable.createdAt))
+      .limit(10);
+
     // Calculate storage usage from Cloudinary
     let storageUsedMb = 0.0;
     try {
       const usage = await cloudinary.api.usage();
       if (usage && usage.storage) {
-        storageUsedMb = Math.round((usage.storage.usage / (1024 * 1024)) * 100) / 100;
+        storageUsedMb =
+          Math.round((usage.storage.usage / (1024 * 1024)) * 100) / 100;
       }
     } catch {
       storageUsedMb = 12.4; // Fallback placeholder in case API keys are not valid
@@ -71,7 +94,7 @@ router.get("/dashboard", async (req, res) => {
 
     // 2. activityChart: quizAttempts and new users over the last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
+
     const attemptsByDay = await db
       .select({
         day: sql<string>`date(attempted_at)::text`,
@@ -91,9 +114,14 @@ router.get("/dashboard", async (req, res) => {
       .groupBy(sql`date(created_at)`);
 
     // Merge activity by day
-    const dayMap: Record<string, { date: string; quizAttempts: number; newUsers: number }> = {};
+    const dayMap: Record<
+      string,
+      { date: string; quizAttempts: number; newUsers: number }
+    > = {};
     for (let i = 0; i < 30; i++) {
-      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0];
       dayMap[d] = { date: d, quizAttempts: 0, newUsers: 0 };
     }
 
@@ -109,7 +137,9 @@ router.get("/dashboard", async (req, res) => {
       }
     });
 
-    const activityChart = Object.values(dayMap).sort((a, b) => a.date.localeCompare(b.date));
+    const activityChart = Object.values(dayMap).sort((a, b) =>
+      a.date.localeCompare(b.date),
+    );
 
     // 3. topQuizzes: top 5 by attempts
     const attemptsByQuiz = await db
@@ -125,7 +155,12 @@ router.get("/dashboard", async (req, res) => {
 
     const topQuizzes = await Promise.all(
       attemptsByQuiz.map(async (item) => {
-        if (!item.quizId) return { id: "unknown", title: "Deleted Quiz", attempts: Number(item.count) };
+        if (!item.quizId)
+          return {
+            id: "unknown",
+            title: "Deleted Quiz",
+            attempts: Number(item.count),
+          };
         const [q] = await db
           .select({ title: quizzesTable.title })
           .from(quizzesTable)
@@ -135,7 +170,7 @@ router.get("/dashboard", async (req, res) => {
           title: q?.title ?? `Quiz #${item.quizId}`,
           attempts: Number(item.count),
         };
-      })
+      }),
     );
 
     // 4. recentStudents: last 10 joined
@@ -152,7 +187,9 @@ router.get("/dashboard", async (req, res) => {
         try {
           // If Clerk is available, we query it
           const clerkUser = await clerkClient.users.getUser(u.userId);
-          name = `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() || name;
+          name =
+            `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim() ||
+            name;
           email = clerkUser.emailAddresses[0]?.emailAddress ?? email;
         } catch {
           // fallback
@@ -163,14 +200,37 @@ router.get("/dashboard", async (req, res) => {
           email,
           joinedAt: u.createdAt.toISOString(),
         };
-      })
+      }),
     );
 
+    const totalQuestions = Number(questionCount.count);
+    const totalExams = Number(examCount.count);
+    const totalAttempts = Number(attemptCount.count);
+    const passedAttempts = Number(passedAttemptsCount.count);
+    const passPercentage = totalAttempts > 0 
+      ? Math.round((passedAttempts / totalAttempts) * 100) 
+      : 0;
+
     const result = {
+      // Standard Dashboard metrics expected by Next.js client
+      totalQuestions,
+      totalExams,
+      totalAttempts,
+      passedAttempts,
+      passPercentage,
+      recentActivity: recentActivityLogs.map(log => ({
+        id: log.id,
+        action: log.action,
+        entityType: log.entityType,
+        userId: log.userId,
+        createdAt: log.createdAt.toISOString()
+      })),
+
+      // Compatible stats for extended / overhaul view
       stats: {
         totalStudents: Number(studentCount.count),
         newStudentsThisWeek: Number(newStudentsThisWeek.count),
-        totalQuestions: Number(questionCount.count),
+        totalQuestions,
         totalQuizzes: Number(quizCount.count),
         totalMockTests: Number(mockCount.count),
         totalCurrentAffairs: Number(caCount.count),
@@ -185,7 +245,9 @@ router.get("/dashboard", async (req, res) => {
     cacheSet(cacheKey, result, CacheTTL.SHORT);
     res.json(result);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || "Failed to fetch dashboard stats" });
+    res
+      .status(500)
+      .json({ error: err.message || "Failed to fetch dashboard stats" });
   }
 });
 
