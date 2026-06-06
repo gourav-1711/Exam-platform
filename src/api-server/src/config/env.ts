@@ -1,4 +1,20 @@
 import { z } from "zod";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const required = [
+  "DATABASE_URL",
+  "CLERK_SECRET_KEY",
+  "CLERK_PUBLISHABLE_KEY",
+  "CLOUDINARY_CLOUD_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_API_SECRET",
+] as const;
+
+const missing = required.filter(
+  (k) => !process.env[k] || String(process.env[k]).trim().length === 0,
+);
 
 const envSchema = z.object({
   NODE_ENV: z
@@ -15,5 +31,16 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 });
+
+if (missing.length) {
+  // Fail fast with a render-friendly message.
+  throw new Error(
+    [
+      "Missing required environment variables.",
+      "Set these in Render's Environment settings:",
+      ...missing.map((k) => `- ${k}`),
+    ].join("\n"),
+  );
+}
 
 export const env = envSchema.parse(process.env);
