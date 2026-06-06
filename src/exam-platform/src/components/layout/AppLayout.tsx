@@ -230,12 +230,12 @@ function SearchBar({
     query.trim().length === 0
       ? []
       : ALL_NAV_ITEMS.filter((item) => {
-        const q = query.toLowerCase();
-        return (
-          item.label.toLowerCase().includes(q) ||
-          (item.keywords ?? "").toLowerCase().includes(q)
-        );
-      }).slice(0, 6);
+          const q = query.toLowerCase();
+          return (
+            item.label.toLowerCase().includes(q) ||
+            (item.keywords ?? "").toLowerCase().includes(q)
+          );
+        }).slice(0, 6);
 
   const showDropdown = focused && query.trim().length > 0;
 
@@ -498,11 +498,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-
 function MobileTopNav() {
   const [open, setOpen] = useState(false);
   const { user } = useUser();
-  const router = useRouter();
 
   return (
     <header className=" sticky top-0 z-40 bg-white border-b border-border/60 px-3 h-14 flex items-center gap-2.5 shadow-sm">
@@ -533,7 +531,7 @@ function MobileTopNav() {
               </span>
             </div>
           </div>
-          <div className="px-4 py-3 border-b border-border/50">
+          <div className="px-4 py-1 border-b border-border/50">
             <SearchBar onNavigate={() => setOpen(false)} />
           </div>
           <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
@@ -602,7 +600,7 @@ function MobileTopNav() {
         </div>
       </Link>
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 md:block hidden">
         <SearchBar />
       </div>
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Mail, MessageCircle, MapPin, CheckCircle2 } from "lucide-react";
+import { contact_gmail, contact_number, contact_address, telegram_link, whatsapp_link } from "@/lib/data";
 
 export default function Contact() {
   const [name, setName] = useState("");
@@ -20,6 +21,10 @@ export default function Contact() {
     setTimeout(() => setSent(false), 5000);
   };
 
+  const contactNumberFormatted = contact_number 
+    ? `+91 ${contact_number.slice(0, 5)} ${contact_number.slice(5)}`
+    : "";
+
   return (
     <StaticPageLayout title="Contact Us" heading="Contact Us">
 
@@ -32,18 +37,18 @@ export default function Contact() {
             iconColor: "text-primary",
             title: "Email Support",
             sub: "Usually replies within 2 hours",
-            value: "support@manishkipathshala.com",
-            href: "mailto:support@manishkipathshala.com",
+            value: contact_gmail,
+            href: `mailto:${contact_gmail}`,
             valueColor: "text-primary",
           },
           {
             icon: MessageCircle,
             iconBg: "bg-green-100",
             iconColor: "text-green-600",
-            title: "WhatsApp",
-            sub: "Available 9 AM – 6 PM, Mon–Sat",
-            value: "+91 99999 99999",
-            href: "https://wa.me/919999999999",
+            title: "WhatsApp & Telegram",
+            sub: "Join our official channels or chat with us",
+            value: contactNumberFormatted || "Chat with us",
+            href: whatsapp_link || `https://wa.me/91${contact_number}`,
             valueColor: "text-green-600",
           },
           {
@@ -51,7 +56,7 @@ export default function Contact() {
             iconBg: "bg-blue-100",
             iconColor: "text-blue-600",
             title: "Location",
-            sub: "Rajasthan, India",
+            sub: contact_address || "Rajasthan, India",
             value: "Jaipur, Rajasthan — 302001",
             href: null,
             valueColor: "text-foreground",

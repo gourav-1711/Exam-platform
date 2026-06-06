@@ -1,9 +1,13 @@
 import React from "react";
+import { contact_number } from "@/lib/data";
 
 export default function Whatsapp() {
+  const number = contact_number || "7023464080";
+  const whatsappUrl = `https://wa.me/91${number}?text=Namaste!%20Mujhe%20Manish%20Ki%20Pathshala%20ke%20baare%20mein%20jaankari%20chahiye.`;
+
   return (
     <a
-      href="https://wa.me/919999999999?text=Namaste!%20Mujhe%20Manish%20Ki%20Pathshala%20ke%20baare%20mein%20jaankari%20chahiye."
+      href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-20 right-4 md:bottom-6 z-50 group"
