@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Upload, Trash2, Download, AlertCircle } from 'lucide-react';
@@ -92,15 +92,15 @@ export default function NcertAdminPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-8 p-2">
       <div>
-        <h1 className="text-3xl font-bold text-white">NCERT Books Management</h1>
-        <p className="text-slate-400 mt-2">Upload and manage NCERT PDF books</p>
+        <h1 className="text-3xl font-extrabold text-gray-900">NCERT Books Management</h1>
+        <p className="text-gray-500 mt-2">Upload and manage NCERT PDF books</p>
       </div>
 
       {/* Upload Form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Upload NCERT PDF</h2>
+      <div className="bg-white border border-border/50 rounded-2xl p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Upload NCERT PDF</h2>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -110,13 +110,13 @@ export default function NcertAdminPage() {
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               required
-              className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
             />
             <select
               value={formData.subject}
               onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
               required
-              className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+              className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:border-indigo-500"
             >
               <option value="">Select Subject</option>
               {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -127,13 +127,13 @@ export default function NcertAdminPage() {
             value={formData.classNumber}
             onChange={(e) => setFormData(prev => ({ ...prev, classNumber: e.target.value }))}
             required
-            className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:border-indigo-500"
           >
             <option value="">Select Class</option>
             {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
           </select>
 
-          <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-500 transition">
+          <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition">
             <input
               type="file"
               accept=".pdf,.doc,.docx"
@@ -143,23 +143,23 @@ export default function NcertAdminPage() {
               id="file-input"
             />
             <label htmlFor="file-input" className="cursor-pointer block">
-              <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-slate-200">{fileName || 'Click to upload or drag and drop'}</p>
-              <p className="text-xs text-slate-500 mt-1">PDF or DOC (max 50MB)</p>
+              <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-700">{fileName || 'Click to upload or drag and drop'}</p>
+              <p className="text-xs text-gray-400 mt-1">PDF or DOC (max 50MB)</p>
             </label>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <p className="text-red-200 text-sm">{error}</p>
+            <div className="flex items-center gap-2 p-3 bg-red-55 border border-red-200 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={uploading || !formData.title || !formData.subject || !formData.file}
-            className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
+            className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition"
           >
             {uploading ? 'Uploading...' : 'Upload NCERT PDF'}
           </button>
@@ -167,40 +167,40 @@ export default function NcertAdminPage() {
       </div>
 
       {/* PDFs List */}
-      <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-800">
-          <h2 className="text-xl font-semibold text-white">NCERT Books</h2>
+      <div className="bg-white border border-border/50 rounded-2xl overflow-hidden shadow-sm">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+          <h2 className="text-xl font-bold text-gray-900">NCERT Books</h2>
         </div>
         
         {isLoading ? (
-          <div className="p-6 text-center text-slate-400">Loading...</div>
+          <div className="p-6 text-center text-gray-500">Loading...</div>
         ) : pdfs.length === 0 ? (
-          <div className="p-6 text-center text-slate-400">No NCERT PDFs uploaded yet</div>
+          <div className="p-6 text-center text-gray-500">No NCERT PDFs uploaded yet</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-slate-800 border-b border-slate-700">
+              <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-200">Title</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-200">Subject</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-200">Class</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-200">Size</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-200">Uploaded</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-200">Actions</th>
+                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-700">Title</th>
+                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-700">Subject</th>
+                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-700">Class</th>
+                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-700">Size</th>
+                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-700">Uploaded</th>
+                  <th className="px-6 py-3 text-left text-sm font-bold text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pdfs.map((pdf) => (
-                  <tr key={pdf.id} className="border-b border-slate-800 hover:bg-slate-800/50">
-                    <td className="px-6 py-3 text-sm text-white">{pdf.title}</td>
-                    <td className="px-6 py-3 text-sm text-slate-300">{pdf.subject}</td>
-                    <td className="px-6 py-3 text-sm text-slate-300">{pdf.classNumber}</td>
-                    <td className="px-6 py-3 text-sm text-slate-400">{(pdf.fileSize / 1024 / 1024).toFixed(2)} MB</td>
-                    <td className="px-6 py-3 text-sm text-slate-400">{new Date(pdf.uploadedAt).toLocaleDateString()}</td>
+                  <tr key={pdf.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                    <td className="px-6 py-3 text-sm text-gray-900">{pdf.title}</td>
+                    <td className="px-6 py-3 text-sm text-gray-700">{pdf.subject}</td>
+                    <td className="px-6 py-3 text-sm text-gray-700">{pdf.classNumber}</td>
+                    <td className="px-6 py-3 text-sm text-gray-500">{(pdf.fileSize / 1024 / 1024).toFixed(2)} MB</td>
+                    <td className="px-6 py-3 text-sm text-gray-500">{new Date(pdf.uploadedAt).toLocaleDateString()}</td>
                     <td className="px-6 py-3 text-sm space-x-2">
                       <button
                         onClick={() => window.open(pdf.cloudinaryUrl, '_blank')}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-indigo-400 hover:text-indigo-300 transition"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-indigo-600 hover:text-indigo-800 font-semibold transition cursor-pointer"
                       >
                         <Download className="w-4 h-4" />
                         Download
@@ -208,7 +208,7 @@ export default function NcertAdminPage() {
                       <button
                         onClick={() => deleteMutation.mutate(pdf.id)}
                         disabled={deleteMutation.isPending}
-                        className="inline-flex items-center gap-1 px-3 py-1 text-red-400 hover:text-red-300 disabled:opacity-50 transition"
+                        className="inline-flex items-center gap-1 px-3 py-1 text-red-600 hover:text-red-800 disabled:opacity-50 transition cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete

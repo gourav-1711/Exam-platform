@@ -3,7 +3,7 @@
 import { useAdminSettings, useUpdateSettings } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { Settings, Save, AlertTriangle, ShieldCheck, Mail, Phone, Power } from 'lucide-react';
+import { Settings, Save, ShieldCheck, Mail, Phone, Power } from 'lucide-react';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -49,88 +49,88 @@ export default function SettingsPage() {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-slate-400">Loading settings...</div>;
+    return <div className="p-8 text-center text-gray-500">Loading settings...</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 p-2">
       <div>
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-          <Settings className="w-8 h-8 text-indigo-400" />
+        <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+          <Settings className="w-8 h-8 text-indigo-600" />
           Settings
         </h1>
-        <p className="text-slate-400 mt-2">Manage global application settings, modules, and support details</p>
+        <p className="text-gray-500 mt-2">Manage global application settings, modules, and support details</p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* General Info */}
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-indigo-400" /> General Customization
+        <div className="bg-white border border-border/50 rounded-2xl p-6 shadow-sm space-y-4">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-indigo-600" /> General Customization
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Site Name</label>
+              <label className="block text-sm font-semibold text-gray-700">Site Name</label>
               <input
                 type="text"
                 value={form.siteName}
                 onChange={(e) => setForm(p => ({ ...p, siteName: e.target.value }))}
                 required
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Site Description</label>
+              <label className="block text-sm font-semibold text-gray-700">Site Description</label>
               <input
                 type="text"
                 value={form.siteDescription}
                 onChange={(e) => setForm(p => ({ ...p, siteDescription: e.target.value }))}
                 required
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
         </div>
 
         {/* Support Information */}
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-4">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <Mail className="w-5 h-5 text-indigo-400" /> Support Details
+        <div className="bg-white border border-border/50 rounded-2xl p-6 shadow-sm space-y-4">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Mail className="w-5 h-5 text-indigo-600" /> Support Details
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Support Email</label>
+              <label className="block text-sm font-semibold text-gray-700">Support Email</label>
               <input
                 type="email"
                 value={form.supportEmail}
                 onChange={(e) => setForm(p => ({ ...p, supportEmail: e.target.value }))}
                 required
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Support Phone</label>
+              <label className="block text-sm font-semibold text-gray-700">Support Phone</label>
               <input
                 type="text"
                 value={form.supportPhone}
                 onChange={(e) => setForm(p => ({ ...p, supportPhone: e.target.value }))}
                 required
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
           </div>
         </div>
 
         {/* Feature Toggles & Maintenance */}
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-6 space-y-6">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <Power className="w-5 h-5 text-indigo-400" /> Feature Toggles & Security
+        <div className="bg-white border border-border/50 rounded-2xl p-6 shadow-sm space-y-6">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Power className="w-5 h-5 text-indigo-600" /> Feature Toggles & Security
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100">
               <div>
-                <p className="font-semibold text-white">Maintenance Mode</p>
-                <p className="text-xs text-slate-400">Lock site for general users</p>
+                <p className="font-semibold text-gray-900">Maintenance Mode</p>
+                <p className="text-xs text-gray-500">Lock site for general users</p>
               </div>
               <input
                 type="checkbox"
@@ -139,10 +139,10 @@ export default function SettingsPage() {
                 className="w-5 h-5 accent-indigo-500"
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100">
               <div>
-                <p className="font-semibold text-white">Leaderboard System</p>
-                <p className="text-xs text-slate-400">Enable points ranking boards</p>
+                <p className="font-semibold text-gray-900">Leaderboard System</p>
+                <p className="text-xs text-gray-500">Enable points ranking boards</p>
               </div>
               <input
                 type="checkbox"
@@ -151,10 +151,10 @@ export default function SettingsPage() {
                 className="w-5 h-5 accent-indigo-500"
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100">
               <div>
-                <p className="font-semibold text-white">Quiz Module</p>
-                <p className="text-xs text-slate-400">Enable free interactive tests</p>
+                <p className="font-semibold text-gray-900">Quiz Module</p>
+                <p className="text-xs text-gray-500">Enable free interactive tests</p>
               </div>
               <input
                 type="checkbox"
@@ -163,10 +163,10 @@ export default function SettingsPage() {
                 className="w-5 h-5 accent-indigo-500"
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100">
               <div>
-                <p className="font-semibold text-white">Current Affairs</p>
-                <p className="text-xs text-slate-400">Display daily news analysis</p>
+                <p className="font-semibold text-gray-900">Current Affairs</p>
+                <p className="text-xs text-gray-500">Display daily news analysis</p>
               </div>
               <input
                 type="checkbox"
@@ -175,10 +175,10 @@ export default function SettingsPage() {
                 className="w-5 h-5 accent-indigo-500"
               />
             </div>
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg border border-slate-700 col-span-1 md:col-span-2">
+            <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100 col-span-1 md:col-span-2">
               <div>
-                <p className="font-semibold text-white">Registration Enabled</p>
-                <p className="text-xs text-slate-400">Allow new students to sign up</p>
+                <p className="font-semibold text-gray-900">Registration Enabled</p>
+                <p className="text-xs text-gray-500">Allow new students to sign up</p>
               </div>
               <input
                 type="checkbox"
@@ -195,7 +195,7 @@ export default function SettingsPage() {
           <button
             type="submit"
             disabled={updateSettings.isPending}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold rounded-lg transition shadow"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition shadow"
           >
             <Save className="w-4 h-4" />
             {updateSettings.isPending ? 'Saving...' : 'Save Settings'}

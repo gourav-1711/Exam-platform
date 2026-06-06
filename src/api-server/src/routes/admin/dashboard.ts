@@ -19,7 +19,8 @@ import { clerkClient } from "@clerk/express";
 const router = Router();
 
 router.get("/dashboard", async (req, res) => {
-  const cacheKey = "admin:dashboard:overhaul:stats";
+  // Use a fresh cache key to prevent stale cache deserialization issues
+  const cacheKey = "admin:dashboard:light:v4";
   const cached = cacheGet<object>(cacheKey);
   if (cached) {
     res.json(cached);
@@ -127,13 +128,13 @@ router.get("/dashboard", async (req, res) => {
 
     attemptsByDay.forEach((row) => {
       if (dayMap[row.day]) {
-        dayMap[row.day].quizAttempts = Number(row.count);
+        dayMap[row.day].quizAttempts = Number(row.count) || 0;
       }
     });
 
     usersByDay.forEach((row) => {
       if (dayMap[row.day]) {
-        dayMap[row.day].newUsers = Number(row.count);
+        dayMap[row.day].newUsers = Number(row.count) || 0;
       }
     });
 
@@ -159,7 +160,7 @@ router.get("/dashboard", async (req, res) => {
           return {
             id: "unknown",
             title: "Deleted Quiz",
-            attempts: Number(item.count),
+            attempts: Number(item.count) || 0,
           };
         const [q] = await db
           .select({ title: quizzesTable.title })
@@ -168,7 +169,7 @@ router.get("/dashboard", async (req, res) => {
         return {
           id: String(item.quizId),
           title: q?.title ?? `Quiz #${item.quizId}`,
-          attempts: Number(item.count),
+          attempts: Number(item.count) || 0,
         };
       }),
     );
@@ -203,10 +204,10 @@ router.get("/dashboard", async (req, res) => {
       }),
     );
 
-    const totalQuestions = Number(questionCount.count);
-    const totalExams = Number(examCount.count);
-    const totalAttempts = Number(attemptCount.count);
-    const passedAttempts = Number(passedAttemptsCount.count);
+    const totalQuestions = Number(questionCount.count) || 0;
+    const totalExams = Number(examCount.count) || 0;
+    const totalAttempts = Number(attemptCount.count) || 0;
+    const passedAttempts = Number(passedAttemptsCount.count) || 0;
     const passPercentage =
       totalAttempts > 0
         ? Math.round((passedAttempts / totalAttempts) * 100)
@@ -229,13 +230,13 @@ router.get("/dashboard", async (req, res) => {
 
       // Compatible stats for extended / overhaul view
       stats: {
-        totalStudents: Number(studentCount.count),
-        newStudentsThisWeek: Number(newStudentsThisWeek.count),
+        totalStudents: Number(studentCount.count) || 0,
+        newStudentsThisWeek: Number(newStudentsThisWeek.count) || 0,
         totalQuestions,
-        totalQuizzes: Number(quizCount.count),
-        totalMockTests: Number(mockCount.count),
-        totalCurrentAffairs: Number(caCount.count),
-        openSupportTickets: Number(ticketCount.count),
+        totalQuizzes: Number(quizCount.count) || 0,
+        totalMockTests: Number(mockCount.count) || 0,
+        totalCurrentAffairs: Number(caCount.count) || 0,
+        openSupportTickets: Number(ticketCount.count) || 0,
         storageUsedMb,
       },
       activityChart,
