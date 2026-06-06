@@ -2,16 +2,34 @@ import { db } from "../lib/db";
 import { eq, desc } from "drizzle-orm";
 import { currentAffairsTable } from "@workspace/db";
 
+function slugifyTitle(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export const getCurrentAffairs = async () => {
-  return await db.select().from(currentAffairsTable).orderBy(desc(currentAffairsTable.publishedAt));
+  return await db
+    .select()
+    .from(currentAffairsTable)
+    .orderBy(desc(currentAffairsTable.publishedAt));
 };
 
 export const getCurrentAffairById = async (id: string) => {
-  const result = await db
+  const numericId = Number.parseInt(id, 10);
+  const isNumericId = Number.isFinite(numericId) && String(numericId) === id.trim();
+  const normalized = slugifyTitle(id);
+
+  const allCurrentAffairs = await db
     .select()
     .from(currentAffairsTable)
-    .where(eq(currentAffairsTable.id, parseInt(id, 10)));
-  return result[0];
+    .orderBy(desc(currentAffairsTable.publishedAt));
+
+  return allCurrentAffairs.find((article) =>
+    isNumericId ? article.id === numericId : slugifyTitle(article.title) === normalized,
+  );
 };
 
 export const createCurrentAffair = async (data: {

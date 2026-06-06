@@ -12,7 +12,9 @@ import { ArrowLeft, Calendar, Share2, Tag, ChevronLeft, ChevronRight } from "luc
 export default function CurrentAffairDetail() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
-  const { data: article, isLoading, isError } = useGetCurrentAffair(Number(id), { query: { enabled: !!id, queryKey: getGetCurrentAffairQueryKey(Number(id)) } });
+  const { data: article, isLoading, isError } = useGetCurrentAffair(id, {
+    query: { enabled: !!id, queryKey: getGetCurrentAffairQueryKey(id) },
+  });
 
   if (isLoading) {
     return (

@@ -1,6 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
+import { clerkMiddleware } from "@clerk/express";
 import { env } from "./config/env";
 import { globalRateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
@@ -12,11 +13,11 @@ export function createApp() {
   // 1. Security headers first
   app.use(helmet());
   app.set("trust proxy", 1);
-
+  app.use(clerkMiddleware());
   // 2. CORS — whitelist only
   app.use(
     cors({
-      origin: env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()),
+      origin: env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()),
       credentials: true,
       methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],

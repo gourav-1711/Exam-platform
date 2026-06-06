@@ -186,8 +186,8 @@ export function getGetMockTestQueryKey(id: number) {
   return queryKeys.mockTests.detail(String(id));
 }
 
-export function getGetCurrentAffairQueryKey(id: number) {
-  return queryKeys.currentAffairs.detail(String(id));
+export function getGetCurrentAffairQueryKey(id: string) {
+  return queryKeys.currentAffairs.detail(id);
 }
 
 export function getListPyqQuestionsQueryKey(params: {
@@ -329,10 +329,10 @@ export function useListPyqQuestions(
   );
 }
 
-export function useGetCurrentAffair(id: number, options?: QueryHookOptions) {
+export function useGetCurrentAffair(id: string, options?: QueryHookOptions) {
   return useTokenizedQuery<CurrentAffair>(
     getGetCurrentAffairQueryKey(id),
-    () => apiFetch<CurrentAffair>(`/current-affairs/${normalizeId(id)}`),
+    () => apiFetch<CurrentAffair>(`/current-affairs/${encodeURIComponent(id)}`),
     options,
   );
 }

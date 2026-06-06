@@ -20,6 +20,14 @@ import {
 } from "@/components/ui/pagination";
 import { Search, Calendar, ChevronRight } from "lucide-react";
 
+function slugifyTitle(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export default function CurrentAffairsListing() {
   const [page, setPage] = useState(1);
 
@@ -85,7 +93,7 @@ export default function CurrentAffairsListing() {
                   {article.summary}
                 </p>
 
-                <Link href={`/current-affairs/${article.id}`}>
+                <Link href={`/current-affairs/${slugifyTitle(article.title)}`}>
                   <Button
                     variant="ghost"
                     className="w-full justify-between px-0 hover:bg-transparent hover:text-primary"

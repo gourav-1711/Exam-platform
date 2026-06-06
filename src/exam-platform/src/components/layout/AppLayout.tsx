@@ -110,14 +110,14 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: "/pyq",
         icon: RotateCcw,
-        label: "PYQ Papers",
+        label: "PYQ",
         keywords: "previous year questions pyq",
         protected: true,
       },
       {
         href: "/pyp",
         icon: FileText,
-        label: "Prev Year Papers",
+        label: "Previous Year Papers",
         keywords: "previous year papers pyp",
       },
       {
@@ -498,87 +498,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function DesktopSidebar() {
-  const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
-  const router = useRouter();
-
-  return (
-    <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 left-0 border-r border-border bg-card z-50 overflow-y-auto">
-      <div className="p-6 shrink-0">
-        <Link href="/">
-          <div className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow-md shadow-primary/30">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <span className="font-bold text-base tracking-tight text-foreground leading-none block">
-                Manish Ki
-              </span>
-              <span className="font-bold text-base tracking-tight text-primary leading-none">
-                Pathshala
-              </span>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      <div className="px-4 pb-4 shrink-0">
-        <SearchBar className="w-full" />
-      </div>
-
-      <nav className="flex-1 px-3 py-2 space-y-1">
-        {NAV_GROUPS.map((group, gi) => (
-          <div key={gi}>
-            {group.label && (
-              <div className="pt-5 pb-1.5 px-3">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  {group.label}
-                </p>
-              </div>
-            )}
-            {group.items.map((item) => (
-              <SidebarNavItem key={item.href} {...item} />
-            ))}
-          </div>
-        ))}
-      </nav>
-
-      <div className="p-4 border-t border-border shrink-0">
-        <ClientSignedIn>
-          <button
-            onClick={() => router.push("/profile")}
-            className="w-full flex items-center gap-3 hover:bg-muted rounded-xl p-1 transition-colors"
-          >
-            <Avatar className="w-9 h-9 border-2 border-primary/20">
-              <AvatarImage src={user?.imageUrl} />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                {(user?.firstName?.[0] ?? "U").toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-semibold truncate">
-                {user?.fullName ?? user?.firstName ?? "Learner"}
-              </p>
-              <p className="text-xs text-muted-foreground truncate">
-                View Profile →
-              </p>
-            </div>
-          </button>
-        </ClientSignedIn>
-        <ClientSignedOut>
-          <button
-            onClick={() => router.push("/sign-in")}
-            className="w-full flex items-center justify-center gap-2 bg-primary text-white rounded-xl py-2.5 text-sm font-bold hover:bg-primary/90 transition-colors"
-          >
-            <LogIn className="w-4 h-4" />
-            Sign In / Sign Up
-          </button>
-        </ClientSignedOut>
-      </div>
-    </aside>
-  );
-}
 
 function MobileTopNav() {
   const [open, setOpen] = useState(false);
@@ -760,11 +679,13 @@ function SidebarNavItem({
       >
         <Icon className={cn("w-4 h-4 shrink-0", isActive && "text-primary")} />
         <span className="truncate">{label}</span>
-        {isProtected && !isActive && (
-          <span className="ml-auto text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-            LOGIN
-          </span>
-        )}
+        <SignedOut>
+          {isProtected && !isActive && (
+            <span className="ml-auto text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+              LOGIN
+            </span>
+          )}
+        </SignedOut>
         {isActive && (
           <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
         )}

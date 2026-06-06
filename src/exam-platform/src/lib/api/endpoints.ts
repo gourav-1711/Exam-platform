@@ -74,8 +74,9 @@ export const currentAffairsApi = {
       `/current-affairs?${new URLSearchParams(params as any)}`,
     ),
 
-  // Server-friendly detail
-  getById: (id: number) => apiFetch<any>(`/current-affairs/${id}`),
+  // Public detail is slug-based for human-readable URLs.
+  getById: (id: string | number) =>
+    apiFetch<any>(`/current-affairs/${encodeURIComponent(String(id))}`),
 };
 
 // ── Admin (auth required) ────────────────────────────────────────────────
