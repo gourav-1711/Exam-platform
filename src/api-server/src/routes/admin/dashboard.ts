@@ -207,9 +207,10 @@ router.get("/dashboard", async (req, res) => {
     const totalExams = Number(examCount.count);
     const totalAttempts = Number(attemptCount.count);
     const passedAttempts = Number(passedAttemptsCount.count);
-    const passPercentage = totalAttempts > 0 
-      ? Math.round((passedAttempts / totalAttempts) * 100) 
-      : 0;
+    const passPercentage =
+      totalAttempts > 0
+        ? Math.round((passedAttempts / totalAttempts) * 100)
+        : 0;
 
     const result = {
       // Standard Dashboard metrics expected by Next.js client
@@ -218,12 +219,12 @@ router.get("/dashboard", async (req, res) => {
       totalAttempts,
       passedAttempts,
       passPercentage,
-      recentActivity: recentActivityLogs.map(log => ({
+      recentActivity: recentActivityLogs.map((log) => ({
         id: log.id,
         action: log.action,
         entityType: log.entityType,
         userId: log.userId,
-        createdAt: log.createdAt.toISOString()
+        createdAt: log.createdAt.toISOString(),
       })),
 
       // Compatible stats for extended / overhaul view
