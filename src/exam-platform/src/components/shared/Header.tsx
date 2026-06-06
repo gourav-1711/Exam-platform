@@ -1,5 +1,8 @@
+"use client";
+
 import { useUser } from "@clerk/nextjs";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -7,12 +10,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Menu, LogIn } from "lucide-react";
 import SearchBar from "./SearchBar";
 import { ClientSignedIn, ClientSignedOut, NAV_GROUPS, SidebarNavItem } from "../layout/AppLayout";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogIn } from "lucide-react";
 import NotificationsPanel from "./NotificationPanel";
 import AuthButton from "./AuthButton";
 
@@ -21,15 +23,22 @@ export default function Header() {
   const { user } = useUser();
 
   return (
-    <header className=" sticky top-0 z-40 bg-white border-b border-border/60 px-3 h-14 flex items-center gap-2.5 shadow-sm">
+    <motion.header 
+      initial={{ y: -50, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="sticky top-0 z-40 bg-white border-b border-border/60 px-3 h-14 flex items-center gap-2.5 shadow-sm"
+    >
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <button
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer"
             aria-label="Open navigation menu"
           >
             <Menu className="w-5 h-5 text-foreground" />
-          </button>
+          </motion.button>
         </SheetTrigger>
         <SheetContent side="left" className="w-72 p-0 flex flex-col">
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
@@ -105,9 +114,12 @@ export default function Header() {
       </Sheet>
 
       <Link href="/" className="flex items-center gap-1.5 shrink-0 min-w-0">
-        <div className="w-7 h-7 rounded-lg bg-linear-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow">
+        <motion.div 
+          whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
+          className="w-7 h-7 rounded-lg bg-linear-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow cursor-pointer"
+        >
           MK
-        </div>
+        </motion.div>
         <div className="leading-none min-w-0">
           <p className="font-extrabold text-xs text-foreground tracking-tight truncate">
             Manish Ki Pathshala
@@ -123,9 +135,13 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
-        <NotificationsPanel />
-        <AuthButton compact />
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <NotificationsPanel />
+        </motion.div>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <AuthButton compact />
+        </motion.div>
       </div>
-    </header>
+    </motion.header>
   );
 }
