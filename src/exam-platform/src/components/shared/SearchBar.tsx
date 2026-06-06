@@ -1,4 +1,7 @@
-import { useRouter } from "next/router";
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ALL_NAV_ITEMS } from "../layout/AppLayout";
 import { Search, X } from "lucide-react";

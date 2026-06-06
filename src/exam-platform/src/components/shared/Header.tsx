@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/sheet";
 import { Menu, LogIn } from "lucide-react";
 import SearchBar from "./SearchBar";
-import { ClientSignedIn, ClientSignedOut, NAV_GROUPS, SidebarNavItem } from "../layout/AppLayout";
+import {
+  ClientSignedIn,
+  ClientSignedOut,
+  NAV_GROUPS,
+  SidebarNavItem,
+} from "../layout/AppLayout";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationsPanel from "./NotificationPanel";
@@ -23,7 +28,7 @@ export default function Header() {
   const { user } = useUser();
 
   return (
-    <motion.header 
+    <motion.header
       initial={{ y: -50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
@@ -114,7 +119,7 @@ export default function Header() {
       </Sheet>
 
       <Link href="/" className="flex items-center gap-1.5 shrink-0 min-w-0">
-        <motion.div 
+        <motion.div
           whileHover={{ scale: 1.05, rotate: [0, -5, 5, 0] }}
           className="w-7 h-7 rounded-lg bg-linear-to-br from-primary to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow cursor-pointer"
         >
