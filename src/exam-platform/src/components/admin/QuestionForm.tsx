@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Save, Send } from "lucide-react";
+import { useListPyqSubjects } from "@/lib/api";
 
 export interface QuestionFormData {
   text: string;
@@ -50,20 +51,6 @@ interface QuestionFormProps {
   isLoading?: boolean;
 }
 
-const SUBJECTS = [
-  "History",
-  "Geography",
-  "Polity",
-  "Economy",
-  "Science",
-  "Current Affairs",
-  "Environment",
-  "Mathematics",
-  "English",
-  "Hindi",
-  "Reasoning",
-];
-
 export function QuestionForm({
   initialData,
   questionId,
@@ -74,6 +61,8 @@ export function QuestionForm({
 }: QuestionFormProps) {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentDraftId = useRef<number | undefined>(draftId);
+  
+  const { data: pyqSubjects = [] } = useListPyqSubjects();
 
   const {
     register,
@@ -103,6 +92,7 @@ export function QuestionForm({
   });
 
   const questionType = watch("questionType");
+  const currentSubject = watch("subject");
 
   const triggerAutoSave = useCallback(
     (formData: QuestionFormData) => {
@@ -165,7 +155,7 @@ export function QuestionForm({
         <div className="sm:col-span-1">
           <Label>Question Type</Label>
           <Select
-            defaultValue="single"
+            value={questionType}
             onValueChange={(v) =>
               setValue("questionType", v as QuestionFormData["questionType"])
             }
@@ -186,7 +176,7 @@ export function QuestionForm({
         <div className="sm:col-span-1">
           <Label>Difficulty</Label>
           <Select
-            defaultValue="medium"
+            value={watch("difficulty")}
             onValueChange={(v) =>
               setValue("difficulty", v as QuestionFormData["difficulty"])
             }
@@ -211,7 +201,7 @@ export function QuestionForm({
         <div>
           <Label>Category</Label>
           <Select
-            defaultValue="quiz"
+            value={watch("type")}
             onValueChange={(v) => setValue("type", v)}
           >
             <SelectTrigger className="mt-1">
@@ -247,7 +237,7 @@ export function QuestionForm({
                 type="radio"
                 name="correctIndex"
                 value={i}
-                defaultChecked={i === 0}
+                checked={watch("correctIndex") === i}
                 onChange={() => setValue("correctIndex", i)}
                 className="accent-violet-600"
               />
@@ -276,7 +266,7 @@ export function QuestionForm({
                 type="radio"
                 name="correctIndex"
                 value={0}
-                defaultChecked
+                checked={watch("correctIndex") === 0}
                 onChange={() => {
                   setValue("optionA", "True");
                   setValue("optionB", "False");
@@ -290,6 +280,7 @@ export function QuestionForm({
                 type="radio"
                 name="correctIndex"
                 value={1}
+                checked={watch("correctIndex") === 1}
                 onChange={() => {
                   setValue("optionA", "True");
                   setValue("optionB", "False");
@@ -326,14 +317,14 @@ export function QuestionForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <Label>Subject</Label>
-          <Select onValueChange={(v) => setValue("subject", v)}>
+          <Select value={currentSubject} onValueChange={(v) => setValue("subject", v)}>
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Select subject" />
             </SelectTrigger>
             <SelectContent>
-              {SUBJECTS.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
+              {pyqSubjects.map((s) => (
+                <SelectItem key={s.id} value={s.name}>
+                  {s.name}
                 </SelectItem>
               ))}
             </SelectContent>

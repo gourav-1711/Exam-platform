@@ -122,7 +122,7 @@ export default function Footer() {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.15 }}
-      className="mt-4 bg-white border border-border/50 shadow-sm "
+      className="mt-4 bg-white border-t border-border/50 overflow-hidden w-full"
     >
       <div className="p-5">
         {/* ── Brand ──────────────────────────────────────────────────────────── */}
@@ -152,7 +152,7 @@ export default function Footer() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.5 }}
-          className="text-sm text-muted-foreground leading-relaxed mb-4 max-w-md"
+          className="text-xs text-muted-foreground leading-relaxed mb-4 max-w-[220px]"
         >
           A premium learning platform dedicated to providing the best study
           materials and tools for competitive exam aspirants.

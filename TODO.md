@@ -5,7 +5,7 @@
 - [x] Create global Confirmation Dialog & fix logo stretching in header/sidebar.
 - [x] Add missing Syllabus, NCERT Books, and PYP Papers links to Admin Sidebar.
 - [x] Relax `min="0"` constraints on negative markings to allow negative numeric entry.
-- [ ] Integrate global delete confirmation Dialog into Any Admin panel page that or will have delete functionality
+- [ ] Integrate global delete confirmation Dialog into Any Admin panel page that or will have delete functionality (Announcement Page Done )
 
 ## Milestone 2 — Dynamic File / URL Upload & Dynamic Subjects
 
