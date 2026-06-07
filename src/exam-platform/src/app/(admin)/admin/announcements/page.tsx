@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Megaphone, AlertCircle, Check, X, SwitchCamera, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Megaphone, Check, X, SwitchCamera, ExternalLink, Edit, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,16 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@/lib/api";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Announcement {
   id: number;
@@ -38,12 +48,20 @@ export default function AnnouncementsAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  // Dialog State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+
+  // Form State
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [type, setType] = useState<Announcement["type"]>("info");
   const [isActive, setIsActive] = useState(true);
   const [linkText, setLinkText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+
+  // Delete State
+  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
 
   const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
     queryKey: ["admin", "announcements"],
@@ -60,14 +78,29 @@ export default function AnnouncementsAdminPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
-      setTitle("");
-      setBody("");
-      setLinkText("");
-      setLinkUrl("");
-      toast({ title: "Created", description: "Announcement created" });
+      closeModal();
+      toast({ title: "Created", description: "Announcement created successfully" });
     },
     onError: (err: any) => {
       toast({ title: "Failed to create", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id: number; payload: any }) => {
+      return customFetch<Announcement>(`/api/admin/announcements/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
+      closeModal();
+      toast({ title: "Updated", description: "Announcement updated successfully" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to update", description: err.message, variant: "destructive" });
     },
   });
 
@@ -91,40 +124,179 @@ export default function AnnouncementsAdminPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
-      toast({ title: "Deleted", description: "Announcement deleted" });
+      toast({ title: "Deleted", description: "Announcement deleted successfully" });
     },
   });
+
+  const handleOpenCreate = () => {
+    setEditingAnnouncement(null);
+    setTitle("");
+    setBody("");
+    setType("info");
+    setIsActive(true);
+    setLinkText("");
+    setLinkUrl("");
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (ann: Announcement) => {
+    setEditingAnnouncement(ann);
+    setTitle(ann.title);
+    setBody(ann.body || "");
+    setType(ann.type);
+    setIsActive(ann.isActive);
+    setLinkText(ann.linkText || "");
+    setLinkUrl(ann.linkUrl || "");
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingAnnouncement(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
-    createMutation.mutate({
+    const payload = {
       title: title.trim(),
       body: body.trim() || null,
       type,
       isActive,
       linkText: linkText.trim() || null,
       linkUrl: linkUrl.trim() || null,
-    });
+    };
+
+    if (editingAnnouncement) {
+      updateMutation.mutate({ id: editingAnnouncement.id, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 p-2">
-      <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-          <Megaphone className="w-8 h-8 text-indigo-600" />
-          Announcements
-        </h1>
-        <p className="text-gray-500 mt-2">Publish notice alerts and priority badges for all students</p>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-6xl mx-auto space-y-6 p-2"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+            <Megaphone className="w-8 h-8 text-indigo-600" />
+            Announcements
+          </h1>
+          <p className="text-gray-500 mt-2">Publish notice alerts and priority badges for all students</p>
+        </div>
+        <Button onClick={handleOpenCreate} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 h-11 font-bold shrink-0">
+          <Plus className="w-5 h-5 mr-1" /> Create Announcement
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Creation Card */}
-        <Card className="border border-border/50 bg-white shadow-sm p-5 h-fit rounded-2xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-indigo-600" /> New Alert Banner
-          </h2>
+      {/* List Table Card */}
+      <Card className="border border-border/50 bg-white shadow-sm overflow-hidden rounded-2xl">
+        {isLoading ? (
+          <p className="p-6 text-center text-gray-500">Loading...</p>
+        ) : announcements.length === 0 ? (
+          <div className="p-12">
+            <Empty>
+              <EmptyTitle>No announcements yet</EmptyTitle>
+              <EmptyDescription>Click the button above to publish your first announcement banner.</EmptyDescription>
+            </Empty>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Alert Notice</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {announcements.map((ann) => (
+                  <TableRow key={ann.id}>
+                    <TableCell className="max-w-[280px]">
+                      <div>
+                        <p className="font-bold text-gray-900 line-clamp-1">{ann.title}</p>
+                        {ann.body && <p className="text-xs text-gray-400 line-clamp-2 mt-0.5">{ann.body}</p>}
+                        {ann.linkUrl && (
+                          <span className="text-[10px] font-semibold text-indigo-500 flex items-center gap-1 mt-1">
+                            <ExternalLink className="w-3 h-3" /> {ann.linkText || "Redirect Link"}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          ann.type === "urgent"
+                            ? "destructive"
+                            : ann.type === "warning"
+                            ? "outline"
+                            : "secondary"
+                        }
+                        className="capitalize"
+                      >
+                        {ann.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => toggleMutation.mutate({ id: ann.id, isActive: !ann.isActive })}
+                        className={`text-xs font-bold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
+                          ann.isActive
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-gray-50 border-gray-200 text-gray-400"
+                        }`}
+                      >
+                        {ann.isActive ? "ACTIVE" : "PAUSED"}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenEdit(ann)}
+                        >
+                          <Edit className="h-4 w-4 text-gray-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteId(ann.id)}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
+
+      {/* Creation / Editing Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="rounded-2xl border-border bg-white shadow-xl max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 font-bold text-lg">
+              {editingAnnouncement ? "Edit Announcement" : "Create Announcement"}
+            </DialogTitle>
+            <DialogDescription className="text-gray-500 text-sm">
+              Configure alert notice parameters and published links displayed to students.
+            </DialogDescription>
+          </DialogHeader>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label>Title *</Label>
@@ -133,6 +305,7 @@ export default function AnnouncementsAdminPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Important Exam Update..."
                 required
+                className="rounded-xl h-10"
               />
             </div>
 
@@ -143,6 +316,7 @@ export default function AnnouncementsAdminPage() {
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Write notice context here..."
                 rows={3}
+                className="rounded-xl"
               />
             </div>
 
@@ -162,7 +336,7 @@ export default function AnnouncementsAdminPage() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>Auto Publish</Label>
+                <Label>Status</Label>
                 <select
                   value={String(isActive)}
                   onChange={(e) => setIsActive(e.target.value === "true")}
@@ -180,6 +354,7 @@ export default function AnnouncementsAdminPage() {
                 value={linkText}
                 onChange={(e) => setLinkText(e.target.value)}
                 placeholder="Click here..."
+                className="rounded-xl h-10"
               />
             </div>
 
@@ -189,101 +364,33 @@ export default function AnnouncementsAdminPage() {
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="/quiz or https://..."
+                className="rounded-xl h-10"
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl"
-            >
-              {createMutation.isPending ? "Creating..." : "Publish Banner"}
-            </Button>
+            <DialogFooter className="gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={closeModal} className="rounded-xl">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-5"
+              >
+                {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingAnnouncement ? "Save Changes" : "Publish Announcement"}
+              </Button>
+            </DialogFooter>
           </form>
-        </Card>
+        </DialogContent>
+      </Dialog>
 
-        {/* List Table Card */}
-        <Card className="border border-border/50 bg-white shadow-sm lg:col-span-2 overflow-hidden rounded-2xl">
-          {isLoading ? (
-            <p className="p-6 text-center text-gray-500">Loading...</p>
-          ) : announcements.length === 0 ? (
-            <div className="p-12">
-              <Empty>
-                <EmptyTitle>No announcements yet</EmptyTitle>
-                <EmptyDescription>Fill out the form on the left to publish one.</EmptyDescription>
-              </Empty>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Alert Notice</TableHead>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {announcements.map((ann) => (
-                    <TableRow key={ann.id}>
-                      <TableCell className="max-w-[240px]">
-                        <div>
-                          <p className="font-bold text-gray-900 line-clamp-1">{ann.title}</p>
-                          {ann.body && <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ann.body}</p>}
-                          {ann.linkUrl && (
-                            <span className="text-[10px] font-semibold text-indigo-500 flex items-center gap-1 mt-1">
-                              <ExternalLink className="w-3 h-3" /> {ann.linkText || "Redirect Link"}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            ann.type === "urgent"
-                              ? "destructive"
-                              : ann.type === "warning"
-                              ? "outline"
-                              : "secondary"
-                          }
-                          className="capitalize"
-                        >
-                          {ann.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <button
-                          type="button"
-                          onClick={() => toggleMutation.mutate({ id: ann.id, isActive: !ann.isActive })}
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full border cursor-pointer ${
-                            ann.isActive
-                              ? "bg-green-50 border-green-200 text-green-700"
-                              : "bg-gray-50 border-gray-200 text-gray-400"
-                          }`}
-                        >
-                          {ann.isActive ? "ACTIVE" : "PAUSED"}
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteMutation.mutate(ann.id)}
-                          disabled={deleteMutation.isPending}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </Card>
-      </div>
-    </div>
+      <ConfirmDeleteDialog
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
+        }}
+      />
+    </motion.div>
   );
 }

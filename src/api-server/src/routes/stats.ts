@@ -6,7 +6,7 @@ import {
   currentAffairsTable,
   studyNotesTable,
   mockTestsTable,
-  pyqSubjectsTable,
+  subjects,
   supportMessagesTable,
 } from "@workspace/db";
 import { sql } from "drizzle-orm";
@@ -17,7 +17,7 @@ router.get("/stats", async (req, res, next) => {
   try {
     const [subjectsRow] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(pyqSubjectsTable);
+      .from(subjects);
     const [questionsRow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(questionsTable);

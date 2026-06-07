@@ -33,7 +33,7 @@ const NAV = [
   { href: "/admin/exams", icon: GraduationCap, label: "Exams" },
   { href: "/admin/daily-quizzes", icon: CalendarDays, label: "Daily Quizzes" },
   { href: "/admin/students", icon: Users, label: "Students" },
-  { href: "/admin/pyq-subjects", icon: BookOpen, label: "PYQ Subjects" },
+  { href: "/admin/subjects", icon: BookOpen, label: "Subjects" },
   { href: "/admin/current-affairs", icon: Newspaper, label: "Current Affairs" },
   { href: "/admin/study-notes", icon: NotebookTabs, label: "Study Notes" },
   { href: "/admin/ncert", icon: Library, label: "NCERT Books" },

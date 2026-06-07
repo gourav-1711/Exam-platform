@@ -1,45 +1,51 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
-import { pyqSubjectsTable, questionsTable } from "@workspace/db";
+import { subjects, questionsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
 
 const router = Router();
 
-router.get("/pyq-subjects", async (req, res): Promise<any> => {
+router.get("/subjects", async (req, res): Promise<any> => {
   try {
-    const subjects = await db
+    const data = await db
       .select({
-        id: pyqSubjectsTable.id,
-        name: pyqSubjectsTable.name,
+        id: subjects.id,
+        name: subjects.name,
+        examCategory: subjects.examCategory,
+        description: subjects.description,
         questionCount: sql<number>`count(${questionsTable.id})`,
       })
-      .from(pyqSubjectsTable)
+      .from(subjects)
       .leftJoin(
         questionsTable,
-        eq(questionsTable.pyqSubjectId, pyqSubjectsTable.id),
+        eq(questionsTable.pyqSubjectId, subjects.id),
       )
-      .groupBy(pyqSubjectsTable.id)
-      .orderBy(pyqSubjectsTable.name);
+      .groupBy(subjects.id)
+      .orderBy(subjects.name);
 
-    return res.json(subjects);
+    return res.json(data);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch subjects" });
   }
 });
 
 router.post(
-  "/pyq-subjects",
-  logAdminActivity("create_pyq_subject", "pyq_subject"),
+  "/subjects",
+  logAdminActivity("create_subject", "subject"),
   async (req, res): Promise<any> => {
     try {
-      const { name } = req.body;
+      const { name, examCategory, description } = req.body;
       if (!name) return res.status(400).json({ error: "name is required" });
 
       const [subject] = await db
-        .insert(pyqSubjectsTable)
-        .values({ name })
+        .insert(subjects)
+        .values({
+          name,
+          examCategory: examCategory || "General",
+          description: description || null,
+        })
         .returning();
       return res.status(201).json(subject);
     } catch (err) {
@@ -49,15 +55,15 @@ router.post(
 );
 
 router.patch(
-  "/pyq-subjects/:id",
-  logAdminActivity("update_pyq_subject", "pyq_subject"),
+  "/subjects/:id",
+  logAdminActivity("update_subject", "subject"),
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       const [updated] = await db
-        .update(pyqSubjectsTable)
+        .update(subjects)
         .set({ ...req.body })
-        .where(eq(pyqSubjectsTable.id, id))
+        .where(eq(subjects.id, id))
         .returning();
       if (!updated) return res.status(404).json({ error: "Subject not found" });
       return res.json(updated);
@@ -68,12 +74,12 @@ router.patch(
 );
 
 router.delete(
-  "/pyq-subjects/:id",
-  logAdminActivity("delete_pyq_subject", "pyq_subject"),
+  "/subjects/:id",
+  logAdminActivity("delete_subject", "subject"),
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
-      await db.delete(pyqSubjectsTable).where(eq(pyqSubjectsTable.id, id));
+      await db.delete(subjects).where(eq(subjects.id, id));
       return res.json({ success: true });
     } catch (err) {
       return res.status(500).json({ error: "Failed to delete subject" });

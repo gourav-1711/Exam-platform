@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { pyqSubjectsTable, questionsTable } from "@workspace/db";
+import { subjects, questionsTable } from "@workspace/db";
 import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
@@ -29,8 +29,8 @@ function mapQuestion(q: {
 
 router.get("/pyq/subjects", async (req, res, next) => {
   try {
-    const subjects = await db.select().from(pyqSubjectsTable);
-    return res.json(subjects);
+    const list = await db.select().from(subjects);
+    return res.json(list);
   } catch (err) {
     return next(err);
   }

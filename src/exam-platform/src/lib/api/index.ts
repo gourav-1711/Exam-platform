@@ -13,7 +13,7 @@ import type {
   StudyNote,
   SupportMessage,
   SupportTicket,
-  PyqSubject as DbPyqSubject,
+  Subject as DbSubject,
 } from "@workspace/db";
 import { apiFetch, ApiError } from "./client";
 import {
@@ -23,7 +23,7 @@ import {
   streaksApi,
 } from "./endpoints";
 import { queryKeys } from "./query-keys";
-export type PyqSubject = DbPyqSubject;
+export type PyqSubject = DbSubject;
 
 export type LeaderboardEntry = {
   rank: number;
@@ -245,7 +245,7 @@ export function useListStudyNotes(
         data: StudyNote[];
         total: number;
         page: number;
-        totalPages: number;
+        totalPages: networkError;
       }>("/study-notes" + toSearchParams(params ?? {})),
     options,
   );
@@ -308,7 +308,7 @@ export function useGetQuiz(id: number, options?: QueryHookOptions) {
 export function useListPyqSubjects(options?: QueryHookOptions) {
   return useTokenizedQuery<PyqSubject[]>(
     queryKeys.pyq.subjects(),
-    () => apiFetch<PyqSubject[]>(adminPath("/admin/pyq-subjects")),
+    () => apiFetch<PyqSubject[]>(adminPath("/admin/subjects")),
     options,
   );
 }

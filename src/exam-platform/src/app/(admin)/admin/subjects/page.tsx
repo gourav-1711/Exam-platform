@@ -16,16 +16,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { Trash2, Edit3, Check, X } from "lucide-react";
+import { Trash2, Edit3, Check, X, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
-export default function PyqSubjectsAdmin() {
+export default function SubjectsAdminPage() {
   const { data: subjects = [], isLoading } = useListPyqSubjects();
   const [name, setName] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
 
   const invalidateSubjects = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.pyq.subjects() });
@@ -37,12 +40,12 @@ export default function PyqSubjectsAdmin() {
     if (!trimmedName) return;
 
     try {
-      await customFetch(`/api/admin/pyq-subjects`, {
+      await customFetch(`/api/admin/subjects`, {
         method: "POST",
         body: JSON.stringify({ name: trimmedName }),
         headers: { "Content-Type": "application/json" },
       });
-      toast({ title: "Created", description: "Subject created" });
+      toast({ title: "Created", description: "Subject created successfully" });
       setName("");
       invalidateSubjects();
     } catch (err: unknown) {
@@ -69,12 +72,12 @@ export default function PyqSubjectsAdmin() {
     if (!trimmedName) return;
 
     try {
-      await customFetch(`/api/admin/pyq-subjects/${id}`, {
+      await customFetch(`/api/admin/subjects/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ name: trimmedName }),
         headers: { "Content-Type": "application/json" },
       });
-      toast({ title: "Updated", description: "Subject updated" });
+      toast({ title: "Updated", description: "Subject updated successfully" });
       cancelEdit();
       invalidateSubjects();
     } catch (err: unknown) {
@@ -87,12 +90,11 @@ export default function PyqSubjectsAdmin() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this subject?")) return;
     try {
-      await customFetch(`/api/admin/pyq-subjects/${id}`, {
+      await customFetch(`/api/admin/subjects/${id}`, {
         method: "DELETE",
       });
-      toast({ title: "Deleted", description: "Subject deleted" });
+      toast({ title: "Deleted", description: "Subject deleted successfully" });
       invalidateSubjects();
     } catch (err: unknown) {
       toast({
@@ -104,32 +106,34 @@ export default function PyqSubjectsAdmin() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold">PYQ Subjects</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage subjects used for PYQ question grouping.
-          </p>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-6 p-2">
+      <div>
+        <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
+          <BookOpen className="w-8 h-8 text-indigo-600" />
+          Subjects
+        </h1>
+        <p className="text-gray-500 mt-2">
+          Manage dynamic subjects used for question grouping and curriculum configurations.
+        </p>
       </div>
 
-      <form onSubmit={createSubject} className="flex gap-2 mb-4">
+      <form onSubmit={createSubject} className="flex gap-2 mb-4 max-w-md">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="New subject name"
+          placeholder="New subject name..."
+          className="rounded-xl h-11"
         />
-        <Button type="submit" disabled={!name.trim()}>
+        <Button type="submit" disabled={!name.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-11 font-bold">
           Create
         </Button>
       </form>
 
       {isLoading ? (
-        <p>Loading…</p>
+        <p className="text-sm text-gray-500">Loading...</p>
       ) : subjects.length === 0 ? (
         <Empty>
-          <EmptyTitle>No subjects</EmptyTitle>
+          <EmptyTitle>No subjects found</EmptyTitle>
           <EmptyDescription>Create a subject to get started.</EmptyDescription>
         </Empty>
       ) : (
@@ -137,26 +141,26 @@ export default function PyqSubjectsAdmin() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Questions</TableHead>
+              <TableHead>Linked Questions</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {subjects.map((s: PyqSubject) => (
               <TableRow key={s.id}>
-                <TableCell>
+                <TableCell className="font-semibold text-gray-900">
                   {editingId === s.id ? (
                     <Input
                       value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
-                      className="w-full"
+                      className="w-full rounded-xl"
                       autoFocus
                     />
                   ) : (
                     s.name
                   )}
                 </TableCell>
-                <TableCell>{s.questionCount ?? 0}</TableCell>
+                <TableCell>{(s as any).questionCount ?? 0}</TableCell>
                 <TableCell className="text-right">
                   {editingId === s.id ? (
                     <div className="flex items-center justify-end gap-2">
@@ -166,10 +170,10 @@ export default function PyqSubjectsAdmin() {
                         onClick={() => saveEdit(s.id)}
                         disabled={!editingName.trim()}
                       >
-                        <Check className="w-4 h-4" />
+                        <Check className="w-4 h-4 text-green-600" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={cancelEdit}>
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4 text-gray-400" />
                       </Button>
                     </div>
                   ) : (
@@ -179,12 +183,13 @@ export default function PyqSubjectsAdmin() {
                         size="sm"
                         onClick={() => startEdit(s)}
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-4 h-4 text-gray-600" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(s.id)}
+                        onClick={() => setDeleteId(s.id)}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -196,6 +201,14 @@ export default function PyqSubjectsAdmin() {
           </TableBody>
         </Table>
       )}
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteTargetId !== null) handleDelete(deleteTargetId);
+        }}
+      />
     </div>
   );
 }

@@ -12,3 +12,5 @@ export * from "./admin";
 export * from "./fileStorage";
 export * from "./settings";
 export * from "./dailyQuiz";
+export * from "./subjects";
+export * from "./syllabus";
