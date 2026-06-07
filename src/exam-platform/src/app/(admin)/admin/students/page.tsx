@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Users, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, TrendingUp, HelpCircle, Calendar, CheckCircle2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { customFetch } from "@/lib/api";
 
 interface StudentStat {
@@ -16,6 +17,17 @@ interface StudentStat {
   totalScore: number;
   passedCount: number;
   lastAttemptAt: string | null;
+}
+
+interface StudentAttempt {
+  id: number;
+  userId: string;
+  examId: number | null;
+  quizId: number | null;
+  score: number;
+  totalMarks: number;
+  isPassed: boolean;
+  attemptedAt: string;
 }
 
 async function fetchStudents(page: number): Promise<{
@@ -38,12 +50,25 @@ async function fetchStudents(page: number): Promise<{
   }>(`/api/admin/students?page=${page}&limit=20`);
 }
 
+async function fetchStudentAttempts(userId: string): Promise<StudentAttempt[]> {
+  return customFetch<StudentAttempt[]>(`/api/admin/students/${userId}/attempts`);
+}
+
 export default function StudentsPage() {
   const [page, setPage] = useState(1);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "students", page],
     queryFn: () => fetchStudents(page),
     staleTime: 60 * 1000,
+  });
+
+  const { data: attempts = [], isLoading: loadingAttempts } = useQuery({
+    queryKey: ["admin", "students", "attempts", selectedUserId],
+    queryFn: () => fetchStudentAttempts(selectedUserId!),
+    enabled: !!selectedUserId,
+    staleTime: 30 * 1000,
   });
 
   return (
@@ -79,27 +104,27 @@ export default function StudentsPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="border-0 shadow-sm overflow-hidden">
+            <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="px-4 py-3 font-medium text-gray-600">
+                      <th className="px-6 py-3 font-semibold text-gray-600">
                         User ID
                       </th>
-                      <th className="px-4 py-3 font-medium text-gray-600">
+                      <th className="px-6 py-3 font-semibold text-gray-600">
                         Attempts
                       </th>
-                      <th className="px-4 py-3 font-medium text-gray-600">
+                      <th className="px-6 py-3 font-semibold text-gray-600">
                         Avg Score
                       </th>
-                      <th className="px-4 py-3 font-medium text-gray-600">
+                      <th className="px-6 py-3 font-semibold text-gray-600">
                         Total Score
                       </th>
-                      <th className="px-4 py-3 font-medium text-gray-600">
+                      <th className="px-6 py-3 font-semibold text-gray-600">
                         Passed
                       </th>
-                      <th className="px-4 py-3 font-medium text-gray-600">
+                      <th className="px-6 py-3 font-semibold text-gray-600">
                         Last Active
                       </th>
                     </tr>
@@ -108,31 +133,32 @@ export default function StudentsPage() {
                     {data?.data.map((s, i) => (
                       <tr
                         key={s.userId}
-                        className="hover:bg-gray-50 transition-colors"
+                        onClick={() => setSelectedUserId(s.userId)}
+                        className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                       >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                        <td className="px-6 py-3.5">
+                          <div className="flex items-center gap-3">
                             <div className="h-7 w-7 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-xs flex-shrink-0">
                               {i + 1}
                             </div>
-                            <span className="font-mono text-xs text-gray-600 truncate max-w-[120px]">
+                            <span className="font-mono text-xs text-gray-600 truncate max-w-[150px]">
                               {s.userId}
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 font-medium">
+                        <td className="px-6 py-3.5 font-medium text-gray-900">
                           {s.totalAttempts}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-6 py-3.5">
                           <div className="flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3 text-green-500" />
+                            <TrendingUp className="h-3.5 w-3.5 text-green-500" />
                             {s.avgScore}
                           </div>
                         </td>
-                        <td className="px-4 py-3 font-semibold text-violet-600">
+                        <td className="px-6 py-3.5 font-bold text-violet-600">
                           {s.totalScore}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-6 py-3.5">
                           <Badge
                             variant="outline"
                             className="bg-green-50 text-green-700 border-green-200"
@@ -140,7 +166,7 @@ export default function StudentsPage() {
                             {s.passedCount}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">
+                        <td className="px-6 py-3.5 text-gray-400 text-xs">
                           {s.lastAttemptAt
                             ? new Date(s.lastAttemptAt).toLocaleDateString()
                             : "—"}
@@ -164,6 +190,7 @@ export default function StudentsPage() {
                   size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((p) => p - 1)}
+                  className="rounded-lg h-9"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -172,6 +199,7 @@ export default function StudentsPage() {
                   size="sm"
                   disabled={page >= data.pagination.totalPages}
                   onClick={() => setPage((p) => p + 1)}
+                  className="rounded-lg h-9"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -180,6 +208,73 @@ export default function StudentsPage() {
           )}
         </>
       )}
+
+      {/* Student Attempt History Sheet Drawer */}
+      <Sheet open={!!selectedUserId} onOpenChange={(open) => !open && setSelectedUserId(null)}>
+        <SheetContent side="right" className="w-[450px] p-0 flex flex-col">
+          <SheetHeader className="px-5 py-4 border-b border-gray-100">
+            <SheetTitle className="text-lg font-bold text-gray-900">Student Profile Summary</SheetTitle>
+            <SheetDescription className="text-xs text-gray-400 font-mono">
+              Clerk User: {selectedUserId}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Attempt Timeline</h3>
+              {loadingAttempts ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-50 animate-pulse rounded-xl" />
+                  ))}
+                </div>
+              ) : attempts.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-12">
+                  No evaluation attempts found for this learner yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {attempts.map((attempt) => (
+                    <div
+                      key={attempt.id}
+                      className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-2.5"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-gray-900">
+                            {attempt.quizId ? `Quiz #${attempt.quizId}` : `Exam #${attempt.examId}`}
+                          </p>
+                          <p className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                            <Clock className="w-3.5 h-3.5 text-gray-300" />
+                            {new Date(attempt.attemptedAt).toLocaleDateString()} at{" "}
+                            {new Date(attempt.attemptedAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={attempt.isPassed ? "secondary" : "outline"}
+                          className={attempt.isPassed ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-600 border-red-100"}
+                        >
+                          {attempt.isPassed ? "PASSED" : "FAILED"}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2.5 border-t border-gray-100 text-xs">
+                        <span className="font-semibold text-gray-500">Earned Score</span>
+                        <span className="font-extrabold text-violet-600">
+                          {attempt.score} / {attempt.totalMarks} pts
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

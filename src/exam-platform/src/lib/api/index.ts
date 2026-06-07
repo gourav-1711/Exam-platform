@@ -433,6 +433,14 @@ export function useUpdateSettings(options?: MutationHookOptions) {
   );
 }
 
+export function useGetCloudinaryUsage(options?: QueryHookOptions) {
+  return useTokenizedQuery<any>(
+    ["admin", "settings", "cloudinary-usage"] as const,
+    () => apiFetch<any>("/admin/settings/cloudinary-usage"),
+    options,
+  );
+}
+
 export function useAdminListDailyQuizzes(
   params?: { page?: number; limit?: number },
   options?: QueryHookOptions,

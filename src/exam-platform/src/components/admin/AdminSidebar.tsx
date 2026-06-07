@@ -19,6 +19,9 @@ import {
   MessageSquare,
   BookOpen,
   CalendarDays,
+  Megaphone,
+  Award,
+  NotebookTabs,
 } from "lucide-react";
 
 const NAV = [
@@ -29,6 +32,9 @@ const NAV = [
   { href: "/admin/students", icon: Users, label: "Students" },
   { href: "/admin/pyq-subjects", icon: BookOpen, label: "PYQ Subjects" },
   { href: "/admin/current-affairs", icon: Newspaper, label: "Current Affairs" },
+  { href: "/admin/study-notes", icon: NotebookTabs, label: "Study Notes" },
+  { href: "/admin/mock-tests", icon: Award, label: "Mock Tests" },
+  { href: "/admin/announcements", icon: Megaphone, label: "Announcements" },
   {
     href: "/admin/support-tickets",
     icon: MessageSquare,

@@ -13,25 +13,25 @@
 
 ## Milestone 3
 
-- [ ] Step E: Dashboard overhaul (dashboard API + charts UI)
-- [ ] Step F: Implement `QuestionSelector` + wire into editors
+- [x] Step E: Dashboard overhaul (dashboard API + charts UI)
+- [x] Step F: Implement `QuestionSelector` + wire into editors
 
 ## Milestone 4
 
-- [ ] Step 7: Add missing pages + CRUD routes (NCERT/PYP/Study Notes/Mock Tests/Announcements)
+- [x] Step 7: Add missing pages + CRUD routes (NCERT/PYP/Study Notes/Mock Tests/Announcements)
 
 ## Milestone 5
 
-- [ ] Step 8: Settings overhaul (Tabs + Cloudinary usage endpoint)
-- [ ] Step 9: Student detail sheet + API route
-- [ ] Step 10: Exam detail sheet + API route
+- [x] Step 8: Settings overhaul (Tabs + Cloudinary usage endpoint)
+- [x] Step 9: Student detail sheet + API route
+- [x] Step 10: Exam detail sheet + API route
 
 ## Milestone 6
 
-- [ ] Step 11: Sidebar nav update + remove Drafts
-- [ ] Step 12: General polish across admin list pages (empty/loading/error/delete confirmation/pagination)
-- [ ] Step 13: Query key updates
+- [x] Step 11: Sidebar nav update + remove Drafts
+- [x] Step 12: General polish across admin list pages (empty/loading/error/delete confirmation/pagination)
+- [x] Step 13: Query key updates
 
 ## Milestone 7
 
-- [ ] Run builds for both packages (exam-platform + api-server)
+- [x] Run builds for both packages (exam-platform + api-server)
