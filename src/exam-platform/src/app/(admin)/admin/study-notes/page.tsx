@@ -25,10 +25,13 @@ import { motion } from "framer-motion";
 interface StudyNote {
   id: number;
   title: string;
+  description: string | null;
   subject: string;
   medium: string;
-  downloadUrl: string | null;
-  readUrl: string | null;
+  url: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function StudyNotesAdminPage() {
@@ -38,10 +41,10 @@ export default function StudyNotesAdminPage() {
   const { data: pyqSubjects = [] } = useListSubjects();
 
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
   const [medium, setMedium] = useState("English");
-  const [downloadUrl, setDownloadUrl] = useState("");
-  const [readUrl, setReadUrl] = useState("");
+  const [url, setUrl] = useState("");
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingName] = useState("");
@@ -70,8 +73,8 @@ export default function StudyNotesAdminPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "study-notes"] });
       setTitle("");
-      setDownloadUrl("");
-      setReadUrl("");
+      setDescription("");
+      setUrl("");
       toast({ title: "Created", description: "Study note created" });
     },
     onError: (err: any) => {
@@ -116,10 +119,10 @@ export default function StudyNotesAdminPage() {
 
     createMutation.mutate({
       title: title.trim(),
+      description: description.trim() || null,
       subject,
       medium,
-      downloadUrl: downloadUrl.trim() || null,
-      readUrl: readUrl.trim() || null,
+      url: url.trim() || null,
     });
   };
 
@@ -167,6 +170,15 @@ export default function StudyNotesAdminPage() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <Label>Description (Optional)</Label>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of this note..."
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Subject</Label>
@@ -196,20 +208,11 @@ export default function StudyNotesAdminPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Read URL (Optional)</Label>
+              <Label>URL (Optional)</Label>
               <Input
-                value={readUrl}
-                onChange={(e) => setReadUrl(e.target.value)}
-                placeholder="https://cloudinary.com/..."
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Download URL (Optional)</Label>
-              <Input
-                value={downloadUrl}
-                onChange={(e) => setDownloadUrl(e.target.value)}
-                placeholder="https://cloudinary.com/..."
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com/notes/..."
               />
             </div>
 

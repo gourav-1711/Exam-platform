@@ -2,8 +2,17 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { studyNotesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { z } from "zod";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+
+const studyNoteSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  subject: z.string().min(1, "Subject is required"),
+  medium: z.string().default("English"),
+  url: z.string().optional(),
+});
 
 const router = Router();
 
@@ -35,22 +44,14 @@ router.post(
   logAdminActivity("create_study_note", "study_note"),
   async (req, res): Promise<any> => {
     try {
-      const { title, subject, medium, downloadUrl, readUrl } = req.body;
-      if (!title || !subject) {
-        return res
-          .status(400)
-          .json({ error: "title and subject are required" });
+      const parsed = studyNoteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
       }
 
       const [note] = await db
         .insert(studyNotesTable)
-        .values({
-          title,
-          subject,
-          medium: medium || "English",
-          downloadUrl: downloadUrl || null,
-          readUrl: readUrl || null,
-        })
+        .values(parsed.data)
         .returning();
 
       return res.status(201).json(note);
@@ -66,11 +67,13 @@ router.patch(
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
+      const parsed = studyNoteSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(studyNotesTable)
-        .set({
-          ...req.body,
-        })
+        .set(parsed.data)
         .where(eq(studyNotesTable.id, id))
         .returning();
 

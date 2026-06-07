@@ -27,12 +27,14 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import NotificationsPanel from "./NotificationPanel";
 import AuthButton from "./AuthButton";
+import { Headphones } from "lucide-react";
+import { useSupportUnreadCount } from "@/lib/api";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
   const { scrollY } = useScroll();
 
   // Subtle header elevation on scroll
@@ -54,6 +56,11 @@ export default function Header() {
 
   // Flat list of all nav items for stagger indexing
   // const allNavItems = NAV_GROUPS.flatMap((g) => g.items);
+
+  const { data: unreadData } = useSupportUnreadCount({
+    query: { enabled: !!isSignedIn, refetchInterval: 30_000 },
+  });
+  const supportUnread = unreadData?.unreadCount ?? 0;
 
   return (
     <motion.header
@@ -299,6 +306,22 @@ export default function Header() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <Link href="/support">
+          <motion.div
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            className="relative"
+          >
+            <Headphones className="w-[18px] h-[18px] text-foreground" />
+            {supportUnread > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white px-0.5">
+                {supportUnread > 9 ? "9+" : supportUnread}
+              </span>
+            )}
+          </motion.div>
+        </Link>
 
         <motion.div
           whileHover={{ scale: 1.08 }}

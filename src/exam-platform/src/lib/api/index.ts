@@ -2,13 +2,11 @@ import { useAuth } from "@clerk/nextjs";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   Announcement,
-  Draft,
   CurrentAffair,
   MockTest,
   NcertBook,
   PreviousYearPaper,
   Quiz,
-  Settings,
   Syllabus,
   StudyNote,
   SupportMessage,
@@ -186,10 +184,6 @@ export function getListAnnouncementsQueryKey() {
   return ["announcements", "list"] as const;
 }
 
-export function getListSupportMessagesQueryKey() {
-  return ["supportMessages", "list"] as const;
-}
-
 export function getGetQuizQueryKey(id: number) {
   return queryKeys.quizzes.detail(String(id));
 }
@@ -219,21 +213,106 @@ export function useListAnnouncements(options?: QueryHookOptions) {
   );
 }
 
-export function useListSupportMessages(options?: QueryHookOptions) {
-  return useTokenizedQuery<SupportMessage[]>(
-    getListSupportMessagesQueryKey(),
-    () => apiFetch<SupportMessage[]>("/support/messages"),
+// ── Support API (multi-conversation) ─────────────────────────────────
+
+export interface SupportTicketListItem {
+  id: number;
+  title: string;
+  status: string;
+  isReadByUser: boolean;
+  lastMessageAt: string | null;
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportTicketDetail {
+  ticket: SupportTicketListItem;
+  messages: {
+    id: number;
+    ticketId: number;
+    message: string;
+    sender: "user" | "support";
+    createdAt: string;
+  }[];
+}
+
+export function useListSupportTickets(options?: QueryHookOptions) {
+  return useTokenizedQuery<SupportTicketListItem[]>(
+    ["support", "tickets", "list"] as const,
+    () => apiFetch<SupportTicketListItem[]>("/support/tickets"),
     options,
   );
 }
 
-export function useSendSupportMessage(options?: MutationHookOptions) {
-  return useTokenizedMutation<{ data: { message: string } }, SupportMessage>(
-    async (variables) =>
-      apiFetch<SupportMessage>("/support/messages", {
+export function useSupportTicket(id: number, options?: QueryHookOptions) {
+  return useTokenizedQuery<SupportTicketDetail>(
+    ["support", "tickets", "detail", id] as const,
+    () => apiFetch<SupportTicketDetail>(`/support/tickets/${id}`),
+    options,
+  );
+}
+
+export function useCreateSupportTicket(options?: MutationHookOptions) {
+  return useTokenizedMutation<
+    { title: string; message: string },
+    SupportTicketListItem
+  >(
+    async (body) =>
+      apiFetch<SupportTicketListItem>("/support/tickets", {
         method: "POST",
-        body: JSON.stringify(variables.data),
+        body: JSON.stringify(body),
       }),
+    options,
+  );
+}
+
+export function useSendSupportTicketMessage(
+  id: number,
+  options?: MutationHookOptions,
+) {
+  return useTokenizedMutation<
+    { message: string },
+    { id: number; ticketId: number; message: string; sender: string; createdAt: string }
+  >(
+    async (body) =>
+      apiFetch<{
+        id: number;
+        ticketId: number;
+        message: string;
+        sender: string;
+        createdAt: string;
+      }>(`/support/tickets/${id}/messages`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    options,
+  );
+}
+
+export function useDeleteSupportTicket(options?: MutationHookOptions) {
+  return useTokenizedMutation<number, { success: boolean }>(
+    async (id) =>
+      apiFetch<{ success: boolean }>(`/support/tickets/${id}`, {
+        method: "DELETE",
+      }),
+    options,
+  );
+}
+
+export function useSupportUnreadCount(options?: QueryHookOptions) {
+  return useTokenizedQuery<{ unreadCount: number }>(
+    ["support", "unread-count"] as const,
+    () => apiFetch<{ unreadCount: number }>("/support/unread-count"),
+    options,
+  );
+}
+
+export function useAdminSupportUnreadCount(options?: QueryHookOptions) {
+  return useTokenizedQuery<{ unreadCount: number }>(
+    ["admin", "supportTickets", "unread-count"] as const,
+    () =>
+      apiFetch<{ unreadCount: number }>("/admin/support-tickets/unread-count"),
     options,
   );
 }
@@ -428,33 +507,6 @@ export function useAdminDashboard(options?: QueryHookOptions) {
   );
 }
 
-export function useAdminSettings(options?: QueryHookOptions) {
-  return useTokenizedQuery<Settings>(
-    ["admin", "settings"] as const,
-    () => apiFetch<Settings>("/admin/settings"),
-    options,
-  );
-}
-
-export function useUpdateSettings(options?: MutationHookOptions) {
-  return useTokenizedMutation<Record<string, unknown>, Settings>(
-    async (body) =>
-      apiFetch<Settings>("/admin/settings", {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      }),
-    options,
-  );
-}
-
-export function useGetCloudinaryUsage(options?: QueryHookOptions) {
-  return useTokenizedQuery<any>(
-    ["admin", "settings", "cloudinary-usage"] as const,
-    () => apiFetch<any>("/admin/settings/cloudinary-usage"),
-    options,
-  );
-}
-
 export function useAdminListDailyQuizzes(
   params?: { page?: number; limit?: number },
   options?: QueryHookOptions,
@@ -632,7 +684,6 @@ export type {
   NcertBook,
   PreviousYearPaper,
   Quiz,
-  Settings,
   StudyNote,
   SupportMessage,
   SupportTicket,

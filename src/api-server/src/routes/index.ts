@@ -13,6 +13,7 @@ import streaksRouter from "./streaks";
 import adminRouter from "./admin/index";
 import documentNcertRouter from "./documentNcert";
 import documentPypRouter from "./documentPyp";
+import examSetsRouter from "./examSets";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,7 @@ router.use(pyqRouter);
 router.use(ncertRouter);
 router.use(papersRouter);
 router.use(supportRouter);
+router.use(examSetsRouter);
 router.use("/admin", adminRouter);
 router.use("/document-ncert", documentNcertRouter);
 router.use("/document-pyp", documentPypRouter);

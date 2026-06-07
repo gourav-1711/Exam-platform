@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { quizzesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
 
 const router = Router();

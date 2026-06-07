@@ -31,34 +31,6 @@ export const examQuestionsTable = pgTable("exam_questions", {
   negativeMarks: real("negative_marks").notNull().default(0),
 }, (t) => [index("exam_questions_exam_idx").on(t.examId)]);
 
-export const questionDraftsTable = pgTable("question_drafts", {
-  id: serial("id").primaryKey(),
-  questionId: integer("question_id"),
-  createdBy: text("created_by").notNull(),
-  content: jsonb("content").notNull(),
-  lastSavedAt: timestamp("last_saved_at").notNull().defaultNow(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (t) => [index("qdrafts_user_idx").on(t.createdBy)]);
-
-export const examDraftsTable = pgTable("exam_drafts", {
-  id: serial("id").primaryKey(),
-  examId: integer("exam_id"),
-  createdBy: text("created_by").notNull(),
-  content: jsonb("content").notNull(),
-  lastSavedAt: timestamp("last_saved_at").notNull().defaultNow(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (t) => [index("edrafts_user_idx").on(t.createdBy)]);
-
-export const draftsTable = pgTable("drafts", {
-  id: serial("id").primaryKey(),
-  resourceType: text("resource_type").notNull(), // 'announcement', 'quiz', 'study_note', 'current_affair', 'question', 'exam'
-  resourceId: integer("resource_id"),
-  createdBy: text("created_by").notNull(),
-  content: jsonb("content").notNull(),
-  lastSavedAt: timestamp("last_saved_at").notNull().defaultNow(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (t) => [index("drafts_user_resource_idx").on(t.createdBy, t.resourceType)]);
-
 export const studentAttemptsTable = pgTable("student_attempts", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
@@ -72,6 +44,8 @@ export const studentAttemptsTable = pgTable("student_attempts", {
   timeTakenSecs: integer("time_taken_secs").notNull().default(0),
   isPassed: boolean("is_passed").notNull().default(false),
   attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [index("attempts_user_idx").on(t.userId), index("attempts_exam_idx").on(t.examId)]);
 
 export const activityLogsTable = pgTable("activity_logs", {
@@ -85,26 +59,10 @@ export const activityLogsTable = pgTable("activity_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => [index("activity_user_idx").on(t.userId), index("activity_action_idx").on(t.action)]);
 
-export const adminNotificationsTable = pgTable("admin_notifications", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),
-  title: text("title").notNull(),
-  message: text("message"),
-  type: text("type").notNull().default("info"),
-  isRead: boolean("is_read").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (t) => [index("admin_notif_user_idx").on(t.userId)]);
-
 export const insertExamSchema = createInsertSchema(examsTable).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertQuestionDraftSchema = createInsertSchema(questionDraftsTable).omit({ id: true, createdAt: true, lastSavedAt: true });
-export const insertExamDraftSchema = createInsertSchema(examDraftsTable).omit({ id: true, createdAt: true, lastSavedAt: true });
-export const insertDraftSchema = createInsertSchema(draftsTable).omit({ id: true, createdAt: true, lastSavedAt: true });
 export const insertActivityLogSchema = createInsertSchema(activityLogsTable).omit({ id: true, createdAt: true });
 
 export type Exam = typeof examsTable.$inferSelect;
 export type InsertExam = typeof examsTable.$inferInsert;
-export type QuestionDraft = typeof questionDraftsTable.$inferSelect;
-export type ExamDraft = typeof examDraftsTable.$inferSelect;
-export type Draft = typeof draftsTable.$inferSelect;
 export type StudentAttempt = typeof studentAttemptsTable.$inferSelect;
 export type ActivityLog = typeof activityLogsTable.$inferSelect;

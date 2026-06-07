@@ -2,8 +2,24 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { mockTestsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { z } from "zod";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+
+const mockTestSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  durationMins: z.coerce.number().int().min(1).default(60),
+  questionCount: z.coerce.number().int().min(0).default(100),
+  maxMarks: z.coerce.number().int().min(1).default(100),
+  negativeMarking: z.coerce.number().min(0).default(0.25),
+  questionIds: z.array(z.number()).optional(),
+  subjectId: z.coerce.number().optional(),
+  difficulty: z.string().optional(),
+  class: z.coerce.number().optional(),
+  medium: z.string().optional(),
+  isFeatured: z.coerce.boolean().default(false),
+});
 
 const router = Router();
 
@@ -35,35 +51,14 @@ router.post(
   logAdminActivity("create_mock_test", "mock_test"),
   async (req, res): Promise<any> => {
     try {
-      const {
-        title,
-        description,
-        durationMins,
-        questionCount,
-        maxMarks,
-        negativeMarking,
-        isFeatured,
-      } = req.body;
-      if (!title || !description) {
-        return res
-          .status(400)
-          .json({ error: "title and description are required" });
+      const parsed = mockTestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
       }
 
       const [test] = await db
         .insert(mockTestsTable)
-        .values({
-          title,
-          description,
-          durationMins:
-            durationMins !== undefined ? parseInt(durationMins) : 60,
-          questionCount:
-            questionCount !== undefined ? parseInt(questionCount) : 100,
-          maxMarks: maxMarks !== undefined ? parseInt(maxMarks) : 100,
-          negativeMarking:
-            negativeMarking !== undefined ? parseFloat(negativeMarking) : 0.25,
-          isFeatured: isFeatured !== undefined ? !!isFeatured : false,
-        })
+        .values(parsed.data)
         .returning();
 
       return res.status(201).json(test);
@@ -79,11 +74,13 @@ router.patch(
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
+      const parsed = mockTestSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(mockTestsTable)
-        .set({
-          ...req.body,
-        })
+        .set(parsed.data)
         .where(eq(mockTestsTable.id, id))
         .returning();
 

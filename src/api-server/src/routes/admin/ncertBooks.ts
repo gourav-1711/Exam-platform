@@ -2,7 +2,17 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { ncertBooksTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { z } from "zod";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
+
+const ncertBookSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  classNum: z.coerce.number().int().min(1, "Class number is required"),
+  subject: z.string().min(1, "Subject is required"),
+  medium: z.string().default("English"),
+  readUrl: z.string().optional(),
+  downloadUrl: z.string().optional(),
+});
 
 const router = Router();
 
@@ -34,24 +44,14 @@ router.post(
   logAdminActivity("create_ncert_book", "ncert_book"),
   async (req, res) => {
     try {
-      const { title, classNum, subject, medium, readUrl, downloadUrl } =
-        req.body;
-      if (!title || !subject || !classNum) {
-        return res
-          .status(400)
-          .json({ error: "title, subject, and classNum are required" });
+      const parsed = ncertBookSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
       }
 
       const [book] = await db
         .insert(ncertBooksTable)
-        .values({
-          title,
-          classNum: parseInt(classNum as string),
-          subject,
-          medium: medium || "English",
-          readUrl: readUrl || null,
-          downloadUrl: downloadUrl || null,
-        })
+        .values(parsed.data)
         .returning();
 
       return res.status(201).json(book);
@@ -67,11 +67,13 @@ router.patch(
   async (req, res) => {
     try {
       const id = parseInt(req.params.id as string);
+      const parsed = ncertBookSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(ncertBooksTable)
-        .set({
-          ...req.body,
-        })
+        .set(parsed.data)
         .where(eq(ncertBooksTable.id, id))
         .returning();
 

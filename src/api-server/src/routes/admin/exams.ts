@@ -4,8 +4,8 @@ import { db } from "../../db";
 
 import { eq, desc, sql } from "drizzle-orm";
 import { z } from "zod";
-import { examCreationLimiter } from "../../middlewares/rateLimitMiddleware";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { examCreationLimiter } from "../../middleware/rateLimitMiddleware";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
 import { routeParamInt } from "../../lib/routeParams";
 

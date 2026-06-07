@@ -22,6 +22,7 @@ import {
   Zap,
   Cpu,
   Bot,
+  Headphones,
   AlertTriangle,
   CheckCircle2,
   Megaphone,
@@ -147,8 +148,8 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: "/support",
-        icon: Bot,
-        label: "AI Support",
+        icon: Headphones,
+        label: "Support",
         keywords: "ai chat support help",
       },
     ],

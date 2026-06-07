@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/api-config";
 import { Download, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -77,29 +78,20 @@ export default function NcertBooks() {
             Select Class
           </label>
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedClass(null)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                selectedClass === null
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-accent"
-              }`}
+            <ToggleGroup
+              type="single"
+              value={selectedClass ? String(selectedClass) : ""}
+              onValueChange={(v) => setSelectedClass(v && v !== "" ? Number(v) : null)}
             >
-              All
-            </button>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((cls) => (
-              <button
-                key={cls}
-                onClick={() => setSelectedClass(cls)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                  selectedClass === cls
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-accent"
-                }`}
-              >
-                {cls}
-              </button>
-            ))}
+              <ToggleGroupItem value="" className="text-sm px-3 py-1.5 rounded-lg">
+                All
+              </ToggleGroupItem>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((cls) => (
+                <ToggleGroupItem key={cls} value={String(cls)} className="text-sm px-3 py-1.5 rounded-lg">
+                  {cls}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useQuery } from "@tanstack/react-query";
@@ -9,7 +9,6 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -18,7 +17,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Search, Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 
 function slugifyTitle(value: string) {
   return value
@@ -47,13 +46,7 @@ export default function CurrentAffairsListing() {
           </p>
         </div>
 
-        <div className="relative w-full md:w-72 shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search articles..."
-            className="pl-9 bg-card border-border/50 rounded-xl"
-          />
-        </div>
+
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

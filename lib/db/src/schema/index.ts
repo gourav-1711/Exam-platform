@@ -1,7 +1,6 @@
 export * from "./quizzes";
 export * from "./currentAffairs";
 export * from "./studyNotes";
-export * from "./pyq";
 export * from "./ncert";
 export * from "./papers";
 export * from "./mockTests";
@@ -10,7 +9,7 @@ export * from "./announcements";
 export * from "./streaks";
 export * from "./admin";
 export * from "./fileStorage";
-export * from "./settings";
 export * from "./dailyQuiz";
 export * from "./subjects";
 export * from "./syllabus";
+export * from "./exams";

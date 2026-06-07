@@ -16,50 +16,24 @@ import {
 } from "@/components/ui/breadcrumb";
 import { UserButton } from "@clerk/nextjs";
 
-import { useAuth } from "@clerk/nextjs";
-import { useQuery } from "@tanstack/react-query";
-
-import { adminApi } from "@/lib/api/endpoints";
-
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Link from "next/link";
+import { useAdminSupportUnreadCount } from "@/lib/api";
 
 export function AdminHeader() {
   const pathname = usePathname();
-  const { getToken } = useAuth();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin", "supportTickets", "unread"],
-    queryFn: async () => {
-      // If support ticket unread endpoint is not implemented yet, keep the header working.
-      try {
-        const token = await getToken();
-        if (!token) return [];
-
-        const res = await (adminApi as any).supportTickets?.(token, {
-          unreadOnly: true,
-          limit: 5,
-        });
-
-        const items = res?.items ?? [];
-        return items.filter((t: any) => t.status !== "read");
-      } catch {
-        return [];
-      }
+  const { data: unreadData, isLoading } = useAdminSupportUnreadCount({
+    query: {
+      refetchInterval: 30_000,
     },
-    staleTime: 30_000,
   });
 
-  const unreadTickets = (data ?? []) as Array<{
-    id: string | number;
-    subject: string;
-    createdAt: string;
-  }>;
-  const unreadCount = unreadTickets.length;
+  const unreadCount = unreadData?.unreadCount ?? 0;
 
   const breadcrumb = buildBreadcrumb(pathname);
 
@@ -131,26 +105,13 @@ export function AdminHeader() {
                   <div className="p-4 text-sm text-muted-foreground">
                     Loading...
                   </div>
-                ) : unreadTickets.length === 0 ? (
+                ) : unreadCount === 0 ? (
                   <div className="p-4 text-sm text-muted-foreground">
                     No unread tickets.
                   </div>
                 ) : (
-                  <div className="divide-y">
-                    {unreadTickets.slice(0, 5).map((t) => (
-                      <Link
-                        key={t.id}
-                        href={`/admin/support-tickets`}
-                        className="block px-4 py-3 hover:bg-muted/40"
-                      >
-                        <div className="text-sm font-medium truncate">
-                          {t.subject}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(t.createdAt).toLocaleString()}
-                        </div>
-                      </Link>
-                    ))}
+                  <div className="p-4 text-sm text-muted-foreground">
+                    {unreadCount} ticket{unreadCount !== 1 ? "s" : ""} waiting for reply.
                   </div>
                 )}
               </div>

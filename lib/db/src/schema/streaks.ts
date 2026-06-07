@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const userStreaksTable = pgTable("user_streaks", {
@@ -12,6 +12,7 @@ export const userStreaksTable = pgTable("user_streaks", {
   mockCount: integer("mock_count").notNull().default(0),
   pyqCount: integer("pyq_count").notNull().default(0),
   lastActivityDate: text("last_activity_date"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

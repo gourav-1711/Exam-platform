@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { cn } from "@/lib/utils";
 import { Trophy, Star, Zap, BookOpen, RotateCcw, TrendingUp, Flame } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
 import { useGetLeaderboard } from "@/lib/api";
 
@@ -108,22 +109,19 @@ export default function Leaderboard() {
         </div>
       </div>
 
-      <div className="px-4 -mt-4 space-y-4">
-
-        <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-1 flex gap-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                "flex-1 py-2 rounded-xl text-xs font-bold transition-all",
-                activeTab === tab.key ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="px-4 -mt-4 space-y-4">          <div className="bg-white rounded-2xl border border-border/50 shadow-sm p-1 flex gap-1">
+            {TABS.map((tab) => (
+              <Button
+                key={tab.key}
+                variant={activeTab === tab.key ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab(tab.key)}
+                className="flex-1 rounded-xl text-xs font-bold"
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
 
         {isLoading ? (
           <div className="bg-white rounded-2xl border border-border/50 shadow-sm flex items-center justify-center py-12">
@@ -198,9 +196,9 @@ export default function Leaderboard() {
             <p className="font-bold text-sm text-foreground">Want to appear on the leaderboard?</p>
             <p className="text-xs text-muted-foreground">Sign in and start solving quizzes, mock tests and PYQs to earn points!</p>
             <Link href="/sign-in">
-              <button className="mt-1 bg-primary text-white text-xs font-bold px-5 py-2 rounded-xl hover:bg-primary/90 transition-colors">
+              <Button size="sm" className="rounded-xl">
                 Sign In to Compete
-              </button>
+              </Button>
             </Link>
           </div>
         </ClientSignedOut>

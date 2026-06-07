@@ -2,8 +2,16 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { currentAffairsTable } from "@workspace/db";
 import { desc, sql, and, ilike, eq } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { z } from "zod";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+
+const currentAffairSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  summary: z.string().min(1, "Summary is required"),
+  content: z.string().min(1, "Content is required"),
+  category: z.string().default("General"),
+});
 
 const router = Router();
 
@@ -96,12 +104,11 @@ router.post(
   logAdminActivity("create_current_affair", "current_affair"),
   async (req, res): Promise<any> => {
     try {
-      const { title, summary, content, category } = req.body;
-      if (!title || !summary || !content) {
-        return res
-          .status(400)
-          .json({ error: "title, summary, and content are required" });
+      const parsed = currentAffairSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
       }
+      const { title, summary, content, category } = parsed.data;
 
       const [article] = await db
         .insert(currentAffairsTable)
@@ -135,11 +142,13 @@ router.patch(
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
+      const parsed = currentAffairSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(currentAffairsTable)
-        .set({
-          ...req.body,
-        })
+        .set(parsed.data)
         .where(eq(currentAffairsTable.id, id))
         .returning();
 

@@ -1,7 +1,7 @@
 // src/api-server/src/routes/admin/dailyQuiz.ts
 import express from "express";
 import { getAuth } from "@clerk/express";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { db } from "../../lib/db";
 import { dailyQuizzes } from "@workspace/db";
 import { routeParamInt } from "../../lib/routeParams";

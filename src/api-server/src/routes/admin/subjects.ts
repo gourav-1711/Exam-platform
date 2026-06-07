@@ -2,8 +2,15 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { subjects, questionsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { z } from "zod";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+
+const subjectSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  examCategory: z.string().default("General"),
+  description: z.string().optional(),
+});
 
 const router = Router();
 
@@ -36,16 +43,14 @@ router.post(
   logAdminActivity("create_subject", "subject"),
   async (req, res): Promise<any> => {
     try {
-      const { name, examCategory, description } = req.body;
-      if (!name) return res.status(400).json({ error: "name is required" });
+      const parsed = subjectSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
 
       const [subject] = await db
         .insert(subjects)
-        .values({
-          name,
-          examCategory: examCategory || "General",
-          description: description || null,
-        })
+        .values(parsed.data)
         .returning();
       return res.status(201).json(subject);
     } catch (err) {
@@ -60,9 +65,13 @@ router.patch(
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
+      const parsed = subjectSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(subjects)
-        .set({ ...req.body })
+        .set(parsed.data)
         .where(eq(subjects.id, id))
         .returning();
       if (!updated) return res.status(404).json({ error: "Subject not found" });

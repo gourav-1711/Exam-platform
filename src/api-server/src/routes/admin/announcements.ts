@@ -2,11 +2,21 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { announcementsTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { z } from "zod";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
 import { routeParamInt } from "../../lib/routeParams";
 
 const router = Router();
+
+const announcementSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  body: z.string().optional(),
+  type: z.string().default("info"),
+  isActive: z.boolean().optional(),
+  linkText: z.string().optional(),
+  linkUrl: z.string().optional(),
+});
 
 router.get("/announcements", async (req, res): Promise<any> => {
   try {
@@ -49,8 +59,11 @@ router.post(
   logAdminActivity("create_announcement", "announcement"),
   async (req, res): Promise<any> => {
     try {
-      const { title, body, type, isActive, linkText, linkUrl } = req.body;
-      if (!title) return res.status(400).json({ error: "Title is required" });
+      const parsed = announcementSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
+      const { title, body, type, isActive, linkText, linkUrl } = parsed.data;
 
       const [ann] = await db
         .insert(announcementsTable)
@@ -81,11 +94,13 @@ router.patch(
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
+      const parsed = announcementSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(announcementsTable)
-        .set({
-          ...req.body,
-        })
+        .set(parsed.data)
         .where(eq(announcementsTable.id, id))
         .returning();
 

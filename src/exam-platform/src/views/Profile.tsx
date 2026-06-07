@@ -218,9 +218,9 @@ function ProfileContent() {
               <span className="font-bold text-sm">Profile Details</span>
             </div>
             {!editingName && (
-              <button onClick={handleStartEditName} className="flex items-center gap-1 text-xs text-primary font-semibold hover:underline">
+              <Button variant="ghost" size="sm" onClick={handleStartEditName} className="flex items-center gap-1 text-xs text-primary">
                 <Pencil className="w-3 h-3" /> Edit
-              </button>
+              </Button>
             )}
           </div>
 
@@ -273,8 +273,9 @@ function ProfileContent() {
 
         {/* ── Change Password ── */}
         <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
-          <button
-            className="w-full flex items-center justify-between px-5 py-4 border-b border-border/50"
+          <Button
+            variant="ghost"
+            className="w-full flex items-center justify-between px-5 py-4 border-b border-border/50 rounded-none"
             onClick={() => { setChangingPw(!changingPw); setPwError(""); }}
           >
             <div className="flex items-center gap-2">
@@ -282,7 +283,7 @@ function ProfileContent() {
               <span className="font-bold text-sm">Change Password</span>
             </div>
             <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform", changingPw && "rotate-90")} />
-          </button>
+          </Button>
 
           {changingPw && (
             <div className="p-5 space-y-3">
@@ -298,9 +299,9 @@ function ProfileContent() {
                         className="h-10 rounded-xl text-sm pr-10"
                         placeholder="Enter current password"
                       />
-                      <button onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setShowCurrentPw(!showCurrentPw)} className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground h-8 w-8">
                         {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -313,9 +314,9 @@ function ProfileContent() {
                         className="h-10 rounded-xl text-sm pr-10"
                         placeholder="Min. 8 characters"
                       />
-                      <button onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground h-8 w-8">
                         {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -349,16 +350,17 @@ function ProfileContent() {
         </div>
 
         {/* ── Sign Out ── */}
-        <button
+        <Button
+          variant="outline"
           onClick={() => signOut({ redirectUrl: "/" })}
-          className="w-full flex items-center justify-between bg-white rounded-2xl border border-border/50 shadow-sm px-5 py-4 text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center justify-between rounded-2xl px-5 py-4 text-red-600 hover:bg-red-50 border-border/50"
         >
           <div className="flex items-center gap-2">
             <LogOut className="w-4 h-4" />
             <span className="font-bold text-sm">Sign Out</span>
           </div>
           <ChevronRight className="w-4 h-4" />
-        </button>
+        </Button>
 
       </div>
     </PageTransition>

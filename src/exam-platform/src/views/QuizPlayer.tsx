@@ -285,16 +285,18 @@ export default function QuizPlayer() {
               }
 
               return (
-                <button
+                <Button
                   key={i}
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setCurrentQIndex(i)}
                   className={cn(
-                    "h-10 rounded-lg flex items-center justify-center font-medium text-sm transition-all border border-transparent",
+                    "h-10 rounded-lg text-sm transition-all border border-transparent",
                     bgClass
                   )}
                 >
                   {i + 1}
-                </button>
+                </Button>
               );
             })}
           </div>

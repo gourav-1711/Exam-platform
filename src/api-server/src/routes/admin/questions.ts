@@ -4,8 +4,8 @@ import { questionsTable } from "@workspace/db";
 
 import { eq, like, and, sql, desc, asc } from "drizzle-orm";
 import { z } from "zod";
-import { questionCreationLimiter } from "../../middlewares/rateLimitMiddleware";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { questionCreationLimiter } from "../../middleware/rateLimitMiddleware";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
 import { routeParamInt } from "../../lib/routeParams";
 

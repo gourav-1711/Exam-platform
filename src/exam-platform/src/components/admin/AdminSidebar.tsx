@@ -25,12 +25,14 @@ import {
   Library,
   FileText,
   ScrollText,
+  Layers,
 } from "lucide-react";
 
 const NAV = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/questions", icon: HelpCircle, label: "Questions" },
   { href: "/admin/exams", icon: GraduationCap, label: "Exams" },
+  { href: "/admin/exam-sets", icon: Layers, label: "Exam Sets" },
   { href: "/admin/daily-quizzes", icon: CalendarDays, label: "Daily Quizzes" },
   { href: "/admin/students", icon: Users, label: "Students" },
   { href: "/admin/subjects", icon: BookOpen, label: "Subjects" },

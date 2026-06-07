@@ -9,7 +9,7 @@ import examsRouter from "./exams";
 import studentsRouter from "./students";
 import analyticsRouter from "./analytics";
 import activityLogsRouter from "./activityLogs";
-import settingsRouter from "./settings";
+
 import supportTicketsRouter from "./supportTickets";
 import announcementsRouter from "./announcements";
 import currentAffairsRouter from "./currentAffairs";
@@ -20,6 +20,8 @@ import ncertBooksRouter from "./ncertBooks";
 import subjectsRouter from "./subjects";
 import syllabusRouter from "./syllabus";
 import dailyQuizRouter from "./dailyQuiz";
+import examSetsRouter from "./examSets";
+import pypRouter from "./pyp";
 
 const router = Router();
 
@@ -28,12 +30,11 @@ router.use(requireAdmin);
 
 router.use(dashboardRouter);
 router.use(questionsRouter);
-
 router.use(examsRouter);
 router.use(studentsRouter);
 router.use(analyticsRouter);
 router.use(activityLogsRouter);
-router.use(settingsRouter);
+
 router.use(supportTicketsRouter);
 router.use(announcementsRouter);
 router.use(currentAffairsRouter);
@@ -44,5 +45,7 @@ router.use(ncertBooksRouter);
 router.use(subjectsRouter);
 router.use(syllabusRouter);
 router.use(dailyQuizRouter);
+router.use(examSetsRouter);
+router.use(pypRouter);
 
 export default router;

@@ -2,10 +2,20 @@ import { Router } from "express";
 import { db } from "../../lib/db";
 import { syllabusTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { uploadDoc } from "../../middleware/upload";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinary";
-import { logAdminActivity } from "../../middlewares/adminMiddleware";
+import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+
+const syllabusSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  subjectId: z.coerce.number().optional(),
+  examCategory: z.string().optional(),
+  readUrl: z.string().optional(),
+  downloadUrl: z.string().optional(),
+});
 
 const router = Router();
 
@@ -26,14 +36,14 @@ router.post(
   logAdminActivity("create_syllabus", "syllabus"),
   async (req, res): Promise<any> => {
     try {
-      const { examName, readUrl, downloadUrl } = req.body;
-      if (!examName) {
-        return res.status(400).json({ error: "examName is required" });
+      const parsed = syllabusSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
       }
 
-      let finalReadUrl = readUrl || null;
-      let finalDownloadUrl = downloadUrl || null;
-      let cloudinaryPublicId = null;
+      const { title, description, examCategory } = parsed.data;
+      let finalReadUrl = parsed.data.readUrl || null;
+      let finalDownloadUrl = parsed.data.downloadUrl || null;
 
       if (req.file) {
         const upload = await uploadToCloudinary(
@@ -43,19 +53,19 @@ router.post(
         );
         finalDownloadUrl = upload.secureUrl;
         finalReadUrl = upload.secureUrl;
-        cloudinaryPublicId = upload.publicId;
       }
 
       const [inserted] = await db
         .insert(syllabusTable)
         .values({
-          examName,
+          title,
+          description: description || null,
+          examCategory: examCategory || null,
           readUrl: finalReadUrl,
           downloadUrl: finalDownloadUrl,
         })
         .returning();
 
-      // Store cloudinary public id in metadata/details of logs if needed, but since syllabusTable doesn't have public_id column, we just store urls.
       return res.status(201).json(inserted);
     } catch (error: any) {
       return res.status(500).json({ error: error.message || "Failed to create syllabus" });
@@ -70,11 +80,13 @@ router.patch(
   async (req, res): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
+      const parsed = syllabusSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+      }
       const [updated] = await db
         .update(syllabusTable)
-        .set({
-          ...req.body,
-        })
+        .set(parsed.data)
         .where(eq(syllabusTable.id, id))
         .returning();
 
