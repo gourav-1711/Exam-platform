@@ -108,10 +108,7 @@ export default function NcertBooks() {
           <label className="block text-sm font-medium text-muted-foreground mb-2">
             Select Subject
           </label>
-          <Select
-            value={selectedSubject}
-            onValueChange={setSelectedSubject}
-          >
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -170,8 +167,7 @@ export default function NcertBooks() {
                         : "External Link"}
                     </p>
                     <p>
-                      Uploaded:{" "}
-                      {new Date(pdf.uploadedAt).toLocaleDateString()}
+                      Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
                     </p>
                   </div>
 
