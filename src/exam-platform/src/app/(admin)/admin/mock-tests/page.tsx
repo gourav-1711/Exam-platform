@@ -20,6 +20,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@/lib/api";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 interface MockTest {
   id: number;
@@ -46,6 +47,7 @@ export default function MockTestsAdminPage() {
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingName] = useState("");
+  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
 
   const { data: tests = [], isLoading } = useQuery<MockTest[]>({
     queryKey: ["admin", "mock-tests"],
@@ -326,7 +328,7 @@ export default function MockTestsAdminPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteMutation.mutate(test.id)}
+                              onClick={() => setDeleteId(test.id)}
                               disabled={deleteMutation.isPending}
                               className="text-red-500 hover:text-red-600 hover:bg-red-50"
                             >
@@ -343,6 +345,14 @@ export default function MockTestsAdminPage() {
           )}
         </Card>
       </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
+        }}
+      />
     </div>
   );
 }
