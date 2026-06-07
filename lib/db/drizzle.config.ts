@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
+
 dotenv.config({
   path: "../../.env",
 });
+
 import { defineConfig } from "drizzle-kit";
 
 if (!process.env.DATABASE_URL) {
@@ -11,8 +13,9 @@ if (!process.env.DATABASE_URL) {
 export default defineConfig({
   schema: "./src/schema/index.ts",
   dialect: "postgresql",
+  verbose: true,
   dbCredentials: {
     url: process.env.DATABASE_URL,
-    ssl: "require",
+    ssl: "verify-full",
   },
 });

@@ -22,5 +22,3 @@ export const syllabusTable = pgTable("syllabus", {
 });
 
 export const insertSyllabusSchema = createInsertSchema(syllabusTable).omit({ id: true });
-export type InsertSyllabus = typeof syllabusTable.$inferInsert;
-export type Syllabus = typeof syllabusTable.$inferSelect;
