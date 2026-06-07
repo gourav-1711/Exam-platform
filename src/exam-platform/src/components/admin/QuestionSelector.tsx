@@ -15,6 +15,11 @@ interface Question {
   type: string;
   subject: string | null;
   difficulty?: string;
+  optionA?: string;
+  optionB?: string;
+  optionC?: string;
+  optionD?: string;
+  correctIndex?: number;
 }
 
 interface QuestionsResponse {
@@ -145,6 +150,11 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
                       {q.difficulty && (
                         <span className="text-[11px] font-medium text-gray-400 capitalize">
                           {q.difficulty}
+                        </span>
+                      )}
+                      {q.correctIndex !== undefined && q.optionA && (
+                        <span className="text-[11px] font-semibold text-green-600">
+                          Correct: {String.fromCharCode(65 + q.correctIndex)} — {[q.optionA, q.optionB, q.optionC, q.optionD][q.correctIndex]?.substring(0, 40)}
                         </span>
                       )}
                     </div>

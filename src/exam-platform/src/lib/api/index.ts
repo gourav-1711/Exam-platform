@@ -23,7 +23,8 @@ import {
   streaksApi,
 } from "./endpoints";
 import { queryKeys } from "./query-keys";
-export type PyqSubject = DbSubject;
+export type PyqSubject = DbSubject & { questionCount?: number };
+export type Subject = DbSubject;
 
 export type LeaderboardEntry = {
   rank: number;
@@ -106,6 +107,19 @@ export type AdminDashboardStats = {
   passedAttempts: number;
   passPercentage: number;
   recentActivity: AdminActivityLog[];
+  stats?: {
+    totalStudents: number;
+    newStudentsThisWeek: number;
+    totalQuestions: number;
+    totalQuizzes: number;
+    totalMockTests: number;
+    totalCurrentAffairs: number;
+    openSupportTickets: number;
+    storageUsedMb: number;
+  };
+  activityChart?: Array<{ date: string; quizAttempts: number; newUsers: number }>;
+  topQuizzes?: Array<{ id: string; title: string; attempts: number }>;
+  recentStudents?: Array<{ id: string; name: string; email: string; joinedAt: string }>;
 };
 
 type QueryHookOptions = {
@@ -245,7 +259,7 @@ export function useListStudyNotes(
         data: StudyNote[];
         total: number;
         page: number;
-        totalPages: networkError;
+        totalPages: number;
       }>("/study-notes" + toSearchParams(params ?? {})),
     options,
   );
@@ -305,9 +319,9 @@ export function useGetQuiz(id: number, options?: QueryHookOptions) {
   );
 }
 
-export function useListPyqSubjects(options?: QueryHookOptions) {
+export function useListSubjects(options?: QueryHookOptions) {
   return useTokenizedQuery<PyqSubject[]>(
-    queryKeys.pyq.subjects(),
+    queryKeys.subjects.all(),
     () => apiFetch<PyqSubject[]>(adminPath("/admin/subjects")),
     options,
   );

@@ -15,8 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useListPyqSubjects } from "@/lib/api";
-import type { PyqSubject } from "@workspace/db";
+import { useListSubjects } from "@/lib/api";
 
 interface NcertPdf {
   id: number;
@@ -35,7 +34,7 @@ export default function NcertBooks() {
   const [selectedSubject, setSelectedSubject] = useState("All");
 
   // Dynamic subjects
-  const { data: pyqSubjects = [] } = useListPyqSubjects();
+  const { data: pyqSubjects = [] } = useListSubjects();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["ncert-pdfs", page, selectedClass, selectedSubject],
@@ -114,7 +113,7 @@ export default function NcertBooks() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All Subjects</SelectItem>
-              {pyqSubjects.map((s: PyqSubject) => (
+              {pyqSubjects.map((s) => (
                 <SelectItem key={s.id} value={s.name}>
                   {s.name}
                 </SelectItem>

@@ -33,7 +33,7 @@ export default function Syllabus() {
                   <FileText className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg">{item.examName}</h3>
+                  <h3 className="font-bold text-lg">{item.examCategory}</h3>
                   <p className="text-xs text-muted-foreground">Updated Syllabus</p>
                 </div>
                 <div className="flex gap-2">

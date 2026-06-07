@@ -8,7 +8,7 @@ import { routeParamInt } from "../../lib/routeParams";
 const router = Router();
 
 // GET /admin/current-affairs
-router.get("/", async (req, res): Promise<any> => {
+router.get("/current-affairs", async (req, res): Promise<any> => {
   try {
     const {
       page = "1",

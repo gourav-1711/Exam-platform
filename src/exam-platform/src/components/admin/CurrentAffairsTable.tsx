@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
@@ -20,42 +18,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import type { CurrentAffair } from "@/lib/api";
 
 interface CurrentAffairsTableProps {
   data: CurrentAffair[];
   onDelete: (id: number) => void;
+  onEdit: (item: CurrentAffair) => void;
+  onView: (item: CurrentAffair) => void;
   isLoading?: boolean;
 }
 
 export function CurrentAffairsTable({
   data,
   onDelete,
+  onEdit,
+  onView,
   isLoading,
 }: CurrentAffairsTableProps) {
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-
-  const handleDelete = (id: number) => {
-    setDeleteId(id);
-  };
-
-  const confirmDelete = () => {
-    if (deleteId) {
-      onDelete(deleteId);
-      setDeleteId(null);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -116,48 +95,21 @@ export function CurrentAffairsTable({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/current-affairs/${item.id}`}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Link>
+                    <DropdownMenuItem onSelect={() => onView(item)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/admin/current-affairs/${item.id}/edit`}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Link>
+                    <DropdownMenuItem onSelect={() => onEdit(item)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
                     </DropdownMenuItem>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem
-                          onSelect={(e) => e.preventDefault()}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete Current Affair
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(item.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <DropdownMenuItem
+                      onSelect={() => onDelete(item.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -165,26 +117,6 @@ export function CurrentAffairsTable({
           ))}
         </TableBody>
       </Table>
-
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Current Affair</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

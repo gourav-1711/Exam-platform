@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Save, Send } from "lucide-react";
-import { useListPyqSubjects } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
 
 export interface QuestionFormData {
   text: string;
@@ -62,7 +62,7 @@ export function QuestionForm({
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentDraftId = useRef<number | undefined>(draftId);
   
-  const { data: pyqSubjects = [] } = useListPyqSubjects();
+  const { data: pyqSubjects = [] } = useListSubjects();
 
   const {
     register,

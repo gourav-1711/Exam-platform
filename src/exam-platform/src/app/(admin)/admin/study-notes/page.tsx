@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/table";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListPyqSubjects } from "@/lib/api";
+import { customFetch, useListSubjects } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { motion } from "framer-motion";
 
 interface StudyNote {
   id: number;
@@ -34,7 +35,7 @@ export default function StudyNotesAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const { data: pyqSubjects = [] } = useListPyqSubjects();
+  const { data: pyqSubjects = [] } = useListSubjects();
 
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -133,7 +134,12 @@ export default function StudyNotesAdminPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 p-2">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="max-w-6xl mx-auto space-y-8 p-2"
+    >
       <div>
         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
           <BookOpen className="w-8 h-8 text-indigo-600" />
@@ -321,6 +327,6 @@ export default function StudyNotesAdminPage() {
           if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
         }}
       />
-    </div>
+    </motion.div>
   );
 }

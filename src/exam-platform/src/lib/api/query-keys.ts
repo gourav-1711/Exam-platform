@@ -18,6 +18,9 @@ export const queryKeys = {
     mcq: (params?: { page?: number; limit?: number } | undefined) =>
       ["ncert", "mcq", params ?? {}] as const,
   },
+  subjects: {
+    all: () => ["subjects", "all"] as const,
+  },
   pyq: {
     subjects: () => ["pyq", "subjects"] as const,
     questions: (

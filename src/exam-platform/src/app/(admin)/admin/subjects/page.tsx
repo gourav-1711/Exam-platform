@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useListPyqSubjects, customFetch } from "@/lib/api";
-import type { PyqSubject } from "@/lib/api";
+import { useListSubjects, customFetch } from "@/lib/api";
+import type { Subject } from "@/lib/api";
 import { queryKeys } from "@/lib/api/query-keys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +19,10 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Trash2, Edit3, Check, X, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { motion } from "framer-motion";
 
 export default function SubjectsAdminPage() {
-  const { data: subjects = [], isLoading } = useListPyqSubjects();
+  const { data: subjects = [], isLoading } = useListSubjects();
   const [name, setName] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -31,7 +32,7 @@ export default function SubjectsAdminPage() {
   const [deleteTargetId, setDeleteId] = useState<number | null>(null);
 
   const invalidateSubjects = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.pyq.subjects() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.subjects.all() });
   };
 
   const createSubject = async (e: React.FormEvent) => {
@@ -57,7 +58,7 @@ export default function SubjectsAdminPage() {
     }
   };
 
-  const startEdit = (subject: PyqSubject) => {
+  const startEdit = (subject: Subject) => {
     setEditingId(subject.id);
     setEditingName(subject.name);
   };
@@ -106,7 +107,12 @@ export default function SubjectsAdminPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 p-2">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="max-w-6xl mx-auto space-y-6 p-2"
+    >
       <div>
         <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
           <BookOpen className="w-8 h-8 text-indigo-600" />
@@ -146,7 +152,7 @@ export default function SubjectsAdminPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {subjects.map((s: PyqSubject) => (
+            {subjects.map((s: Subject) => (
               <TableRow key={s.id}>
                 <TableCell className="font-semibold text-gray-900">
                   {editingId === s.id ? (
@@ -209,6 +215,6 @@ export default function SubjectsAdminPage() {
           if (deleteTargetId !== null) handleDelete(deleteTargetId);
         }}
       />
-    </div>
+    </motion.div>
   );
 }

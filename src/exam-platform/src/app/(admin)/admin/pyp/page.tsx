@@ -12,12 +12,11 @@ import {
   ChevronRight,
   Eye,
 } from "lucide-react";
-import { useListPyqSubjects } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { PyqSubject } from "@workspace/db";
 
 interface PypPdf {
   id: number;
@@ -65,7 +64,7 @@ export default function PypAdminPage() {
   const [deleteTargetId, setDeleteId] = useState<number | null>(null);
 
   // Dynamic Subjects
-  const { data: pyqSubjects = [] } = useListPyqSubjects();
+  const { data: pyqSubjects = [] } = useListSubjects();
 
   const { data: pdfs = [], isLoading } = useQuery({
     queryKey: ["pyp-pdfs"],
@@ -242,7 +241,7 @@ export default function PypAdminPage() {
                   className="w-full px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 >
                   <option value="">Select</option>
-                  {pyqSubjects.map((s: PyqSubject) => (
+                  {pyqSubjects.map((s) => (
                     <option key={s.id} value={s.name}>
                       {s.name}
                     </option>

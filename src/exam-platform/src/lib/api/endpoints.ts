@@ -133,7 +133,7 @@ export const adminApi = {
     body: Record<string, unknown>,
   ) =>
     apiFetch<any>(`/admin/current-affairs/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(body),
       token,
     }),

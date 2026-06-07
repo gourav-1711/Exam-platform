@@ -26,14 +26,15 @@
 - Allow entering negative values or positive penalties freely without strict `min="0"` constraints on inputs.
 
 ## 6. Syllabus Admin Page & CRUD Routes
-- Add backend routes `GET /api/admin/syllabus`, `POST /api/admin/syllabus`, `PATCH /api/admin/syllabus/:id`, and `DELETE /api/admin/syllabus/:id`.
-- Build a responsive `/admin/syllabus` CRUD page.
+- [x] Add backend routes `GET /api/admin/syllabus`, `POST /api/admin/syllabus`, `PATCH /api/admin/syllabus/:id`, and `DELETE /api/admin/syllabus/:id`.
+- [x] Build a responsive `/admin/syllabus` CRUD page.
+- [x] **Fixed**: Syllabus router was missing from admin route index — added import and mount.
 
-## 7. Responsive Styling & Animations + Redesigned Announcements Page
-- Redesign the Announcements admin page:
-  - Keep only the table of announcements on the main view.
-  - Add a "Create Announcement" button that opens a beautiful modal (Dialog/Sheet) using Shadcn and Framer Motion.
-  - Ensure the "Edit" button opens the same modal populated with the announcement's current data.
-  - Implement full CRUD operations for announcements in the modal view.
-- Ensure perfect responsive styling and grids across all admin pages.
-- Add gorgeous entrance transition animations with Framer Motion.
+## 7. Refactor Admin Pages to Announcements Pattern
+- [x] Redesign the Announcements admin page with Sheet for create/edit, Dialog, ConfirmDeleteDialog, and animations.
+- [x] **Current Affairs**: Merged `new/`, `[id]/`, `[id]/edit/` sub-pages into a single page with Sheet (create/edit), Dialog (detail), ConfirmDeleteDialog, and full Framer Motion animations.
+- [x] **Daily Quizzes**: Merged `new/`, `[id]/`, `[id]/edit/` sub-pages into a single page with Sheet (create/edit), Dialog (detail), ConfirmDeleteDialog, and animations.
+- [x] Fixed `adminApi.updateCurrentAffair` PUT→PATCH bug (was silently failing).
+- [x] Cleaned up `CurrentAffairsTable`: removed unused imports and duplicate delete confirmation.
+- [x] Deleted orphaned `DailyQuizzesAdmin.tsx` and unused sub-page directories.
+- [ ] **Future**: Refactor Exams and Questions pages (they still have separate `new/` and `[id]/edit/` sub-pages with complex forms).

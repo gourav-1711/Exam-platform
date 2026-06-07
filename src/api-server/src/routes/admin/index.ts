@@ -18,6 +18,7 @@ import mockTestsRouter from "./mockTests";
 import studyNotesRouter from "./studyNotes";
 import ncertBooksRouter from "./ncertBooks";
 import subjectsRouter from "./subjects";
+import syllabusRouter from "./syllabus";
 import dailyQuizRouter from "./dailyQuiz";
 
 const router = Router();
@@ -41,6 +42,7 @@ router.use(mockTestsRouter);
 router.use(studyNotesRouter);
 router.use(ncertBooksRouter);
 router.use(subjectsRouter);
+router.use(syllabusRouter);
 router.use(dailyQuizRouter);
 
 export default router;

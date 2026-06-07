@@ -81,7 +81,7 @@ export default function Contact() {
       </div>
 
       {/* Contact form */}
-      <div className="pt-1">
+      {/* <div className="pt-1">
         <SectionHeading>Send a Message</SectionHeading>
 
         {sent && (
@@ -106,7 +106,7 @@ export default function Contact() {
             Send Message
           </Button>
         </form>
-      </div>
+      </div> */}
 
     </StaticPageLayout>
   );

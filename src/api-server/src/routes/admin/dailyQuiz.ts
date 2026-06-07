@@ -4,6 +4,7 @@ import { getAuth } from "@clerk/express";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { db } from "../../lib/db";
 import { dailyQuizzes } from "@workspace/db";
+import { routeParamInt } from "../../lib/routeParams";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { logger } from "../../lib/logger";
@@ -21,8 +22,8 @@ const dailyQuizPayloadSchema = z.object({
   isPublished: z.boolean().default(false),
 });
 
-// GET /api/admin/daily-quiz
-router.get("/", async (req, res) => {
+// GET /api/admin/daily-quizzes
+router.get("/daily-quizzes", async (req, res) => {
   try {
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = parseInt(req.query.limit as string, 10) || 10;
@@ -56,10 +57,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/admin/daily-quiz/:id
-router.get("/:id", async (req, res) => {
+// GET /api/admin/daily-quizzes/:id
+router.get("/daily-quizzes/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = routeParamInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
     const quiz = await db
@@ -78,9 +79,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/admin/daily-quiz
+// POST /api/admin/daily-quizzes
 router.post(
-  "/",
+  "/daily-quizzes",
   logAdminActivity("create_daily_quiz", "daily_quiz"),
   async (req, res) => {
     try {
@@ -117,16 +118,16 @@ router.post(
   },
 );
 
-// PATCH /api/admin/daily-quiz/:id
+// PATCH /api/admin/daily-quizzes/:id
 router.patch(
-  "/:id",
+  "/daily-quizzes/:id",
   logAdminActivity("update_daily_quiz", "daily_quiz"),
   async (req, res) => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    const id = routeParamInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-      const parseResult = dailyQuizPayloadSchema.partial().safeParse(req.body);
+    const parseResult = dailyQuizPayloadSchema.partial().safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({
           message: "Invalid payload",
@@ -156,10 +157,10 @@ router.patch(
   },
 );
 
-// DELETE /api/admin/daily-quiz/:id
-router.delete("/:id", async (req, res) => {
+// DELETE /api/admin/daily-quizzes/:id
+router.delete("/daily-quizzes/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = routeParamInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
     await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));

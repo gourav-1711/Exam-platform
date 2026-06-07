@@ -1,21 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_BASE_URL } from "@/lib/api-config";
-import { Plus, Trash2, Edit3, Check, X, FileText, Upload, Link as LinkIcon, AlertCircle } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  Eye,
+  FileText,
+  Loader2,
+  Upload,
+} from "lucide-react";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { API_BASE_URL } from "@/lib/api-config";
 import { customFetch } from "@/lib/api";
-import { motion } from "framer-motion";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface SyllabusItem {
   id: number;
   examName: string;
@@ -23,27 +59,94 @@ interface SyllabusItem {
   downloadUrl: string | null;
 }
 
+// ── Animation variants ────────────────────────────────────────────────────────
+const pageVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
+
+const tableRowVariants: Variants = {
+  hidden: { opacity: 0, x: -12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: { delay: i * 0.05, duration: 0.28, ease: "easeOut" },
+  }),
+  exit: { opacity: 0, x: 12, transition: { duration: 0.2 } },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 10, scale: 0.99 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
+
+const fieldVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.06, duration: 0.28, ease: "easeOut" },
+  }),
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────────────────────────────────────
 export default function SyllabusAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
-  const [examName, setExamName] = useState("");
-  const [readUrl, setReadUrl] = useState("");
-  const [downloadUrl, setDownloadUrl] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [fileName, setFileName] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
+  // Detail Dialog
+  const [viewingItem, setViewingItem] = useState<SyllabusItem | null>(null);
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingName, setEditingName] = useState("");
+  // Sheet (create/edit)
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<SyllabusItem | null>(null);
+
+  // Delete
   const [deleteTargetId, setDeleteId] = useState<number | null>(null);
 
+  // ── Form state ────────────────────────────────────────────────────────────
+  const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
+  const [formExamName, setFormExamName] = useState("");
+  const [formReadUrl, setFormReadUrl] = useState("");
+  const [formDownloadUrl, setFormDownloadUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [formError, setFormError] = useState("");
+
+  // Sync form when sheet opens
+  useEffect(() => {
+    if (sheetOpen) {
+      if (editingItem) {
+        setFormExamName(editingItem.examName);
+        setFormReadUrl(editingItem.readUrl ?? "");
+        setFormDownloadUrl(editingItem.downloadUrl ?? "");
+      } else {
+        setFormExamName("");
+        setFormReadUrl("");
+        setFormDownloadUrl("");
+        setFile(null);
+        setFileName("");
+        setUploadMode("file");
+      }
+      setFormError("");
+    }
+  }, [sheetOpen, editingItem]);
+
+  // ── Queries ────────────────────────────────────────────────────────────────
   const { data: list = [], isLoading } = useQuery<SyllabusItem[]>({
     queryKey: ["admin", "syllabus"],
     queryFn: () => customFetch<SyllabusItem[]>("/api/admin/syllabus"),
   });
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "syllabus"] });
 
   const createMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -58,43 +161,60 @@ export default function SyllabusAdminPage() {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "syllabus"] });
-      setExamName("");
-      setReadUrl("");
-      setDownloadUrl("");
-      setFile(null);
-      setFileName("");
-      toast({ title: "Created", description: "Syllabus record created successfully" });
+      invalidate();
+      setSheetOpen(false);
+      toast({ title: "Created!", description: "Syllabus record created successfully." });
     },
     onError: (err: any) => {
-      toast({ title: "Failed to create", description: err.message, variant: "destructive" });
+      setFormError(err.message || "Failed to create");
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, body }: { id: number; body: any }) => {
-      return customFetch<SyllabusItem>(`/api/admin/syllabus/${id}`, {
+    mutationFn: async ({ id, payload }: { id: number; payload: any }) =>
+      customFetch<SyllabusItem>(`/api/admin/syllabus/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    },
+        body: JSON.stringify(payload),
+      }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "syllabus"] });
-      setEditingId(null);
-      toast({ title: "Updated", description: "Syllabus updated successfully" });
+      invalidate();
+      setSheetOpen(false);
+      toast({ title: "Saved!", description: "Syllabus updated." });
+    },
+    onError: (err: any) => {
+      setFormError(err.message || "Failed to update");
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return customFetch<any>(`/api/admin/syllabus/${id}`, { method: "DELETE" });
-    },
+    mutationFn: async (id: number) =>
+      customFetch<any>(`/api/admin/syllabus/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin", "syllabus"] });
-      toast({ title: "Deleted", description: "Syllabus record deleted" });
+      invalidate();
+      setDeleteId(null);
+      toast({ title: "Deleted", description: "Syllabus record removed." });
     },
+    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
   });
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const openCreate = () => {
+    setEditingItem(null);
+    setSheetOpen(true);
+  };
+
+  const openEdit = (item: SyllabusItem) => {
+    setEditingItem(item);
+    setUploadMode("url"); // Edit always uses URL mode since files can't be re-uploaded easily
+    setSheetOpen(true);
+  };
+
+  const openView = (item: SyllabusItem) => {
+    setViewingItem(item);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -106,256 +226,391 @@ export default function SyllabusAdminPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!examName.trim()) return;
+    setFormError("");
 
+    if (!formExamName.trim()) {
+      setFormError("Exam name is required.");
+      return;
+    }
+
+    if (editingItem) {
+      // Edit: just PATCH the exam name
+      updateMutation.mutate({
+        id: editingItem.id,
+        payload: {
+          examName: formExamName.trim(),
+          readUrl: formReadUrl.trim() || null,
+          downloadUrl: formDownloadUrl.trim() || null,
+        },
+      });
+      return;
+    }
+
+    // Create: use FormData for file upload or URL
     const data = new FormData();
-    data.append("examName", examName.trim());
+    data.append("examName", formExamName.trim());
 
     if (uploadMode === "file") {
       if (!file) {
-        setError("Please select a syllabus PDF file");
+        setFormError("Please select a syllabus PDF file.");
         return;
       }
       data.append("file", file);
     } else {
-      if (readUrl.trim()) data.append("readUrl", readUrl.trim());
-      if (downloadUrl.trim()) data.append("downloadUrl", downloadUrl.trim());
+      if (formReadUrl.trim()) data.append("readUrl", formReadUrl.trim());
+      if (formDownloadUrl.trim()) data.append("downloadUrl", formDownloadUrl.trim());
     }
 
     createMutation.mutate(data);
   };
 
-  const startEdit = (item: SyllabusItem) => {
-    setEditingId(item.id);
-    setEditingName(item.examName);
-  };
-
-  const handleSaveEdit = (id: number) => {
-    if (!editingName.trim()) return;
-    updateMutation.mutate({ id, body: { examName: editingName.trim() } });
-  };
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-6xl mx-auto space-y-8 p-2"
-    >
-      <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
-          <FileText className="w-8 h-8 text-indigo-600" />
-          Syllabus
-        </h1>
-        <p className="text-gray-500 mt-2">
-          Manage exam curriculums by uploading PDFs or sharing reference links.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Creation Card */}
-        <Card className="border border-border/50 bg-white shadow-sm p-5 h-fit rounded-2xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Plus className="w-5 h-5 text-indigo-600" /> New Curriculum
-          </h2>
-
-          <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl mb-4">
-            <button
-              type="button"
-              onClick={() => setUploadMode("file")}
-              className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                uploadMode === "file"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-gray-500"
-              }`}
+    <TooltipProvider>
+      <motion.div
+        variants={pageVariants}
+        initial="hidden"
+        animate="visible"
+        className="max-w-6xl mx-auto space-y-6 p-2 sm:p-4"
+      >
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <motion.div
+              whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
+              transition={{ duration: 0.45 }}
+              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-200 shrink-0"
             >
-              Upload PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => setUploadMode("url")}
-              className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                uploadMode === "url"
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-gray-500"
-              }`}
-            >
-              URL Link
-            </button>
+              <FileText className="w-6 h-6 text-white" />
+            </motion.div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Syllabus</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {list.length} total syllabi
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Exam Name *</Label>
-              <Input
-                value={examName}
-                onChange={(e) => setExamName(e.target.value)}
-                placeholder="e.g. UPSC CSE 2026..."
-                required
-              />
-            </div>
-
-            {uploadMode === "file" ? (
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition">
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="syllabus-file-input"
-                />
-                <label htmlFor="syllabus-file-input" className="cursor-pointer block">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm font-semibold text-gray-700">
-                    {fileName || "Select PDF document"}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
-                </label>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-1.5">
-                  <Label>Read URL (Optional)</Label>
-                  <Input
-                    value={readUrl}
-                    onChange={(e) => setReadUrl(e.target.value)}
-                    placeholder="https://..."
+          <div className="flex items-center gap-3 shrink-0">
+            <AnimatePresence>
+              {list.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="hidden sm:flex items-center gap-1.5 bg-sky-50 border border-sky-200 rounded-full px-3 py-1.5"
+                >
+                  <motion.span
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ repeat: Infinity, duration: 2.2 }}
+                    className="w-2 h-2 rounded-full bg-sky-500 inline-block"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Download URL (Optional)</Label>
-                  <Input
-                    value={downloadUrl}
-                    onChange={(e) => setDownloadUrl(e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
-              </>
-            )}
+                  <span className="text-xs font-semibold text-sky-700">{list.length} shown</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                <p className="text-red-700 text-xs font-semibold">{error}</p>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl h-11"
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 380, damping: 20 }}
             >
-              {createMutation.isPending ? "Creating..." : "Create Syllabus"}
-            </Button>
-          </form>
-        </Card>
+              <Button
+                onClick={openCreate}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 h-10 font-bold gap-1.5 shadow-md shadow-indigo-200"
+              >
+                <Plus className="w-4 h-4" /> Add Syllabus
+              </Button>
+            </motion.div>
+          </div>
+        </div>
 
-        {/* Table List Card */}
-        <Card className="border border-border/50 bg-white shadow-sm lg:col-span-2 overflow-hidden rounded-2xl">
+        {/* ── Table Card ──────────────────────────────────────────────────── */}
+        <motion.div
+          variants={cardVariants}
+          initial="hidden"
+          animate="visible"
+          className="rounded-2xl border border-border/50 bg-white shadow-sm overflow-hidden"
+        >
           {isLoading ? (
-            <p className="p-6 text-center text-gray-500">Loading syllabus list...</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}>
+                <Loader2 className="w-7 h-7 text-sky-500" />
+              </motion.div>
+              <p className="text-sm text-muted-foreground">Loading syllabus list…</p>
+            </div>
           ) : list.length === 0 ? (
-            <div className="p-12">
+            <div className="py-16 px-6">
               <Empty>
-                <EmptyTitle>No syllabus configured yet</EmptyTitle>
-                <EmptyDescription>
-                  Fill out the form on the left to add your first syllabus.
-                </EmptyDescription>
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  className="flex flex-col items-center"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center mb-4">
+                    <FileText className="w-7 h-7 text-sky-400" />
+                  </div>
+                  <EmptyTitle>No syllabus yet</EmptyTitle>
+                  <EmptyDescription>Click &quot;Add Syllabus&quot; above to upload or link a curriculum.</EmptyDescription>
+                  <Button
+                    onClick={openCreate}
+                    variant="outline"
+                    className="mt-4 rounded-xl gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                  >
+                    <Plus className="w-4 h-4" /> Add one
+                  </Button>
+                </motion.div>
               </Empty>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Exam Name</TableHead>
-                    <TableHead>Syllabus Reference Links</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500 pl-5">Exam Name</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Reference Links</TableHead>
+                    <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-gray-500 pr-5">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {list.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-semibold text-gray-900 max-w-[200px]">
-                        {editingId === item.id ? (
-                          <Input
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            className="h-8 rounded-lg"
-                            autoFocus
-                          />
-                        ) : (
-                          <span className="line-clamp-1">{item.examName}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {item.readUrl && (
-                            <Badge variant="outline" className="text-xs bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700 border-indigo-100 cursor-pointer" onClick={() => window.open(item.readUrl!, "_blank")}>
-                              Read online
-                            </Badge>
-                          )}
-                          {item.downloadUrl && (
-                            <Badge variant="outline" className="text-xs bg-emerald-50/50 hover:bg-emerald-50 text-emerald-700 border-emerald-100 cursor-pointer" onClick={() => window.open(item.downloadUrl!, "_blank")}>
-                              Download PDF
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {editingId === item.id ? (
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSaveEdit(item.id)}
-                              disabled={updateMutation.isPending}
-                            >
-                              <Check className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingId(null)}
-                            >
-                              <X className="h-4 w-4 text-gray-400" />
-                            </Button>
+                  <AnimatePresence>
+                    {list.map((item, i) => (
+                      <motion.tr
+                        key={item.id}
+                        custom={i}
+                        variants={tableRowVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        layout
+                        className="group border-b border-border/40 hover:bg-gray-50/60 transition-colors cursor-pointer"
+                        onClick={() => openView(item)}
+                      >
+                        <TableCell className="pl-5 py-3.5 max-w-[260px]">
+                          <div className="flex items-start gap-2.5">
+                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0">
+                              <FileText className="w-3.5 h-3.5 text-sky-600" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{item.examName}</p>
+                            </div>
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEdit(item)}
-                            >
-                              <Edit3 className="h-4 w-4 text-gray-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteId(item.id)}
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {item.readUrl && (
+                              <Badge variant="outline" className="text-[10px] bg-indigo-50/50 text-indigo-700 border-indigo-100 cursor-pointer hover:bg-indigo-50" onClick={(e) => { e.stopPropagation(); window.open(item.readUrl!, "_blank"); }}>
+                                Read online
+                              </Badge>
+                            )}
+                            {item.downloadUrl && (
+                              <Badge variant="outline" className="text-[10px] bg-emerald-50/50 text-emerald-700 border-emerald-100 cursor-pointer hover:bg-emerald-50" onClick={(e) => { e.stopPropagation(); window.open(item.downloadUrl!, "_blank"); }}>
+                                Download PDF
+                              </Badge>
+                            )}
+                            {!item.readUrl && !item.downloadUrl && (
+                              <span className="text-xs text-gray-300">—</span>
+                            )}
                           </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="text-right pr-5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-indigo-50 hover:text-indigo-600" onClick={() => openView(item)}>
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>View Details</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-amber-50 hover:text-amber-600" onClick={() => openEdit(item)}>
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </Button>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600" onClick={() => setDeleteId(item.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </TableBody>
               </Table>
             </div>
           )}
-        </Card>
-      </div>
+        </motion.div>
 
-      <ConfirmDeleteDialog
-        isOpen={deleteTargetId !== null}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => {
-          if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
-        }}
-      />
-    </motion.div>
+        {/* ── Detail Dialog ───────────────────────────────────────────────── */}
+        <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+          <DialogContent className="sm:max-w-md">
+            {viewingItem && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-bold text-gray-900">{viewingItem.examName}</DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground">Syllabus details and references</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3">
+                  <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Exam</p>
+                    <p className="text-sm font-semibold text-gray-900">{viewingItem.examName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Read URL</p>
+                      {viewingItem.readUrl ? (
+                        <button onClick={() => window.open(viewingItem.readUrl!, "_blank")} className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 mt-0.5 block truncate max-w-full text-left cursor-pointer">
+                          {viewingItem.readUrl}
+                        </button>
+                      ) : (
+                        <p className="text-sm text-gray-400 mt-0.5">—</p>
+                      )}
+                    </div>
+                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Download URL</p>
+                      {viewingItem.downloadUrl ? (
+                        <button onClick={() => window.open(viewingItem.downloadUrl!, "_blank")} className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 mt-0.5 block truncate max-w-full text-left cursor-pointer">
+                          {viewingItem.downloadUrl}
+                        </button>
+                      ) : (
+                        <p className="text-sm text-gray-400 mt-0.5">—</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Create/Edit Sheet ───────────────────────────────────────────── */}
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-0 p-0 overflow-hidden">
+            <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 18 }}
+                  className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center"
+                >
+                  <FileText className="w-5 h-5 text-sky-600" />
+                </motion.div>
+                <div>
+                  <SheetTitle className="text-base font-bold text-gray-900">
+                    {editingItem ? "Edit Syllabus" : "Add Syllabus"}
+                  </SheetTitle>
+                  <SheetDescription className="text-xs text-muted-foreground">
+                    {editingItem ? "Update the syllabus name and URLs." : "Upload a PDF or link to a syllabus."}
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {formError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">{formError}</div>
+              )}
+
+              <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Exam Name *</Label>
+                <Input value={formExamName} onChange={(e) => setFormExamName(e.target.value)} placeholder="e.g. UPSC CSE 2026" required className="rounded-xl h-10" />
+              </motion.div>
+
+              {!editingItem && (
+                <>
+                  {/* Upload Mode Toggle */}
+                  <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
+                    <button type="button" onClick={() => setUploadMode("file")}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+                    >
+                      Upload PDF
+                    </button>
+                    <button type="button" onClick={() => setUploadMode("url")}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+                    >
+                      URL Link
+                    </button>
+                  </motion.div>
+
+                  {uploadMode === "file" ? (
+                    <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition-all hover:bg-indigo-50/20">
+                      <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" id="syllabus-file-input" />
+                      <label htmlFor="syllabus-file-input" className="cursor-pointer block">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm font-semibold text-gray-700">{fileName || "Select PDF document"}</p>
+                        <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                      </label>
+                    </motion.div>
+                  ) : (
+                    <>
+                      <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Read URL (Optional)</Label>
+                        <Input value={formReadUrl} onChange={(e) => setFormReadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
+                      </motion.div>
+                      <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Download URL (Optional)</Label>
+                        <Input value={formDownloadUrl} onChange={(e) => setFormDownloadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
+                      </motion.div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* When editing, show URL fields */}
+              {editingItem && (
+                <>
+                  <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Read URL</Label>
+                    <Input value={formReadUrl} onChange={(e) => setFormReadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
+                  </motion.div>
+                  <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Download URL</Label>
+                    <Input value={formDownloadUrl} onChange={(e) => setFormDownloadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
+                  </motion.div>
+                </>
+              )}
+            </form>
+
+            <div className="px-6 py-4 border-t bg-gray-50/60 flex gap-2.5 shrink-0">
+              <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="flex-1 rounded-xl font-semibold">Cancel</Button>
+              <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 380, damping: 20 }}>
+                <Button type="submit" disabled={isPending || !formExamName.trim()} onClick={handleSubmit}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 gap-2"
+                >
+                  {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : editingItem ? "Save Changes" : "Create Syllabus"}
+                </Button>
+              </motion.div>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* ── Delete Confirm ──────────────────────────────────────────────── */}
+        <ConfirmDeleteDialog
+          isOpen={deleteTargetId !== null}
+          onClose={() => setDeleteId(null)}
+          onConfirm={() => {
+            if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
+          }}
+        />
+      </motion.div>
+    </TooltipProvider>
   );
 }
