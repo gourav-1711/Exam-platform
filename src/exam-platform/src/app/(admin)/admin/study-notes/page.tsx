@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Edit3, BookOpen, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@/lib/api";
+import { customFetch, useListPyqSubjects } from "@/lib/api";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 interface StudyNote {
   id: number;
@@ -29,29 +30,28 @@ interface StudyNote {
   readUrl: string | null;
 }
 
-const SUBJECTS = [
-  "History",
-  "Geography",
-  "Polity",
-  "Economy",
-  "Science",
-  "Current Affairs",
-  "Mathematics",
-  "English",
-];
-
 export default function StudyNotesAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  const { data: pyqSubjects = [] } = useListPyqSubjects();
+
   const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState(SUBJECTS[0]);
+  const [subject, setSubject] = useState("");
   const [medium, setMedium] = useState("English");
   const [downloadUrl, setDownloadUrl] = useState("");
   const [readUrl, setReadUrl] = useState("");
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingName] = useState("");
+  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+
+  // Set default subject once subjects load
+  useEffect(() => {
+    if (pyqSubjects.length > 0 && !subject) {
+      setSubject(pyqSubjects[0].name);
+    }
+  }, [pyqSubjects, subject]);
 
   const { data: notes = [], isLoading } = useQuery<StudyNote[]>({
     queryKey: ["admin", "study-notes"],
@@ -169,9 +169,9 @@ export default function StudyNotesAdminPage() {
                   onChange={(e) => setSubject(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 >
-                  {SUBJECTS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+                  {pyqSubjects.map((s) => (
+                    <option key={s.id} value={s.name}>
+                      {s.name}
                     </option>
                   ))}
                 </select>
@@ -297,8 +297,7 @@ export default function StudyNotesAdminPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteMutation.mutate(note.id)}
-                              disabled={deleteMutation.isPending}
+                              onClick={() => setDeleteId(note.id)}
                               className="text-red-500 hover:text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -314,6 +313,14 @@ export default function StudyNotesAdminPage() {
           )}
         </Card>
       </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
+        }}
+      />
     </div>
   );
 }
