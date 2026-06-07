@@ -190,10 +190,12 @@ router.post("/exams/:id/questions", async (req, res) => {
   try {
     const examId = routeParamInt(req.params.id);
     const { questionIds } = req.body as { questionIds: number[] };
-    
+
     // Delete all previous associations for this exam first
-    await db.delete(examQuestionsTable).where(eq(examQuestionsTable.examId, examId));
-    
+    await db
+      .delete(examQuestionsTable)
+      .where(eq(examQuestionsTable.examId, examId));
+
     if (Array.isArray(questionIds) && questionIds.length > 0) {
       const values = questionIds.map((qid, i) => ({
         examId,
@@ -204,7 +206,7 @@ router.post("/exams/:id/questions", async (req, res) => {
       }));
       await db.insert(examQuestionsTable).values(values);
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to update exam questions" });

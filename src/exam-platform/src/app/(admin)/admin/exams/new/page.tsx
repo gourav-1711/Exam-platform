@@ -246,7 +246,6 @@ export default function NewExamPage() {
                   {...register("negativeMarking", { valueAsNumber: true })}
                   type="number"
                   step="0.25"
-                  min="0"
                   className="mt-1"
                 />
               </div>

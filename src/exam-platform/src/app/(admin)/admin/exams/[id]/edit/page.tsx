@@ -153,18 +153,24 @@ export default function EditExamPage() {
 
   const saveQuestionsMutation = useMutation({
     mutationFn: async (questionIds: number[]) => {
-      return customFetch<{ success?: boolean }>(`/api/admin/exams/${id}/questions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionIds }),
-      });
+      return customFetch<{ success?: boolean }>(
+        `/api/admin/exams/${id}/questions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionIds }),
+        },
+      );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "exams", id] });
       toast({ title: "Exam questions updated!" });
     },
     onError: () =>
-      toast({ title: "Failed to save selected questions", variant: "destructive" }),
+      toast({
+        title: "Failed to save selected questions",
+        variant: "destructive",
+      }),
   });
 
   if (isLoading)
@@ -179,7 +185,9 @@ export default function EditExamPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{exam?.title || "Edit Exam"}</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            {exam?.title || "Edit Exam"}
+          </h1>
           <p className="text-sm text-gray-500">
             Customize exam details and question selection
           </p>
@@ -192,7 +200,8 @@ export default function EditExamPage() {
             <Settings className="w-4 h-4" /> Details
           </TabsTrigger>
           <TabsTrigger value="questions" className="flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4" /> Questions ({selectedQuestionIds.length})
+            <BookOpen className="w-4 h-4" /> Questions (
+            {selectedQuestionIds.length})
           </TabsTrigger>
         </TabsList>
 
@@ -249,13 +258,18 @@ export default function EditExamPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {["UPSC", "SSC", "RAS", "RRB", "Banking", "State PCS"].map(
-                          (c) => (
-                            <SelectItem key={c} value={c}>
-                              {c}
-                            </SelectItem>
-                          ),
-                        )}
+                        {[
+                          "UPSC",
+                          "SSC",
+                          "RAS",
+                          "RRB",
+                          "Banking",
+                          "State PCS",
+                        ].map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -351,9 +365,12 @@ export default function EditExamPage() {
           <Card className="border-0 shadow-sm">
             <CardContent className="p-6 space-y-6">
               <div>
-                <h3 className="text-base font-bold text-gray-900">Select Exam Questions</h3>
+                <h3 className="text-base font-bold text-gray-900">
+                  Select Exam Questions
+                </h3>
                 <p className="text-xs text-gray-400 mt-1">
-                  Check the boxes next to the questions you would like to include in this exam paper.
+                  Check the boxes next to the questions you would like to
+                  include in this exam paper.
                 </p>
               </div>
 
@@ -364,12 +381,16 @@ export default function EditExamPage() {
 
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <Button
-                  onClick={() => saveQuestionsMutation.mutate(selectedQuestionIds)}
+                  onClick={() =>
+                    saveQuestionsMutation.mutate(selectedQuestionIds)
+                  }
                   disabled={saveQuestionsMutation.isPending}
                   className="bg-violet-600 hover:bg-violet-700"
                 >
                   <Save className="h-4 w-4 mr-1.5" />
-                  {saveQuestionsMutation.isPending ? "Saving Selection..." : `Save Questions (${selectedQuestionIds.length})`}
+                  {saveQuestionsMutation.isPending
+                    ? "Saving Selection..."
+                    : `Save Questions (${selectedQuestionIds.length})`}
                 </Button>
               </div>
             </CardContent>

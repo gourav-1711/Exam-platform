@@ -1,41 +1,31 @@
-# Plan — Admin Panel Completion & Overhaul
+# Plan — Admin Panel Refactor & Fixes
 
-This plan follows the provided task sections in order.
+## 1. Global Confirmation Dialog & Logo Fixes
+- Create a beautiful reusable Confirmation Dialog component using Shadcn `AlertDialog` in frontend components.
+- Fix logo alignment and styling in `AdminSidebar` and `Header` to prevent stretching.
+- Expand sidebar links to include NCERT Books, PYP Papers, and Syllabus.
 
-## Step A — Admin Header
+## 2. Dynamic NCERT/Syllabus/Study Notes (File Upload OR URL Input)
+- Support BOTH File Upload or URL input on Study Notes, NCERT, and Syllabus forms.
+- If a URL is supplied, store it directly in the respective columns (`cloudinaryUrl`/`downloadUrl`/`readUrl`).
 
-- Create `src/exam-platform/src/components/admin/AdminHeader.tsx`
-  - sticky top, breadcrumb (max 2 levels) using `usePathname()` + shadcn Breadcrumb
-  - env badge from `NEXT_PUBLIC_APP_ENV` default `dev`
-  - notifications bell w/ unread support tickets via `adminApi.supportTickets(token)` and popover
-  - Clerk `<UserButton />` on the right
-- Update `src/exam-platform/src/app/(admin)/admin/layout.tsx`
-  - layout: sidebar + header + main (scroll)
+## 3. Dynamic Subjects & Filters
+- Fetch subjects dynamically from `/api/admin/pyq-subjects` or `/api/pyq/subjects` and populate all form dropdowns and list filter select-boxes dynamically.
+- Update filters on admin list pages (Questions, Exams, NCERT, PYP, Study Notes) to trigger React Query refetches with search/category/status parameters.
 
-## Step B — Fix public theme bleed
+## 4. Bulk Question Upload via CSV
+- Implement a robust Question CSV uploader under `/admin/questions` using `papaparse`.
+- Add an API endpoint `POST /api/admin/questions/bulk-upload` in the backend to bulk-insert questions.
 
-- Ensure root `src/exam-platform/src/app/layout.tsx` does not set global dark mode.
-- Ensure admin only applies dark styling within admin wrapper.
-- If needed, adjust `src/exam-platform/src/index.css` token scoping (move dark values under `.dark` if present).
-- Remove any hard-coded dark-only classes that affect public routes.
+## 5. Daily Quizzes & Exam Fixes
+- Fix the `dailyQuiz` schema parsing issues in backend `/api/admin/daily-quiz`. Ensure integers/booleans parse correctly.
+- Fix Exam Edit & Delete flows, ensuring they match correctly and the delete endpoint removes joins before deleting the exam paper.
+- Allow entering negative values or positive penalties freely without strict `min="0"` constraints on inputs.
 
-## Step C — Remove Draft System
+## 6. Syllabus Admin Page & CRUD Routes
+- Add backend routes `GET /api/admin/syllabus`, `POST /api/admin/syllabus`, `PATCH /api/admin/syllabus/:id`, and `DELETE /api/admin/syllabus/:id`.
+- Build a responsive `/admin/syllabus` CRUD page.
 
-- Remove frontend draftSlice, routes, sidebar link.
-- Delete server draft router and remove mount.
-
-## Step D — Current Affairs data not showing
-
-- Update server `src/api-server/src/routes/admin/currentAffairs.ts`
-  - support `page/limit/search/filter` and return `{ items, total, page, limit }`
-  - use `next(err)` error forwarding
-- Update frontend pages/components to consume `data.items`.
-
-## Step E onward
-
-Follow the remaining sections (Dashboard, QuestionSelector, missing pages, Settings, Student/Exam detail sheets, sidebar, polish, query keys, final builds).
-
-## Build + Animation Rules (applies throughout)
-
-- Run builds **only once at the end of the implementation** (not after each section) to avoid time waste.
-- Use **Framer Motion** (import from `framer-motion`) across the admin panel for entry/transition animations (e.g., header/content fade + slide, list row appear). Do not add light-mode toggles.
+## 7. Responsive Styling & Animations
+- Ensure perfect responsive styling and grids across all admin pages.
+- Add gorgeous entrance transition animations with Framer Motion.

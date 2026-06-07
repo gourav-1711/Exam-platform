@@ -22,6 +22,9 @@ import {
   Megaphone,
   Award,
   NotebookTabs,
+  Library,
+  FileText,
+  ScrollText,
 } from "lucide-react";
 
 const NAV = [
@@ -33,6 +36,9 @@ const NAV = [
   { href: "/admin/pyq-subjects", icon: BookOpen, label: "PYQ Subjects" },
   { href: "/admin/current-affairs", icon: Newspaper, label: "Current Affairs" },
   { href: "/admin/study-notes", icon: NotebookTabs, label: "Study Notes" },
+  { href: "/admin/ncert", icon: Library, label: "NCERT Books" },
+  { href: "/admin/pyp", icon: FileText, label: "PYP Papers" },
+  { href: "/admin/syllabus", icon: ScrollText, label: "Syllabus" },
   { href: "/admin/mock-tests", icon: Award, label: "Mock Tests" },
   { href: "/admin/announcements", icon: Megaphone, label: "Announcements" },
   {
@@ -41,7 +47,6 @@ const NAV = [
     label: "Support Tickets",
   },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
-
   { href: "/admin/activity-logs", icon: Activity, label: "Activity Logs" },
   { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];
@@ -54,20 +59,30 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-white text-gray-900 transition-all duration-300 sticky top-0 border-r",
+        "flex flex-col h-screen bg-white text-gray-900 transition-all duration-300 sticky top-0 border-r flex-shrink-0 z-40",
         collapsed ? "w-16" : "w-60",
       )}
     >
-      <div className="flex items-center justify-between px-4 py-4 border-b">
+      <div className="flex items-center justify-between px-4 h-16 border-b flex-shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <Newspaper className="h-5 w-5 text-violet-600 flex-shrink-0" />
-            <span className="font-bold text-sm truncate">Admin Panel</span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm shadow-indigo-100">
+              MK
+            </div>
+            <div className="min-w-0 flex-1 leading-tight">
+              <span className="font-extrabold text-xs block text-gray-900 truncate">Manish Pathshala</span>
+              <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Admin Panel</span>
+            </div>
+          </div>
+        )}
+        {collapsed && (
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 mx-auto">
+            MK
           </div>
         )}
         <button
           onClick={() => dispatch(toggleAdminSidebar())}
-          className="p-1 rounded hover:bg-gray-100 transition-colors ml-auto"
+          className="p-1 rounded hover:bg-gray-100 transition-colors ml-auto cursor-pointer shrink-0 hidden sm:block"
           aria-label="Toggle sidebar"
         >
           {collapsed ? (
@@ -78,7 +93,7 @@ export function AdminSidebar() {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 custom-scrollbar">
         {NAV.map(({ href, icon: Icon, label }) => {
           const isActive =
             href === "/admin"
@@ -89,10 +104,10 @@ export function AdminSidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer",
                 isActive
-                  ? "bg-violet-50 text-violet-700 font-semibold"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                  ? "bg-indigo-50 text-indigo-700 font-semibold"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
               )}
               title={collapsed ? label : undefined}
             >
@@ -103,10 +118,10 @@ export function AdminSidebar() {
         })}
       </nav>
 
-      <div className="border-t px-4 py-3">
+      <div className="border-t px-4 py-3 shrink-0">
         <Link
           href="/"
-          className="text-xs text-gray-500 hover:text-gray-900 transition-colors"
+          className="text-xs text-gray-500 hover:text-gray-900 transition-colors font-semibold flex items-center gap-1"
         >
           {collapsed ? "←" : "← Back to App"}
         </Link>

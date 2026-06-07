@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Edit3, BookOpen, AlertCircle, FileText, Check, X } from "lucide-react";
+import { Plus, Trash2, Edit3, BookOpen, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -28,7 +29,16 @@ interface StudyNote {
   readUrl: string | null;
 }
 
-const SUBJECTS = ["History", "Geography", "Polity", "Economy", "Science", "Current Affairs", "Mathematics", "English"];
+const SUBJECTS = [
+  "History",
+  "Geography",
+  "Polity",
+  "Economy",
+  "Science",
+  "Current Affairs",
+  "Mathematics",
+  "English",
+];
 
 export default function StudyNotesAdminPage() {
   const { toast } = useToast();
@@ -64,7 +74,11 @@ export default function StudyNotesAdminPage() {
       toast({ title: "Created", description: "Study note created" });
     },
     onError: (err: any) => {
-      toast({ title: "Failed to create", description: err.message, variant: "destructive" });
+      toast({
+        title: "Failed to create",
+        description: err.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -85,7 +99,9 @@ export default function StudyNotesAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return customFetch<any>(`/api/admin/study-notes/${id}`, { method: "DELETE" });
+      return customFetch<any>(`/api/admin/study-notes/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "study-notes"] });
@@ -123,7 +139,9 @@ export default function StudyNotesAdminPage() {
           <BookOpen className="w-8 h-8 text-indigo-600" />
           Study Notes
         </h1>
-        <p className="text-gray-500 mt-2">Upload and manage study materials and notes PDF read URLs</p>
+        <p className="text-gray-500 mt-2">
+          Upload and manage study materials and notes PDF read URLs
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -207,7 +225,9 @@ export default function StudyNotesAdminPage() {
             <div className="p-12">
               <Empty>
                 <EmptyTitle>No study notes yet</EmptyTitle>
-                <EmptyDescription>Fill out the form on the left to create one.</EmptyDescription>
+                <EmptyDescription>
+                  Fill out the form on the left to create one.
+                </EmptyDescription>
               </Empty>
             </div>
           ) : (
@@ -242,7 +262,9 @@ export default function StudyNotesAdminPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs font-semibold text-gray-500">{note.medium}</span>
+                        <span className="text-xs font-semibold text-gray-500">
+                          {note.medium}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right">
                         {editingId === note.id ? (
@@ -255,13 +277,21 @@ export default function StudyNotesAdminPage() {
                             >
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingId(null)}
+                            >
                               <X className="h-4 w-4 text-gray-400" />
                             </Button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => startEdit(note)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => startEdit(note)}
+                            >
                               <Edit3 className="h-4 w-4 text-gray-600" />
                             </Button>
                             <Button

@@ -21,17 +21,17 @@ const questionBodySchema = z.object({
   optionB: z.string().default(""),
   optionC: z.string().default(""),
   optionD: z.string().default(""),
-  correctIndex: z.number().int().min(0).max(3).default(0),
+  correctIndex: z.coerce.number().int().min(0).max(3).default(0),
   explanation: z.string().nullable().optional(),
   subject: z.string().nullable().optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).nullable().optional(),
   chapter: z.string().nullable().optional(),
   tags: z.string().nullable().optional(),
-  marks: z.number().optional().default(1),
-  negativeMarking: z.number().optional().default(0),
-  quizId: z.number().nullable().optional(),
-  pyqSubjectId: z.number().nullable().optional(),
-  classNum: z.number().nullable().optional(),
+  marks: z.coerce.number().optional().default(1),
+  negativeMarking: z.coerce.number().optional().default(0),
+  quizId: z.coerce.number().nullable().optional(),
+  pyqSubjectId: z.coerce.number().nullable().optional(),
+  classNum: z.coerce.number().nullable().optional(),
   examLabel: z.string().nullable().optional(),
   medium: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
@@ -134,6 +134,50 @@ router.post(
       res.status(201).json(created);
     } catch (err) {
       res.status(500).json({ error: "Failed to create question" });
+    }
+  },
+);
+
+router.post(
+  "/questions/bulk-upload",
+  logAdminActivity("bulk_upload_questions", "question"),
+  async (req, res): Promise<any> => {
+    try {
+      const { questions } = req.body;
+      if (!Array.isArray(questions) || questions.length === 0) {
+        return res.status(400).json({ error: "questions array is required and cannot be empty" });
+      }
+
+      // Filter and insert questions
+      const parsedList = [];
+      for (const q of questions) {
+        const parsed = questionBodySchema.safeParse(q);
+        if (parsed.success) {
+          const {
+            questionType,
+            difficulty,
+            chapter,
+            tags,
+            marks,
+            negativeMarking,
+            imageUrl,
+            status,
+            ...rest
+          } = parsed.data;
+          parsedList.push(rest);
+        }
+      }
+
+      if (parsedList.length === 0) {
+        return res.status(400).json({ error: "No valid questions were supplied" });
+      }
+
+      const inserted = await db.insert(questionsTable).values(parsedList).returning();
+      cacheDel("admin:dashboard:stats");
+
+      return res.status(201).json({ success: true, count: inserted.length });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to bulk upload questions" });
     }
   },
 );

@@ -24,7 +24,6 @@ router.get("/", async (req, res) => {
     let query = db.select().from(ncertPdfsTable);
 
     // Note: Drizzle doesn't support dynamic WHERE with AND, so we fetch all and filter in memory
-    // For production, consider using raw SQL or better query patterns
     const allResults = await query;
 
     let filtered = allResults;
@@ -44,21 +43,33 @@ router.get("/", async (req, res) => {
 // POST /api/document-ncert/upload — admin only
 router.post("/upload", uploadDoc.single("file"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    const { title, subject, classNumber } = req.body;
+    const { title, subject, classNumber, externalUrl } = req.body;
     if (!title || !subject || !classNumber) {
       return res
         .status(400)
         .json({ error: "title, subject, classNumber are required" });
     }
 
-    const { secureUrl, publicId } = await uploadToCloudinary(
-      req.file.buffer,
-      "exam-platform/ncert",
-      req.file.originalname,
-    );
+    let secureUrl = "";
+    let publicId = "external";
+    let size = 0;
+    let originalName = "External Link";
+
+    if (req.file) {
+      const upload = await uploadToCloudinary(
+        req.file.buffer,
+        "exam-platform/ncert",
+        req.file.originalname,
+      );
+      secureUrl = upload.secureUrl;
+      publicId = upload.publicId;
+      size = req.file.size;
+      originalName = req.file.originalname;
+    } else if (externalUrl) {
+      secureUrl = externalUrl;
+    } else {
+      return res.status(400).json({ error: "Either select a file to upload or enter a URL" });
+    }
 
     const inserted = await db
       .insert(ncertPdfsTable)
@@ -66,10 +77,10 @@ router.post("/upload", uploadDoc.single("file"), async (req, res) => {
         title,
         subject,
         classNumber: Number(classNumber),
-        originalName: req.file.originalname,
+        originalName,
         cloudinaryUrl: secureUrl,
         cloudinaryPublicId: publicId,
-        fileSize: req.file.size,
+        fileSize: size,
       })
       .returning();
 
@@ -94,7 +105,9 @@ router.delete("/:id", async (req, res) => {
       return;
     }
 
-    await deleteFromCloudinary(record[0].cloudinaryPublicId);
+    if (record[0].cloudinaryPublicId !== "external") {
+      await deleteFromCloudinary(record[0].cloudinaryPublicId);
+    }
     await db
       .delete(ncertPdfsTable)
       .where(eq(ncertPdfsTable.id, Number(req.params.id)));

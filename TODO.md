@@ -1,37 +1,21 @@
-# TODO — Admin Panel Completion & Overhaul
+# TODO — Admin Panel Overhaul and Fixes
 
-## Milestone 1
+## Milestone 1 — Core Core Corrections
+- [x] Create global Confirmation Dialog & fix logo stretching in header/sidebar.
+- [x] Add missing Syllabus, NCERT Books, and PYP Papers links to Admin Sidebar.
+- [x] Relax `min="0"` constraints on negative markings to allow negative numeric entry.
 
-- [x] Step A: Implement `AdminHeader` component (sticky, breadcrumbs, env badge, notifications, Clerk user button)
-- [x] Step A: Wire `AdminHeader` into `src/app/(admin)/admin/layout.tsx`
-- [x] Step B: Fix public theme bleed so public `(app)` pages stay light (remove `dark` class from admin wrapper)
+## Milestone 2 — Dynamic File / URL Upload & Dynamic Subjects
+- [x] Support File Upload OR URL input for NCERT, Syllabus, and Study Notes.
+- [x] Fetch Subjects dynamically on all admin pages and populate drop-downs.
+- [x] Fix filters on all admin pages to trigger active search/filter refetching.
 
-## Milestone 2
+## Milestone 3 — Daily Quizzes, Exam Deletion & CSV Import
+- [x] Fix Daily Quizzes backend server error (parse payloads gracefully).
+- [x] Fix Exam edit/delete logic.
+- [x] Add bulk CSV Question Upload in `/admin/questions` with matching backend bulk-upload route.
 
-- [x] Step C: Remove Draft system (frontend + server + sidebar)
-- [x] Step D: Fix Current Affairs data not showing (server pagination/filters + frontend response shape)
-
-## Milestone 3
-
-- [x] Step E: Dashboard overhaul (dashboard API + charts UI)
-- [x] Step F: Implement `QuestionSelector` + wire into editors
-
-## Milestone 4
-
-- [x] Step 7: Add missing pages + CRUD routes (NCERT/PYP/Study Notes/Mock Tests/Announcements)
-
-## Milestone 5
-
-- [x] Step 8: Settings overhaul (Tabs + Cloudinary usage endpoint)
-- [x] Step 9: Student detail sheet + API route
-- [x] Step 10: Exam detail sheet + API route
-
-## Milestone 6
-
-- [x] Step 11: Sidebar nav update + remove Drafts
-- [x] Step 12: General polish across admin list pages (empty/loading/error/delete confirmation/pagination)
-- [x] Step 13: Query key updates
-
-## Milestone 7
-
-- [x] Run builds for both packages (exam-platform + api-server)
+## Milestone 4 — Admin Syllabus Page & Layout Refinement
+- [ ] Implement backend Admin Syllabus CRUD endpoints.
+- [ ] Implement responsive, fully animated `/admin/syllabus` page on the frontend.
+- [ ] Apply elegant Framer Motion transitions and premium responsive grid structure across all admin pages.

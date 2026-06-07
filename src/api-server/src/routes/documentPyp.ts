@@ -43,21 +43,33 @@ router.get("/", async (req, res) => {
 // POST /api/document-pyp/upload — admin only
 router.post("/upload", uploadDoc.single("file"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-    const { title, subject, year, examType } = req.body;
+    const { title, subject, year, examType, externalUrl } = req.body;
     if (!title || !subject || !year || !examType) {
       return res
         .status(400)
         .json({ error: "title, subject, year, examType are required" });
     }
 
-    const { secureUrl, publicId } = await uploadToCloudinary(
-      req.file.buffer,
-      "exam-platform/pyp",
-      req.file.originalname,
-    );
+    let secureUrl = "";
+    let publicId = "external";
+    let size = 0;
+    let originalName = "External Link";
+
+    if (req.file) {
+      const upload = await uploadToCloudinary(
+        req.file.buffer,
+        "exam-platform/pyp",
+        req.file.originalname,
+      );
+      secureUrl = upload.secureUrl;
+      publicId = upload.publicId;
+      size = req.file.size;
+      originalName = req.file.originalname;
+    } else if (externalUrl) {
+      secureUrl = externalUrl;
+    } else {
+      return res.status(400).json({ error: "Either select a file to upload or enter a URL" });
+    }
 
     const inserted = await db
       .insert(pypPdfsTable)
@@ -66,10 +78,10 @@ router.post("/upload", uploadDoc.single("file"), async (req, res) => {
         subject,
         year: Number(year),
         examType,
-        originalName: req.file.originalname,
+        originalName,
         cloudinaryUrl: secureUrl,
         cloudinaryPublicId: publicId,
-        fileSize: req.file.size,
+        fileSize: size,
       })
       .returning();
 
@@ -94,7 +106,9 @@ router.delete("/:id", async (req, res) => {
       return;
     }
 
-    await deleteFromCloudinary(record[0].cloudinaryPublicId);
+    if (record[0].cloudinaryPublicId !== "external") {
+      await deleteFromCloudinary(record[0].cloudinaryPublicId);
+    }
     await db
       .delete(pypPdfsTable)
       .where(eq(pypPdfsTable.id, Number(req.params.id)));

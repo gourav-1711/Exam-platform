@@ -356,7 +356,6 @@ export function QuestionForm({
             {...register("marks", { valueAsNumber: true })}
             type="number"
             step="0.5"
-            min="0"
             className="mt-1"
           />
         </div>
@@ -366,7 +365,6 @@ export function QuestionForm({
             {...register("negativeMarking", { valueAsNumber: true })}
             type="number"
             step="0.25"
-            min="0"
             className="mt-1"
           />
         </div>

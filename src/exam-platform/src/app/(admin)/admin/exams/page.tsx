@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@/lib/api";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { motion } from "framer-motion";
 
 interface Exam {
   id: number;
@@ -64,6 +66,8 @@ export default function ExamsPage() {
   const [page, setPage] = useState(1);
   const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
 
+  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -84,16 +88,23 @@ export default function ExamsPage() {
     mutationFn: async (id: number) => {
       return customFetch<{ success?: boolean }>(`/api/admin/exams/${id}`, { method: "DELETE" });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin", "exams"] }); toast({ title: "Exam deleted" }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "exams"] });
+      toast({ title: "Exam deleted successfully" });
+    },
     onError: () => toast({ title: "Delete failed", variant: "destructive" }),
   });
 
   return (
-    <div className="p-6 md:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Exams</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{data?.pagination.total ?? "–"} total exams</p>
+          <p className="text-gray-500 text-sm mt-0.5">{data?.pagination.total ?? "–"} total exams configured</p>
         </div>
         <Button asChild className="bg-violet-600 hover:bg-violet-700">
           <Link href="/admin/exams/new">
@@ -121,7 +132,7 @@ export default function ExamsPage() {
             {data?.data.map((exam) => (
               <Card
                 key={exam.id}
-                className="border border-border/40 hover:border-violet-500/40 hover:shadow-sm transition-all rounded-2xl"
+                className="border border-border/40 hover:border-violet-500/40 hover:shadow-sm transition-all rounded-2xl bg-white"
               >
                 <CardContent className="p-5 flex items-start justify-between gap-4">
                   <div
@@ -148,15 +159,11 @@ export default function ExamsPage() {
                       <Eye className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href={`/admin/exams/${exam.id}/edit`}><Edit className="h-4 w-4" /></Link>
+                      <Link href={`/admin/exams/${exam.id}/edit`}><Edit className="h-4 w-4 text-gray-500" /></Link>
                     </Button>
                     <Button
                       variant="ghost" size="sm"
-                      onClick={() => {
-                        if (window.confirm("Delete this exam paper?")) {
-                          deleteMutation.mutate(exam.id);
-                        }
-                      }}
+                      onClick={() => setDeleteId(exam.id)}
                       disabled={deleteMutation.isPending}
                       className="text-red-500 hover:text-red-600 hover:bg-red-50"
                     >
@@ -171,8 +178,8 @@ export default function ExamsPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">Page {data.pagination.page} of {data.pagination.totalPages}</span>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
-                <Button variant="outline" size="sm" disabled={page >= data.pagination.totalPages} onClick={() => setPage((p) => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded-lg h-9"><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" disabled={page >= data.pagination.totalPages} onClick={() => setPage((p) => p + 1)} className="rounded-lg h-9"><ChevronRight className="h-4 w-4" /></Button>
               </div>
             </div>
           )}
@@ -260,46 +267,14 @@ export default function ExamsPage() {
           </div>
         </SheetContent>
       </Sheet>
-    </div>
+
+      <ConfirmDeleteDialog
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteTargetId !== null) deleteMutation.mutate(deleteTargetId);
+        }}
+      />
+    </motion.div>
   );
 }
-</dyad-file>
-
-Excellent! Let's update `TODO.md` to reflect that Milestone 5 is fully completed.<dyad-write path="TODO.md" description="Marking Milestone 5 as fully completed.">
-# TODO — Admin Panel Completion & Overhaul
-
-## Milestone 1
-
-- [x] Step A: Implement `AdminHeader` component (sticky, breadcrumbs, env badge, notifications, Clerk user button)
-- [x] Step A: Wire `AdminHeader` into `src/app/(admin)/admin/layout.tsx`
-- [x] Step B: Fix public theme bleed so public `(app)` pages stay light (remove `dark` class from admin wrapper)
-
-## Milestone 2
-
-- [x] Step C: Remove Draft system (frontend + server + sidebar)
-- [x] Step D: Fix Current Affairs data not showing (server pagination/filters + frontend response shape)
-
-## Milestone 3
-
-- [x] Step E: Dashboard overhaul (dashboard API + charts UI)
-- [x] Step F: Implement `QuestionSelector` + wire into editors
-
-## Milestone 4
-
-- [x] Step 7: Add missing pages + CRUD routes (NCERT/PYP/Study Notes/Mock Tests/Announcements)
-
-## Milestone 5
-
-- [x] Step 8: Settings overhaul (Tabs + Cloudinary usage endpoint)
-- [x] Step 9: Student detail sheet + API route
-- [x] Step 10: Exam detail sheet + API route
-
-## Milestone 6
-
-- [ ] Step 11: Sidebar nav update + remove Drafts
-- [ ] Step 12: General polish across admin list pages (empty/loading/error/delete confirmation/pagination)
-- [ ] Step 13: Query key updates
-
-## Milestone 7
-
-- [ ] Run builds for both packages (exam-platform + api-server)

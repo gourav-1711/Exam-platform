@@ -1,22 +1,31 @@
 // src/api-server/src/routes/admin/dailyQuiz.ts
 import express from "express";
-
-type ParamsId = string | string[];
 import { getAuth } from "@clerk/express";
 import { logAdminActivity } from "../../middlewares/adminMiddleware";
 import { db } from "../../lib/db";
 import { dailyQuizzes } from "@workspace/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { logger } from "../../lib/logger";
 
 const router = express.Router();
+
+const dailyQuizPayloadSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().nullable().optional(),
+  scheduledDate: z.string().min(1),
+  scheduledTime: z.string().min(1),
+  durationMinutes: z.coerce.number().int().min(1).default(30),
+  totalQuestions: z.coerce.number().int().min(0).default(0),
+  questionIds: z.array(z.coerce.number().int()).default([]),
+  isPublished: z.boolean().default(false),
+});
 
 // GET /api/admin/daily-quiz
 router.get("/", async (req, res) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
     const offset = (page - 1) * limit;
 
     const [countRow] = await db
@@ -41,16 +50,17 @@ router.get("/", async (req, res) => {
         totalPages,
       },
     });
-  } catch (error) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error: any) {
+    logger.error({ error }, "Error fetching daily quizzes list");
+    return res.status(500).json({ message: "Server error", details: error?.message });
   }
 });
 
 // GET /api/admin/daily-quiz/:id
 router.get("/:id", async (req, res) => {
   try {
-    const idRaw = req.params.id;
-    const id = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
     const quiz = await db
       .select()
@@ -62,8 +72,9 @@ router.get("/:id", async (req, res) => {
     }
 
     return res.json(quiz[0]);
-  } catch (error) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error: any) {
+    logger.error({ error }, "Error fetching daily quiz details");
+    return res.status(500).json({ message: "Server error", details: error?.message });
   }
 });
 
@@ -74,18 +85,7 @@ router.post(
   async (req, res) => {
     try {
       const auth = getAuth(req);
-      const schema = z.object({
-        title: z.string(),
-        description: z.string().optional(),
-        scheduledDate: z.string(),
-        scheduledTime: z.string(),
-        durationMinutes: z.number().default(30),
-        totalQuestions: z.number(),
-        questionIds: z.array(z.number()),
-        isPublished: z.boolean().default(false),
-      });
-
-      const parseResult = schema.safeParse(req.body);
+      const parseResult = dailyQuizPayloadSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({
           message: "Invalid payload",
@@ -97,14 +97,22 @@ router.post(
       const result = await db
         .insert(dailyQuizzes)
         .values({
-          ...data,
+          title: data.title,
+          description: data.description || null,
+          scheduledDate: data.scheduledDate,
+          scheduledTime: data.scheduledTime,
+          durationMinutes: data.durationMinutes,
+          totalQuestions: data.totalQuestions,
+          questionIds: data.questionIds,
+          isPublished: data.isPublished,
           createdBy: auth.userId || "system",
         })
         .returning();
 
       return res.status(201).json(result[0]);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
+    } catch (error: any) {
+      logger.error({ error }, "Error creating daily quiz");
+      return res.status(500).json({ message: "Server error", details: error?.message });
     }
   },
 );
@@ -115,18 +123,10 @@ router.patch(
   logAdminActivity("update_daily_quiz", "daily_quiz"),
   async (req, res) => {
     try {
-      const schema = z.object({
-        title: z.string().optional(),
-        description: z.string().optional(),
-        scheduledDate: z.string().optional(),
-        scheduledTime: z.string().optional(),
-        durationMinutes: z.number().optional(),
-        totalQuestions: z.number().optional(),
-        questionIds: z.array(z.number()).optional(),
-        isPublished: z.boolean().optional(),
-      });
+      const id = parseInt(req.params.id, 10);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
-      const parseResult = schema.safeParse(req.body);
+      const parseResult = dailyQuizPayloadSchema.partial().safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({
           message: "Invalid payload",
@@ -134,19 +134,24 @@ router.patch(
         });
       }
 
-      const idRaw = req.params.id;
-      const id = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10);
-
       const data = parseResult.data;
       const result = await db
         .update(dailyQuizzes)
-        .set(data)
+        .set({
+          ...data,
+          updatedAt: new Date(),
+        })
         .where(eq(dailyQuizzes.id, id))
         .returning();
 
+      if (!result.length) {
+        return res.status(404).json({ message: "Quiz not found" });
+      }
+
       return res.json(result[0]);
-    } catch (error) {
-      return res.status(500).json({ message: "Server error" });
+    } catch (error: any) {
+      logger.error({ error }, "Error patching daily quiz");
+      return res.status(500).json({ message: "Server error", details: error?.message });
     }
   },
 );
@@ -154,14 +159,15 @@ router.patch(
 // DELETE /api/admin/daily-quiz/:id
 router.delete("/:id", async (req, res) => {
   try {
-    const idRaw = req.params.id;
-    const id = parseInt(Array.isArray(idRaw) ? idRaw[0] : idRaw, 10);
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
 
     await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));
 
     return res.json({ message: "Quiz deleted successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Server error" });
+  } catch (error: any) {
+    logger.error({ error }, "Error deleting daily quiz");
+    return res.status(500).json({ message: "Server error", details: error?.message });
   }
 });
 
