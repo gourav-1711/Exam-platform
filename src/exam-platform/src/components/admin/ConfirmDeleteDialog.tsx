@@ -57,7 +57,7 @@ export function ConfirmDeleteDialog({
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
-      </AlertDialog>
+      </AlertDialogContent>
     </AlertDialog>
   );
 }

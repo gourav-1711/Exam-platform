@@ -3,11 +3,22 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/api-config";
-import { Upload, Trash2, Download, AlertCircle, Link, FileText, ChevronRight, Eye } from "lucide-react";
+import {
+  Upload,
+  Trash2,
+  Download,
+  AlertCircle,
+  Link,
+  FileText,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
 import { useListPyqSubjects } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { InsertPyqSubject } from "@workspace/db";
 
 interface NcertPdf {
   id: number;
@@ -62,7 +73,10 @@ export default function NcertAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ncert-pdfs"] });
-      toast({ title: "Deleted", description: "NCERT Book deleted successfully" });
+      toast({
+        title: "Deleted",
+        description: "NCERT Book deleted successfully",
+      });
     },
     onError: () => {
       toast({ title: "Failed to delete", variant: "destructive" });
@@ -121,7 +135,10 @@ export default function NcertAdminPage() {
         externalUrl: "",
       });
       setFileName("");
-      toast({ title: "Success", description: "NCERT Book created successfully" });
+      toast({
+        title: "Success",
+        description: "NCERT Book created successfully",
+      });
       queryClient.invalidateQueries({ queryKey: ["ncert-pdfs"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -138,13 +155,17 @@ export default function NcertAdminPage() {
     >
       <div>
         <h1 className="text-3xl font-extrabold text-gray-900">NCERT Books</h1>
-        <p className="text-gray-500 mt-1">Upload PDF books or attach external links dynamically</p>
+        <p className="text-gray-500 mt-1">
+          Upload PDF books or attach external links dynamically
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upload Form Card */}
         <div className="bg-white border border-border/50 rounded-2xl p-5 shadow-sm h-fit">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Add NCERT Book</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-4">
+            Add NCERT Book
+          </h2>
 
           {/* Selector Switch */}
           <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl mb-4">
@@ -152,7 +173,9 @@ export default function NcertAdminPage() {
               type="button"
               onClick={() => setUploadMode("file")}
               className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                uploadMode === "file" ? "bg-white text-indigo-700 shadow-xs" : "text-gray-500"
+                uploadMode === "file"
+                  ? "bg-white text-indigo-700 shadow-xs"
+                  : "text-gray-500"
               }`}
             >
               Upload PDF
@@ -161,7 +184,9 @@ export default function NcertAdminPage() {
               type="button"
               onClick={() => setUploadMode("url")}
               className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                uploadMode === "url" ? "bg-white text-indigo-700 shadow-xs" : "text-gray-500"
+                uploadMode === "url"
+                  ? "bg-white text-indigo-700 shadow-xs"
+                  : "text-gray-500"
               }`}
             >
               URL Link
@@ -170,12 +195,16 @@ export default function NcertAdminPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Title *</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                Title *
+              </label>
               <input
                 type="text"
                 placeholder="Book title..."
                 value={formData.title}
-                onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
+                }
                 required
                 className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
               />
@@ -183,15 +212,22 @@ export default function NcertAdminPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Subject *</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Subject *
+                </label>
                 <select
                   value={formData.subject}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      subject: e.target.value,
+                    }))
+                  }
                   required
                   className="w-full px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 >
                   <option value="">Select</option>
-                  {pyqSubjects.map((s: PyqSubject) => (
+                  {pyqSubjects.map((s: InsertPyqSubject) => (
                     <option key={s.id} value={s.name}>
                       {s.name}
                     </option>
@@ -200,10 +236,17 @@ export default function NcertAdminPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Class *</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  Class *
+                </label>
                 <select
                   value={formData.classNumber}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, classNumber: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      classNumber: e.target.value,
+                    }))
+                  }
                   required
                   className="w-full px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
                 >
@@ -235,12 +278,19 @@ export default function NcertAdminPage() {
               </div>
             ) : (
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">External Link URL *</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                  External Link URL *
+                </label>
                 <input
                   type="url"
                   placeholder="https://..."
                   value={formData.externalUrl}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, externalUrl: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      externalUrl: e.target.value,
+                    }))
+                  }
                   required
                   className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
                 />
@@ -267,13 +317,19 @@ export default function NcertAdminPage() {
         {/* List Table Card */}
         <div className="bg-white border border-border/50 rounded-2xl overflow-hidden shadow-sm lg:col-span-2">
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <h2 className="text-base font-bold text-gray-900">NCERT Book Catalog</h2>
+            <h2 className="text-base font-bold text-gray-900">
+              NCERT Book Catalog
+            </h2>
           </div>
 
           {isLoading ? (
-            <div className="p-12 text-center text-gray-400 text-sm">Loading books...</div>
+            <div className="p-12 text-center text-gray-400 text-sm">
+              Loading books...
+            </div>
           ) : pdfs.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-sm">No NCERT books uploaded yet.</div>
+            <div className="p-12 text-center text-gray-400 text-sm">
+              No NCERT books uploaded yet.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -283,21 +339,36 @@ export default function NcertAdminPage() {
                     <th className="px-6 py-3 font-semibold">Subject</th>
                     <th className="px-6 py-3 font-semibold">Class</th>
                     <th className="px-6 py-3 font-semibold">File Type</th>
-                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                    <th className="px-6 py-3 font-semibold text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {pdfs.map((pdf) => (
-                    <tr key={pdf.id} className="hover:bg-gray-50/30 transition-colors">
-                      <td className="px-6 py-3.5 font-semibold text-gray-900">{pdf.title}</td>
-                      <td className="px-6 py-3.5 font-medium text-gray-500">{pdf.subject}</td>
-                      <td className="px-6 py-3.5 text-gray-500 font-bold">Class {pdf.classNumber}</td>
+                    <tr
+                      key={pdf.id}
+                      className="hover:bg-gray-50/30 transition-colors"
+                    >
+                      <td className="px-6 py-3.5 font-semibold text-gray-900">
+                        {pdf.title}
+                      </td>
+                      <td className="px-6 py-3.5 font-medium text-gray-500">
+                        {pdf.subject}
+                      </td>
+                      <td className="px-6 py-3.5 text-gray-500 font-bold">
+                        Class {pdf.classNumber}
+                      </td>
                       <td className="px-6 py-3.5 text-gray-400 text-xs">
-                        {pdf.fileSize > 0 ? `${(pdf.fileSize / 1024 / 1024).toFixed(2)} MB` : "External Link"}
+                        {pdf.fileSize > 0
+                          ? `${(pdf.fileSize / 1024 / 1024).toFixed(2)} MB`
+                          : "External Link"}
                       </td>
                       <td className="px-6 py-3.5 text-right space-x-2 shrink-0">
                         <button
-                          onClick={() => window.open(pdf.cloudinaryUrl, "_blank")}
+                          onClick={() =>
+                            window.open(pdf.cloudinaryUrl, "_blank")
+                          }
                           className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-bold text-xs cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" /> View

@@ -1,16 +1,20 @@
 import { Router } from "express";
 import { db } from "../lib/db";
 import { ncertPdfsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, like, sql } from "drizzle-orm";
 import { uploadDoc } from "../middleware/upload";
 import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary";
 import { routeParam } from "../lib/routeParams";
 
 const router = Router();
 
-// GET /api/document-ncert — list all (optionally filter ?classNumber=&subject=)
+// GET /api/document-ncert — list all with pagination and filters
 router.get("/", async (req, res) => {
   try {
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 12;
+    const offset = (page - 1) * limit;
+
     const classNumberRaw = req.query.classNumber;
     const subjectRaw = req.query.subject;
 
@@ -21,20 +25,41 @@ router.get("/", async (req, res) => {
     const subject =
       typeof subjectRaw === "string" ? routeParam(subjectRaw) : undefined;
 
-    let query = db.select().from(ncertPdfsTable);
-
-    // Note: Drizzle doesn't support dynamic WHERE with AND, so we fetch all and filter in memory
-    const allResults = await query;
-
-    let filtered = allResults;
+    // Build where conditions
+    const conditions = [];
     if (classNumber) {
-      filtered = filtered.filter((p) => p.classNumber === Number(classNumber));
+      conditions.push(eq(ncertPdfsTable.classNumber, Number(classNumber)));
     }
     if (subject) {
-      filtered = filtered.filter((p) => p.subject === subject);
+      conditions.push(eq(ncertPdfsTable.subject, subject));
     }
 
-    res.json(filtered);
+    const where = conditions.length ? and(...conditions) : undefined;
+
+    // Get total count
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(ncertPdfsTable)
+      .where(where);
+
+    const total = Number(countRow?.count ?? 0);
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    // Get paginated results
+    const results = await db
+      .select()
+      .from(ncertPdfsTable)
+      .where(where)
+      .orderBy(ncertPdfsTable.uploadedAt)
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      data: results,
+      total,
+      page,
+      totalPages,
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch NCERT PDFs" });
   }
