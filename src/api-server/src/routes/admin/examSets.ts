@@ -5,21 +5,28 @@ import { eq, desc, like, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
+function formatZodIssues(issues: z.ZodIssue[]): string {
+  return issues
+    .map((i) => `${i.path.join(".")} — ${i.message}`)
+    .join("; ");
+}
+
 const examSetSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
+  description: z.string().optional().nullable(),
   type: z.enum(["pyq", "ncert"]).default("pyq"),
-  subjectId: z.coerce.number().optional(),
-  classNum: z.coerce.number().optional(),
-  medium: z.string().optional(),
+  subjectId: z.coerce.number().optional().nullable(),
+  classNum: z.coerce.number().optional().nullable(),
+  medium: z.string().optional().nullable(),
   questionIds: z.array(z.number()).default([]),
 });
 
 // GET /api/admin/exam-sets
-router.get("/exam-sets", async (req, res) => {
+router.get("/exam-sets", async (req, res, next) => {
   try {
     const {
       page = "1",
@@ -60,12 +67,12 @@ router.get("/exam-sets", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch exam sets" });
+    return next(err);
   }
 });
 
 // GET /api/admin/exam-sets/:id
-router.get("/exam-sets/:id", async (req, res) => {
+router.get("/exam-sets/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
     const [set] = await db
@@ -73,12 +80,11 @@ router.get("/exam-sets/:id", async (req, res) => {
       .from(examSetsTable)
       .where(eq(examSetsTable.id, id));
     if (!set) {
-      res.status(404).json({ error: "Exam set not found" });
-      return;
+      return next(new AppError(404, "Exam set not found"));
     }
     res.json(set);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch exam set" });
+    return next(err);
   }
 });
 
@@ -86,12 +92,11 @@ router.get("/exam-sets/:id", async (req, res) => {
 router.post(
   "/exam-sets",
   logAdminActivity("create_exam_set", "exam_set"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const parsed = examSetSchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
-        return;
+        return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
 
       const { questionIds, ...rest } = parsed.data;
@@ -107,7 +112,7 @@ router.post(
 
       res.status(201).json(set);
     } catch (err) {
-      res.status(500).json({ error: "Failed to create exam set" });
+      return next(err);
     }
   },
 );
@@ -116,13 +121,12 @@ router.post(
 router.patch(
   "/exam-sets/:id",
   logAdminActivity("update_exam_set", "exam_set"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = examSetSchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
-        return;
+        return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
 
       const { questionIds, ...rest } = parsed.data;
@@ -138,12 +142,11 @@ router.patch(
         .returning();
 
       if (!updated) {
-        res.status(404).json({ error: "Exam set not found" });
-        return;
+        return next(new AppError(404, "Exam set not found"));
       }
       res.json(updated);
     } catch (err) {
-      res.status(500).json({ error: "Failed to update exam set" });
+      return next(err);
     }
   },
 );
@@ -152,13 +155,13 @@ router.patch(
 router.delete(
   "/exam-sets/:id",
   logAdminActivity("delete_exam_set", "exam_set"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(examSetsTable).where(eq(examSetsTable.id, id));
       res.json({ success: true });
     } catch (err) {
-      res.status(500).json({ error: "Failed to delete exam set" });
+      return next(err);
     }
   },
 );

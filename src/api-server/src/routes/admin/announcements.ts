@@ -6,6 +6,7 @@ import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
 import { routeParamInt } from "../../lib/routeParams";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
@@ -18,7 +19,7 @@ const announcementSchema = z.object({
   linkUrl: z.string().optional(),
 });
 
-router.get("/announcements", async (req, res): Promise<any> => {
+router.get("/announcements", async (req, res, next): Promise<any> => {
   try {
     const announcements = await db
       .select()
@@ -31,11 +32,11 @@ router.get("/announcements", async (req, res): Promise<any> => {
       })),
     );
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch announcements" });
+    return next(err);
   }
 });
 
-router.get("/announcements/:id", async (req, res): Promise<any> => {
+router.get("/announcements/:id", async (req, res, next): Promise<any> => {
   try {
     const id = routeParamInt(req.params.id);
     const [ann] = await db
@@ -43,25 +44,25 @@ router.get("/announcements/:id", async (req, res): Promise<any> => {
       .from(announcementsTable)
       .where(eq(announcementsTable.id, id));
     if (!ann) {
-      return res.status(404).json({ error: "Announcement not found" });
+      return next(new AppError(404, "Announcement not found"));
     }
     return res.json({
       ...ann,
       createdAt: ann.createdAt.toISOString(),
     });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch announcement" });
+    return next(err);
   }
 });
 
 router.post(
   "/announcements",
   logAdminActivity("create_announcement", "announcement"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const parsed = announcementSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, `Validation failed — ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
       const { title, body, type, isActive, linkText, linkUrl } = parsed.data;
 
@@ -77,13 +78,13 @@ router.post(
         })
         .returning();
 
-      cacheDel("announcements");
+      cacheDel("announcements:active");
       return res.status(201).json({
         ...ann,
         createdAt: ann.createdAt.toISOString(),
       });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to create announcement" });
+      return next(err);
     }
   },
 );
@@ -91,12 +92,12 @@ router.post(
 router.patch(
   "/announcements/:id",
   logAdminActivity("update_announcement", "announcement"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = announcementSchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, `Validation failed — ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
       const [updated] = await db
         .update(announcementsTable)
@@ -105,15 +106,15 @@ router.patch(
         .returning();
 
       if (!updated)
-        return res.status(404).json({ error: "Announcement not found" });
+        return next(new AppError(404, "Announcement not found"));
 
-      cacheDel("announcements");
+      cacheDel("announcements:active");
       return res.json({
         ...updated,
         createdAt: updated.createdAt.toISOString(),
       });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to update announcement" });
+      return next(err);
     }
   },
 );
@@ -121,14 +122,14 @@ router.patch(
 router.delete(
   "/announcements/:id",
   logAdminActivity("delete_announcement", "announcement"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(announcementsTable).where(eq(announcementsTable.id, id));
-      cacheDel("announcements");
+      cacheDel("announcements:active");
       return res.json({ success: true });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to delete announcement" });
+      return next(err);
     }
   },
 );

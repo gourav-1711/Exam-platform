@@ -46,8 +46,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api-config";
-import { useListSubjects } from "@/lib/api";
+import { useListSubjects, customFetch } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -105,6 +105,7 @@ const fieldVariants: Variants = {
 export default function NcertAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { getToken } = useAuth();
   const { data: pyqSubjects = [] } = useListSubjects();
 
   // Detail Dialog
@@ -144,11 +145,8 @@ export default function NcertAdminPage() {
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: response, isLoading } = useQuery({
     queryKey: ["ncert-pdfs"],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/document-ncert`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json() as Promise<{ data: NcertPdf[]; total: number; page: number; totalPages: number }>;
-    },
+    queryFn: () =>
+      customFetch<{ data: NcertPdf[]; total: number; page: number; totalPages: number }>("/document-ncert"),
   });
   const pdfs = Array.isArray(response?.data) ? response.data : [];
 
@@ -157,9 +155,7 @@ export default function NcertAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${API_BASE_URL}/api/document-ncert/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
-      return res.json();
+      return customFetch<any>(`/api/admin/document-ncert/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       invalidate();
@@ -206,6 +202,7 @@ export default function NcertAdminPage() {
 
     setUploading(true);
     try {
+      const token = await getToken();
       const data = new FormData();
       data.append("title", formTitle.trim());
       data.append("subject", formSubject);
@@ -217,8 +214,9 @@ export default function NcertAdminPage() {
         data.append("externalUrl", externalUrl.trim());
       }
 
-      const res = await fetch(`${API_BASE_URL}/api/document-ncert/upload`, {
+      const res = await fetch("/api/admin/document-ncert/upload", {
         method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: data,
       });
 

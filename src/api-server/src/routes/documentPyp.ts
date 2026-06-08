@@ -2,14 +2,13 @@ import { Router } from "express";
 import { db } from "../lib/db";
 import { pypPdfsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { uploadDoc } from "../middleware/upload";
-import { uploadToCloudinary, deleteFromCloudinary } from "../config/cloudinary";
 import { routeParam } from "../lib/routeParams";
+import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
 // GET /api/document-pyp — list all (optionally filter ?year=&examType=&subject=)
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
   try {
     const yearRaw = req.query.year;
     const examTypeRaw = req.query.examType;
@@ -35,86 +34,8 @@ router.get("/", async (req, res) => {
     }
 
     res.json(filtered);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch PYP PDFs" });
-  }
-});
-
-// POST /api/document-pyp/upload — admin only
-router.post("/upload", uploadDoc.single("file"), async (req, res) => {
-  try {
-    const { title, subject, year, examType, externalUrl } = req.body;
-    if (!title || !subject || !year || !examType) {
-      return res
-        .status(400)
-        .json({ error: "title, subject, year, examType are required" });
-    }
-
-    let secureUrl = "";
-    let publicId = "external";
-    let size = 0;
-    let originalName = "External Link";
-
-    if (req.file) {
-      const upload = await uploadToCloudinary(
-        req.file.buffer,
-        "exam-platform/pyp",
-        req.file.originalname,
-      );
-      secureUrl = upload.secureUrl;
-      publicId = upload.publicId;
-      size = req.file.size;
-      originalName = req.file.originalname;
-    } else if (externalUrl) {
-      secureUrl = externalUrl;
-    } else {
-      return res.status(400).json({ error: "Either select a file to upload or enter a URL" });
-    }
-
-    const inserted = await db
-      .insert(pypPdfsTable)
-      .values({
-        title,
-        subject,
-        year: Number(year),
-        examType,
-        originalName,
-        cloudinaryUrl: secureUrl,
-        cloudinaryPublicId: publicId,
-        fileSize: size,
-      })
-      .returning();
-
-    return res.status(201).json(inserted[0]);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to upload PYP PDF";
-    return res.status(500).json({ error: message });
-  }
-});
-
-// DELETE /api/document-pyp/:id — admin only
-router.delete("/:id", async (req, res) => {
-  try {
-    const record = await db
-      .select()
-      .from(pypPdfsTable)
-      .where(eq(pypPdfsTable.id, Number(req.params.id)))
-      .limit(1);
-    if (!record.length) {
-      res.status(404).json({ error: "Not found" });
-      return;
-    }
-
-    if (record[0].cloudinaryPublicId !== "external") {
-      await deleteFromCloudinary(record[0].cloudinaryPublicId);
-    }
-    await db
-      .delete(pypPdfsTable)
-      .where(eq(pypPdfsTable.id, Number(req.params.id)));
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete PYP PDF" });
+  } catch (err) {
+    return next(err);
   }
 });
 

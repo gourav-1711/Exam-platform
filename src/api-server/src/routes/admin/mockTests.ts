@@ -1,10 +1,13 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { mockTestsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, desc, like, and, sql } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+import { formatZodIssues } from "../../utils/validation";
+import { cacheFlushPattern } from "../../lib/cache";
+import { AppError } from "../../middleware/errorHandler";
 
 const mockTestSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -23,37 +26,70 @@ const mockTestSchema = z.object({
 
 const router = Router();
 
-router.get("/mock-tests", async (req, res): Promise<any> => {
+// GET /api/admin/mock-tests — list with pagination and search
+router.get("/mock-tests", async (req, res, next): Promise<any> => {
   try {
-    const mockTests = await db.select().from(mockTestsTable);
-    return res.json(mockTests);
+    const { page = "1", limit = "20", search, difficulty, subjectId } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, parseInt(limit));
+    const offset = (pageNum - 1) * limitNum;
+
+    const conditions: any[] = [];
+    if (search) conditions.push(like(mockTestsTable.title, `%${search}%`));
+    if (difficulty) conditions.push(eq(mockTestsTable.difficulty, difficulty));
+    if (subjectId) conditions.push(eq(mockTestsTable.subjectId, parseInt(subjectId)));
+
+    const where = conditions.length ? and(...conditions) : undefined;
+
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mockTestsTable)
+      .where(where);
+
+    const mockTests = await db
+      .select()
+      .from(mockTestsTable)
+      .where(where)
+      .orderBy(desc(mockTestsTable.createdAt))
+      .limit(limitNum)
+      .offset(offset);
+
+    return res.json({
+      data: mockTests,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: Number(countRow?.count ?? 0),
+        totalPages: Math.ceil(Number(countRow?.count ?? 0) / limitNum),
+      },
+    });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch mock tests" });
+    return next(err);
   }
 });
 
-router.get("/mock-tests/:id", async (req, res): Promise<any> => {
+router.get("/mock-tests/:id", async (req, res, next): Promise<any> => {
   try {
     const id = routeParamInt(req.params.id);
     const [test] = await db
       .select()
       .from(mockTestsTable)
       .where(eq(mockTestsTable.id, id));
-    if (!test) return res.status(404).json({ error: "Mock test not found" });
+    if (!test) return next(new AppError(404, "Mock test not found"));
     return res.json(test);
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch mock test" });
+    return next(err);
   }
 });
 
 router.post(
   "/mock-tests",
   logAdminActivity("create_mock_test", "mock_test"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const parsed = mockTestSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
 
       const [test] = await db
@@ -61,9 +97,10 @@ router.post(
         .values(parsed.data)
         .returning();
 
+      cacheFlushPattern("mock-tests:");
       return res.status(201).json(test);
     } catch (err) {
-      return res.status(500).json({ error: "Failed to create mock test" });
+      return next(err);
     }
   },
 );
@@ -71,12 +108,12 @@ router.post(
 router.patch(
   "/mock-tests/:id",
   logAdminActivity("update_mock_test", "mock_test"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = mockTestSchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
       const [updated] = await db
         .update(mockTestsTable)
@@ -85,11 +122,12 @@ router.patch(
         .returning();
 
       if (!updated)
-        return res.status(404).json({ error: "Mock test not found" });
+        return next(new AppError(404, "Mock test not found"));
 
+      cacheFlushPattern("mock-tests:");
       return res.json(updated);
     } catch (err) {
-      return res.status(500).json({ error: "Failed to update mock test" });
+      return next(err);
     }
   },
 );
@@ -97,13 +135,14 @@ router.patch(
 router.delete(
   "/mock-tests/:id",
   logAdminActivity("delete_mock_test", "mock_test"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(mockTestsTable).where(eq(mockTestsTable.id, id));
+      cacheFlushPattern("mock-tests:");
       return res.json({ success: true });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to delete mock test" });
+      return next(err);
     }
   },
 );

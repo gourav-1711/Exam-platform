@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { db } from "../../db";
 import { questionsTable } from "@workspace/db";
-
-import { eq, like, and, sql, desc, asc } from "drizzle-orm";
+import { eq, like, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { questionCreationLimiter } from "../../middleware/rateLimitMiddleware";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { cacheDel } from "../../lib/cache";
+import { cacheDel, cacheFlushPattern } from "../../lib/cache";
 import { routeParamInt } from "../../lib/routeParams";
+import { formatZodIssues } from "../../utils/validation";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
@@ -38,7 +39,7 @@ const questionBodySchema = z.object({
   status: z.enum(["draft", "published", "archived"]).default("published"),
 });
 
-router.get("/questions", async (req, res) => {
+router.get("/questions", async (req, res, next) => {
   try {
     const {
       page = "1",
@@ -56,6 +57,7 @@ router.get("/questions", async (req, res) => {
     if (search) conditions.push(like(questionsTable.text, `%${search}%`));
     if (subject) conditions.push(eq(questionsTable.subject, subject));
     if (type) conditions.push(eq(questionsTable.type, type));
+    if (difficulty) conditions.push(eq(questionsTable.difficulty, difficulty));
 
     const where = conditions.length ? and(...conditions) : undefined;
 
@@ -81,11 +83,11 @@ router.get("/questions", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch questions" });
+    return next(err);
   }
 });
 
-router.get("/questions/:id", async (req, res) => {
+router.get("/questions/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
     const [question] = await db
@@ -93,12 +95,11 @@ router.get("/questions/:id", async (req, res) => {
       .from(questionsTable)
       .where(eq(questionsTable.id, id));
     if (!question) {
-      res.status(404).json({ error: "Question not found" });
-      return;
+      return next(new AppError(404, "Question not found"));
     }
     res.json(question);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch question" });
+    return next(err);
   }
 });
 
@@ -106,24 +107,21 @@ router.post(
   "/questions",
   questionCreationLimiter,
   logAdminActivity("create_question", "question"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const parsed = questionBodySchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: parsed.error.issues });
-        return;
+        return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
       const {
-        questionType,
-        difficulty,
-        chapter,
-        tags,
-        marks,
-        negativeMarking,
-        imageUrl,
-        status,
+        questionType: _qt,
+        difficulty: _d,
+        chapter: _ch,
+        tags: _t,
+        marks: _m,
+        negativeMarking: _nm,
+        imageUrl: _iu,
+        status: _s,
         ...rest
       } = parsed.data;
       const [created] = await db
@@ -131,9 +129,10 @@ router.post(
         .values(rest)
         .returning();
       cacheDel("admin:dashboard:stats");
+      cacheFlushPattern("ncert-mcq:");
       res.status(201).json(created);
     } catch (err) {
-      res.status(500).json({ error: "Failed to create question" });
+      return next(err);
     }
   },
 );
@@ -141,27 +140,26 @@ router.post(
 router.post(
   "/questions/bulk-upload",
   logAdminActivity("bulk_upload_questions", "question"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const { questions } = req.body;
       if (!Array.isArray(questions) || questions.length === 0) {
-        return res.status(400).json({ error: "questions array is required and cannot be empty" });
+        return next(new AppError(400, "questions array is required and cannot be empty"));
       }
 
-      // Filter and insert questions
       const parsedList = [];
       for (const q of questions) {
         const parsed = questionBodySchema.safeParse(q);
         if (parsed.success) {
           const {
-            questionType,
-            difficulty,
-            chapter,
-            tags,
-            marks,
-            negativeMarking,
-            imageUrl,
-            status,
+            questionType: _qt,
+            difficulty: _d,
+            chapter: _ch,
+            tags: _t,
+            marks: _m,
+            negativeMarking: _nm,
+            imageUrl: _iu,
+            status: _s,
             ...rest
           } = parsed.data;
           parsedList.push(rest);
@@ -169,15 +167,15 @@ router.post(
       }
 
       if (parsedList.length === 0) {
-        return res.status(400).json({ error: "No valid questions were supplied" });
+        return next(new AppError(400, "No valid questions were supplied"));
       }
 
       const inserted = await db.insert(questionsTable).values(parsedList).returning();
       cacheDel("admin:dashboard:stats");
-
+      cacheFlushPattern("ncert-mcq:");
       return res.status(201).json({ success: true, count: inserted.length });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message || "Failed to bulk upload questions" });
+      return next(err);
     }
   },
 );
@@ -185,25 +183,22 @@ router.post(
 router.patch(
   "/questions/:id",
   logAdminActivity("update_question", "question"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = questionBodySchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({ error: "Validation failed", details: parsed.error.issues });
-        return;
+        return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
       const {
-        questionType,
-        difficulty,
-        chapter,
-        tags,
-        marks,
-        negativeMarking,
-        imageUrl,
-        status,
+        questionType: _qt,
+        difficulty: _d,
+        chapter: _ch,
+        tags: _t,
+        marks: _m,
+        negativeMarking: _nm,
+        imageUrl: _iu,
+        status: _s,
         ...rest
       } = parsed.data;
       const [updated] = await db
@@ -212,12 +207,12 @@ router.patch(
         .where(eq(questionsTable.id, id))
         .returning();
       if (!updated) {
-        res.status(404).json({ error: "Question not found" });
-        return;
+        return next(new AppError(404, "Question not found"));
       }
+      cacheFlushPattern("ncert-mcq:");
       res.json(updated);
     } catch (err) {
-      res.status(500).json({ error: "Failed to update question" });
+      return next(err);
     }
   },
 );
@@ -225,14 +220,15 @@ router.patch(
 router.delete(
   "/questions/:id",
   logAdminActivity("delete_question", "question"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(questionsTable).where(eq(questionsTable.id, id));
       cacheDel("admin:dashboard:stats");
+      cacheFlushPattern("ncert-mcq:");
       res.json({ success: true });
     } catch (err) {
-      res.status(500).json({ error: "Failed to delete question" });
+      return next(err);
     }
   },
 );
@@ -240,12 +236,11 @@ router.delete(
 router.post(
   "/questions/bulk-delete",
   logAdminActivity("bulk_delete_questions", "question"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const { ids } = req.body as { ids: number[] };
       if (!Array.isArray(ids) || ids.length === 0) {
-        res.status(400).json({ error: "ids must be a non-empty array" });
-        return;
+        return next(new AppError(400, "ids must be a non-empty array"));
       }
       await db.delete(questionsTable).where(
         sql`id = ANY(ARRAY[${sql.join(
@@ -256,7 +251,7 @@ router.post(
       cacheDel("admin:dashboard:stats");
       res.json({ success: true, deletedCount: ids.length });
     } catch (err) {
-      res.status(500).json({ error: "Failed to bulk delete questions" });
+      return next(err);
     }
   },
 );

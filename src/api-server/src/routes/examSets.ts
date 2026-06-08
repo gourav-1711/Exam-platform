@@ -3,11 +3,12 @@ import { db } from "../lib/db";
 import { examSetsTable } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { routeParamInt } from "../lib/routeParams";
+import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
 // GET /api/exam-sets — Public list of active exam sets
-router.get("/exam-sets", async (req, res) => {
+router.get("/exam-sets", async (req, res, next) => {
   try {
     const {
       page = "1",
@@ -67,12 +68,12 @@ router.get("/exam-sets", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch exam sets" });
+    return next(err);
   }
 });
 
 // GET /api/exam-sets/:id — Public detail of an exam set
-router.get("/exam-sets/:id", async (req, res) => {
+router.get("/exam-sets/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
     const [set] = await db
@@ -81,8 +82,7 @@ router.get("/exam-sets/:id", async (req, res) => {
       .where(and(eq(examSetsTable.id, id), eq(examSetsTable.isActive, true)));
 
     if (!set) {
-      res.status(404).json({ error: "Exam set not found" });
-      return;
+      return next(new AppError(404, "Exam set not found"));
     }
 
     res.json({
@@ -91,7 +91,7 @@ router.get("/exam-sets/:id", async (req, res) => {
       updatedAt: set.updatedAt.toISOString(),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch exam set" });
+    return next(err);
   }
 });
 

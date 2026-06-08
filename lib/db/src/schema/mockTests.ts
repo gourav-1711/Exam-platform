@@ -19,6 +19,7 @@ export const mockTestsTable = pgTable("mock_tests", {
   questionCount: integer("question_count").notNull().default(100),
   maxMarks: integer("max_marks").notNull().default(100),
   negativeMarking: real("negative_marking").notNull().default(0.25),
+  /* Drizzle does not support relations on array columns; resolve via inArray queries at the service layer */
   questionIds: integer("question_ids").array().notNull().default([]),
   subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   difficulty: text("difficulty").default("medium"),
@@ -35,6 +36,8 @@ export const mockTestsRelations = relations(mockTestsTable, ({ one }) => ({
     fields: [mockTestsTable.subjectId],
     references: [subjects.id],
   }),
+  // Note: questions relation via questionIds array is not supported by Drizzle ORM natively.
+  // Use inArray() queries at the service layer to resolve question IDs.
 }));
 
 export const insertMockTestSchema = createInsertSchema(mockTestsTable).omit({

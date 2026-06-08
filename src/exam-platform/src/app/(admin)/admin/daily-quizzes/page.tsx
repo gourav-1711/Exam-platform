@@ -190,9 +190,23 @@ export default function DailyQuizzesAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       invalidate();
-      toast({ title: "Created!", description: "Daily quiz published." });
+      // Calculate time until the quiz becomes visible
+      const scheduledAt = new Date(`${variables.scheduledDate}T${variables.scheduledTime}`);
+      const now = new Date();
+      const diffMs = scheduledAt.getTime() - now.getTime();
+      let timeUntil = "";
+      if (diffMs <= 0) {
+        timeUntil = "already due — will show immediately";
+      } else {
+        const diffMins = Math.floor(diffMs / 60000);
+        const hours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        if (hours > 0) timeUntil = `in ${hours}h ${mins}m (${scheduledAt.toLocaleString()})`;
+        else timeUntil = `in ${mins}m (${scheduledAt.toLocaleString()})`;
+      }
+      toast({ title: "Quiz Created!", description: `Will be shown to users ${timeUntil}` });
       setSheetOpen(false);
     },
     onError: (err: any) => {

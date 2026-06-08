@@ -7,7 +7,8 @@ import { useListMockTests } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, FileText, Award, Play } from "lucide-react";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { Clock, FileText, Award, Play, ClipboardCheck } from "lucide-react";
 
 export default function MockTests() {
   const { data: tests, isLoading } = useListMockTests();
@@ -23,8 +24,12 @@ export default function MockTests() {
         {isLoading ? (
           Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-64 rounded-3xl" />)
         ) : tests?.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-muted-foreground">
-            No mock tests available currently.
+          <div className="col-span-full">
+            <Empty>
+              <ClipboardCheck className="w-10 h-10 text-gray-300" />
+              <EmptyTitle>No mock tests available</EmptyTitle>
+              <EmptyDescription>There are no mock tests available at the moment. Check back later for new tests.</EmptyDescription>
+            </Empty>
           </div>
         ) : (
           tests?.map((test) => (

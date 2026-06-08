@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+import { AppError } from "../../middleware/errorHandler";
 
 const subjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -14,7 +15,7 @@ const subjectSchema = z.object({
 
 const router = Router();
 
-router.get("/subjects", async (req, res): Promise<any> => {
+router.get("/subjects", async (req, res, next): Promise<any> => {
   try {
     const data = await db
       .select({
@@ -34,18 +35,18 @@ router.get("/subjects", async (req, res): Promise<any> => {
 
     return res.json(data);
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch subjects" });
+    return next(err);
   }
 });
 
 router.post(
   "/subjects",
   logAdminActivity("create_subject", "subject"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const parsed = subjectSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
 
       const [subject] = await db
@@ -54,7 +55,7 @@ router.post(
         .returning();
       return res.status(201).json(subject);
     } catch (err) {
-      return res.status(500).json({ error: "Failed to create subject" });
+      return next(err);
     }
   },
 );
@@ -62,22 +63,22 @@ router.post(
 router.patch(
   "/subjects/:id",
   logAdminActivity("update_subject", "subject"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = subjectSchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
       const [updated] = await db
         .update(subjects)
         .set(parsed.data)
         .where(eq(subjects.id, id))
         .returning();
-      if (!updated) return res.status(404).json({ error: "Subject not found" });
+      if (!updated) return next(new AppError(404, "Subject not found"));
       return res.json(updated);
     } catch (err) {
-      return res.status(500).json({ error: "Failed to update subject" });
+      return next(err);
     }
   },
 );
@@ -85,13 +86,13 @@ router.patch(
 router.delete(
   "/subjects/:id",
   logAdminActivity("delete_subject", "subject"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(subjects).where(eq(subjects.id, id));
       return res.json({ success: true });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to delete subject" });
+      return next(err);
     }
   },
 );

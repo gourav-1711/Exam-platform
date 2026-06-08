@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE_URL } from '@/lib/api-config';
+import { apiFetch } from '@/lib/api/client';
 import { Download, FileText } from 'lucide-react';
 
 interface PypPdf {
@@ -26,11 +26,7 @@ export default function PypPage() {
 
   const { data: pdfs = [], isLoading, error } = useQuery({
     queryKey: ['pyp-pdfs'],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/api/document-pyp`);
-      if (!res.ok) throw new Error('Failed to fetch');
-      return res.json() as Promise<PypPdf[]>;
-    },
+    queryFn: () => apiFetch<PypPdf[]>('/document-pyp'),
   });
 
   const filtered = pdfs.filter((p) =>

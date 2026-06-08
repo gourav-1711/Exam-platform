@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../db";
 import { quizzesTable, questionsTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
+import { cacheGet, cacheSet, cacheFlushPattern, CacheTTL } from "../lib/cache";
 import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
@@ -30,6 +31,10 @@ function mapQuestion(q: {
 router.get("/quizzes", async (req, res, next) => {
   try {
     const { status } = req.query as { status?: string };
+    const cacheKey = `quizzes:list:${status || "all"}`;
+    const cached = cacheGet<any[]>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     let quizzes;
     if (status) {
       quizzes = await db
@@ -39,18 +44,18 @@ router.get("/quizzes", async (req, res, next) => {
     } else {
       quizzes = await db.select().from(quizzesTable);
     }
-    res.json(
-      quizzes.map((q) => ({
-        id: q.id,
-        title: q.title,
-        subject: q.subject,
-        durationMins: q.durationMins,
-        questionCount: q.questionCount,
-        negativeMarking: q.negativeMarking,
-        status: q.status,
-        createdAt: q.createdAt.toISOString(),
-      })),
-    );
+    const result = quizzes.map((q) => ({
+      id: q.id,
+      title: q.title,
+      subject: q.subject,
+      durationMins: q.durationMins,
+      questionCount: q.questionCount,
+      negativeMarking: q.negativeMarking,
+      status: q.status,
+      createdAt: q.createdAt.toISOString(),
+    }));
+    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -59,6 +64,10 @@ router.get("/quizzes", async (req, res, next) => {
 router.get("/quizzes/:id", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
+    const cacheKey = `quizzes:detail:${id}`;
+    const cached = cacheGet<any>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     const [quiz] = await db
       .select()
       .from(quizzesTable)
@@ -74,7 +83,7 @@ router.get("/quizzes/:id", async (req, res, next) => {
         and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz")),
       );
 
-    res.json({
+    const result = {
       id: quiz.id,
       title: quiz.title,
       subject: quiz.subject,
@@ -85,7 +94,9 @@ router.get("/quizzes/:id", async (req, res, next) => {
       instructions: quiz.instructions,
       createdAt: quiz.createdAt.toISOString(),
       questions: questions.map(mapQuestion),
-    });
+    };
+    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -94,13 +105,19 @@ router.get("/quizzes/:id", async (req, res, next) => {
 router.get("/quizzes/:id/questions", async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
+    const cacheKey = `quizzes:${id}:questions`;
+    const cached = cacheGet<any[]>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     const questions = await db
       .select()
       .from(questionsTable)
       .where(
         and(eq(questionsTable.quizId, id), eq(questionsTable.type, "quiz")),
       );
-    res.json(questions.map(mapQuestion));
+    const result = questions.map(mapQuestion);
+    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    res.json(result);
   } catch (err) {
     next(err);
   }

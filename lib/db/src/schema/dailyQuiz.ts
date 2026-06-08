@@ -10,6 +10,7 @@ export const dailyQuizzes = pgTable('daily_quizzes', {
   scheduledTime: time('scheduled_time').notNull(),
   durationMinutes: integer('duration_minutes').notNull().default(30),
   totalQuestions: integer('total_questions').notNull(),
+  /* Drizzle does not support relations on array columns; resolve via inArray queries at the service layer */
   questionIds: integer('question_ids').array().notNull(),
   isPublished: boolean('is_published').default(false),
   isActive: boolean('is_active').notNull().default(true),

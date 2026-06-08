@@ -1,18 +1,29 @@
 "use client";
 
+import { useAdminDashboard } from "@/lib/api";
 import {
   Settings as SettingsIcon,
   ExternalLink,
   Info,
+  HardDrive,
+  Cloud,
+  Database,
+  BarChart3,
+  Image,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   contact_gmail,
   contact_number,
   contact_address,
 } from "@/lib/data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
+  const { data: dashboard, isLoading } = useAdminDashboard();
+
+  const storageMb = dashboard?.stats?.storageUsedMb ?? 0;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 p-2">
       <div>
@@ -21,10 +32,108 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="text-gray-500 mt-2">
-          Application configuration is managed via environment variables.
+          Application configuration, storage details, and contact information.
         </p>
       </div>
 
+      {/* Cloudinary Storage Card */}
+      <Card className="border border-border/50 bg-white shadow-sm rounded-2xl">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Cloud className="w-5 h-5 text-indigo-600" /> Cloudinary Storage
+          </CardTitle>
+          <CardDescription className="text-xs text-gray-500">
+            Media and document storage usage for NCERT PDFs, PYP papers, and uploaded files.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-100">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center">
+                    <HardDrive className="w-4.5 h-4.5 text-violet-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">Storage Used</p>
+                    <p className="text-xl font-black text-violet-900">{storageMb.toFixed(1)} MB</p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-violet-500/70">Cloudinary CDN — raw PDFs & media</p>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl border border-sky-100">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
+                    <Database className="w-4.5 h-4.5 text-sky-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-sky-500 uppercase tracking-wider">Cloud Name</p>
+                    <p className="text-sm font-bold text-sky-900 truncate max-w-[160px]">
+                      {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "Configured via env"}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-sky-500/70">Cloudinary cloud name from environment</p>
+              </div>
+
+              <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border border-emerald-100">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+                    <BarChart3 className="w-4.5 h-4.5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Document Count</p>
+                    <p className="text-xl font-black text-emerald-900">
+                      {dashboard?.stats?.totalQuestions && Math.floor(dashboard.stats.totalQuestions / 10) || "—"}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-emerald-500/70">NCERT & PYP documents in storage</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Environment Card */}
+      <Card className="border border-border/50 bg-white shadow-sm rounded-2xl">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <Database className="w-5 h-5 text-indigo-600" /> Environment Configuration
+          </CardTitle>
+          <CardDescription className="text-xs text-gray-500">
+            Application environment variables and system configuration
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">API URL</p>
+              <p className="text-xs font-mono font-semibold text-gray-700 mt-0.5 truncate">{process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}</p>
+            </div>
+            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">App Env</p>
+              <p className="text-xs font-mono font-semibold text-gray-700 mt-0.5">{process.env.NEXT_PUBLIC_APP_ENV || "dev"}</p>
+            </div>
+            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Cloudinary Cloud</p>
+              <p className="text-xs font-mono font-semibold text-gray-700 mt-0.5 truncate">{process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "—"}</p>
+            </div>
+            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Clerk Publishable Key</p>
+              <p className="text-xs font-mono font-semibold text-gray-700 mt-0.5 truncate">{(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "").slice(0, 20)}...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contact Information */}
       <Card className="border border-border/50 bg-white shadow-sm rounded-2xl">
         <CardHeader>
           <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -58,24 +167,6 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border border-border/50 bg-white shadow-sm rounded-2xl">
-        <CardHeader>
-          <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <ExternalLink className="w-5 h-5 text-indigo-600" /> Environment Variables
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600">
-            App-wide settings like site name, feature toggles, and media
-            credentials are configured through environment variables in your{" "}
-            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">
-              .env
-            </code>{" "}
-            file. No database-based settings UI is available.
-          </p>
         </CardContent>
       </Card>
     </div>

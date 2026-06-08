@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/api-config";
-import { Download, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, BookOpen, ChevronLeft, ChevronRight, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import {
   Select,
   SelectContent,
@@ -129,9 +130,11 @@ export default function NcertBooks() {
           </div>
         ) : pdfs.length === 0 ? (
           <div className="p-12 text-center bg-card border rounded-2xl">
-            <p className="text-muted-foreground text-lg">
-              No NCERT books found for the selected filters.
-            </p>
+            <Empty>
+              <Library className="w-10 h-10 text-gray-300 mx-auto" />
+              <EmptyTitle>No books found</EmptyTitle>
+              <EmptyDescription>No NCERT books match your current filters. Try different class or subject selections.</EmptyDescription>
+            </Empty>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

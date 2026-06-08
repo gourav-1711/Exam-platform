@@ -6,7 +6,7 @@ import currentAffairsRouter from "./currentAffairs";
 import studyNotesRouter from "./studyNotes";
 import pyqRouter from "./pyq";
 import ncertRouter from "./ncert";
-import papersRouter from "./papers";
+import papersRouter from "./pyp";
 import supportRouter from "./support";
 import announcementsRouter from "./announcements";
 import streaksRouter from "./streaks";

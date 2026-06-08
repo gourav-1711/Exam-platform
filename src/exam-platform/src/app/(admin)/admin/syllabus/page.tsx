@@ -54,7 +54,8 @@ import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface SyllabusItem {
   id: number;
-  examName: string;
+  title: string;
+  examCategory: string | null;
   readUrl: string | null;
   downloadUrl: string | null;
 }
@@ -113,7 +114,8 @@ export default function SyllabusAdminPage() {
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
-  const [formExamName, setFormExamName] = useState("");
+  const [formTitle, setFormTitle] = useState("");
+  const [formExamCategory, setFormExamCategory] = useState("");
   const [formReadUrl, setFormReadUrl] = useState("");
   const [formDownloadUrl, setFormDownloadUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -124,11 +126,13 @@ export default function SyllabusAdminPage() {
   useEffect(() => {
     if (sheetOpen) {
       if (editingItem) {
-        setFormExamName(editingItem.examName);
+        setFormTitle(editingItem.title);
+        setFormExamCategory(editingItem.examCategory ?? "");
         setFormReadUrl(editingItem.readUrl ?? "");
         setFormDownloadUrl(editingItem.downloadUrl ?? "");
       } else {
-        setFormExamName("");
+        setFormTitle("");
+        setFormExamCategory("");
         setFormReadUrl("");
         setFormDownloadUrl("");
         setFile(null);
@@ -227,18 +231,19 @@ export default function SyllabusAdminPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-
-    if (!formExamName.trim()) {
-      setFormError("Exam name is required.");
+    
+    if (!formTitle.trim()) {
+      setFormError("Title is required.");
       return;
     }
 
     if (editingItem) {
-      // Edit: just PATCH the exam name
+      // Edit: just PATCH the fields
       updateMutation.mutate({
         id: editingItem.id,
         payload: {
-          examName: formExamName.trim(),
+          title: formTitle.trim(),
+          examCategory: formExamCategory.trim() || null,
           readUrl: formReadUrl.trim() || null,
           downloadUrl: formDownloadUrl.trim() || null,
         },
@@ -248,7 +253,8 @@ export default function SyllabusAdminPage() {
 
     // Create: use FormData for file upload or URL
     const data = new FormData();
-    data.append("examName", formExamName.trim());
+    data.append("title", formTitle.trim());
+    data.append("examCategory", formExamCategory.trim() || "");
 
     if (uploadMode === "file") {
       if (!file) {
@@ -369,7 +375,7 @@ export default function SyllabusAdminPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
-                    <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500 pl-5">Exam Name</TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500 pl-5">Title</TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Reference Links</TableHead>
                     <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-gray-500 pr-5">Actions</TableHead>
                   </TableRow>
@@ -394,7 +400,7 @@ export default function SyllabusAdminPage() {
                               <FileText className="w-3.5 h-3.5 text-sky-600" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{item.examName}</p>
+                              <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{item.title}</p>
                             </div>
                           </div>
                         </TableCell>
@@ -464,13 +470,13 @@ export default function SyllabusAdminPage() {
             {viewingItem && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-bold text-gray-900">{viewingItem.examName}</DialogTitle>
+                  <DialogTitle className="text-lg font-bold text-gray-900">{viewingItem.title}</DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">Syllabus details and references</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3">
                   <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Exam</p>
-                    <p className="text-sm font-semibold text-gray-900">{viewingItem.examName}</p>
+                    <p className="text-sm font-semibold text-gray-900">{viewingItem.title}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
@@ -528,10 +534,15 @@ export default function SyllabusAdminPage() {
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">{formError}</div>
               )}
-
+              
               <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Exam Name *</Label>
-                <Input value={formExamName} onChange={(e) => setFormExamName(e.target.value)} placeholder="e.g. UPSC CSE 2026" required className="rounded-xl h-10" />
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title *</Label>
+                <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="e.g. UPSC CSE Syllabus" required className="rounded-xl h-10" />
+              </motion.div>
+
+              <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Exam Category</Label>
+                <Input value={formExamCategory} onChange={(e) => setFormExamCategory(e.target.value)} placeholder="e.g. UPSC CSE" className="rounded-xl h-10" />
               </motion.div>
 
               {!editingItem && (
@@ -592,7 +603,7 @@ export default function SyllabusAdminPage() {
             <div className="px-6 py-4 border-t bg-gray-50/60 flex gap-2.5 shrink-0">
               <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="flex-1 rounded-xl font-semibold">Cancel</Button>
               <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 380, damping: 20 }}>
-                <Button type="submit" disabled={isPending || !formExamName.trim()} onClick={handleSubmit}
+                <Button type="submit"                disabled={isPending || !formTitle.trim()} onClick={handleSubmit}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 gap-2"
                 >
                   {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : editingItem ? "Save Changes" : "Create Syllabus"}

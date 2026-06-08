@@ -6,6 +6,7 @@ import {
   updateCurrentAffair,
   deleteCurrentAffair,
 } from "../services/currentAffairsService";
+import { cacheGet, cacheSet, cacheFlushPattern, CacheTTL } from "../lib/cache";
 
 const router = Router();
 
@@ -19,6 +20,10 @@ router.get("/current-affairs", async (req, res, next) => {
     const limit = parseInt(req.query.limit as string) || 12;
     const offset = (page - 1) * limit;
 
+    const cacheKey = `current-affairs:list:${page}`;
+    const cached = cacheGet<any>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     const currentAffairs = await getCurrentAffairs();
     const total = currentAffairs.length;
     const totalPages = Math.ceil(total / limit);
@@ -29,12 +34,9 @@ router.get("/current-affairs", async (req, res, next) => {
       nextId: null,
     }));
 
-    return res.json({
-      data: paginated,
-      total,
-      page,
-      totalPages,
-    });
+    const result = { data: paginated, total, page, totalPages };
+    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    return res.json(result);
   } catch (err) {
     return next(err);
   }
@@ -46,17 +48,23 @@ router.get("/current-affairs/:id", async (req, res, next) => {
     const idRaw = req.params.id;
     const id = Array.isArray(idRaw) ? idRaw[0] : idRaw;
 
+    const cacheKey = `current-affairs:detail:${id}`;
+    const cached = cacheGet<any>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     const currentAffair = await getCurrentAffairById(id);
     if (!currentAffair) {
       return next(new AppError(404, "Current affair not found"));
     }
 
-    return res.json({
+    const result = {
       ...currentAffair,
       publishedAt: currentAffair.publishedAt.toISOString(),
       prevId: null,
       nextId: null,
-    });
+    };
+    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    return res.json(result);
   } catch (err) {
     return next(err);
   }

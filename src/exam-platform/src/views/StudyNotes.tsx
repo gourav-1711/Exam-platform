@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Download, BookOpen, Filter } from "lucide-react";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { Search, Download, BookOpen, Filter, FileText } from "lucide-react";
 
 export default function StudyNotes() {
   const [search, setSearch] = useState("");
@@ -68,8 +69,12 @@ export default function StudyNotes() {
         {isLoading ? (
           Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)
         ) : data?.data.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-muted-foreground bg-card rounded-2xl border">
-            No study notes found matching your criteria.
+          <div className="col-span-full">
+            <Empty>
+              <FileText className="w-10 h-10 text-gray-300" />
+              <EmptyTitle>No study notes found</EmptyTitle>
+              <EmptyDescription>No study notes match your current search or filter criteria. Try adjusting your filters.</EmptyDescription>
+            </Empty>
           </div>
         ) : (
           data?.data.map((note) => (

@@ -9,6 +9,7 @@ import { queryKeys } from "@/lib/api/query-keys";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -17,7 +18,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, Newspaper } from "lucide-react";
 
 function slugifyTitle(value: string) {
   return value
@@ -55,8 +56,12 @@ export default function CurrentAffairsListing() {
             .fill(0)
             .map((_, i) => <Skeleton key={i} className="h-64 rounded-2xl" />)
         ) : data && data.data && data.data.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-muted-foreground bg-card rounded-2xl border">
-            No articles found.
+          <div className="col-span-full">
+            <Empty>
+              <Newspaper className="w-10 h-10 text-gray-300" />
+              <EmptyTitle>No articles found</EmptyTitle>
+              <EmptyDescription>There are no current affairs articles available at the moment. Check back later for updates.</EmptyDescription>
+            </Empty>
           </div>
         ) : (
           data?.data?.map((article: any) => (

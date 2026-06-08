@@ -4,11 +4,13 @@ import { previousYearPapersTable } from "@workspace/db";
 import { eq, desc, like, and, sql } from "drizzle-orm";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+import { cacheFlushPattern } from "../../lib/cache";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
 // GET /api/admin/pyp
-router.get("/pyp", async (req, res) => {
+router.get("/pyp", async (req, res, next) => {
   try {
     const { search } = req.query as Record<string, string>;
     const conditions: any[] = [];
@@ -35,12 +37,12 @@ router.get("/pyp", async (req, res) => {
 
     res.json(serialized);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch PYP papers" });
+    return next(err);
   }
 });
 
 // GET /api/admin/pyp/:id
-router.get("/pyp/:id", async (req, res) => {
+router.get("/pyp/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
     const [paper] = await db
@@ -49,8 +51,7 @@ router.get("/pyp/:id", async (req, res) => {
       .where(eq(previousYearPapersTable.id, id));
 
     if (!paper) {
-      res.status(404).json({ error: "PYP paper not found" });
-      return;
+      return next(new AppError(404, "PYP paper not found"));
     }
 
     res.json({
@@ -59,7 +60,7 @@ router.get("/pyp/:id", async (req, res) => {
       updatedAt: paper.updatedAt.toISOString(),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch PYP paper" });
+    return next(err);
   }
 });
 
@@ -67,7 +68,7 @@ router.get("/pyp/:id", async (req, res) => {
 router.post(
   "/pyp",
   logAdminActivity("create_pyp", "pyp"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const {
         examName,
@@ -81,8 +82,7 @@ router.post(
       } = req.body;
 
       if (!examName || !year) {
-        res.status(400).json({ error: "examName and year are required" });
-        return;
+        return next(new AppError(400, "examName and year are required"));
       }
 
       const [paper] = await db
@@ -99,13 +99,14 @@ router.post(
         })
         .returning();
 
+      cacheFlushPattern("pyp:");
       res.status(201).json({
         ...paper,
         createdAt: paper.createdAt.toISOString(),
         updatedAt: paper.updatedAt.toISOString(),
       });
     } catch (err) {
-      res.status(500).json({ error: "Failed to create PYP paper" });
+      return next(err);
     }
   },
 );
@@ -114,7 +115,7 @@ router.post(
 router.patch(
   "/pyp/:id",
   logAdminActivity("update_pyp", "pyp"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       const updateData: Record<string, unknown> = { ...req.body };
@@ -128,17 +129,17 @@ router.patch(
         .returning();
 
       if (!updated) {
-        res.status(404).json({ error: "PYP paper not found" });
-        return;
+        return next(new AppError(404, "PYP paper not found"));
       }
 
+      cacheFlushPattern("pyp:");
       res.json({
         ...updated,
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
       });
     } catch (err) {
-      res.status(500).json({ error: "Failed to update PYP paper" });
+      return next(err);
     }
   },
 );
@@ -147,13 +148,14 @@ router.patch(
 router.delete(
   "/pyp/:id",
   logAdminActivity("delete_pyp", "pyp"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(previousYearPapersTable).where(eq(previousYearPapersTable.id, id));
+      cacheFlushPattern("pyp:");
       res.json({ success: true });
     } catch (err) {
-      res.status(500).json({ error: "Failed to delete PYP paper" });
+      return next(err);
     }
   },
 );

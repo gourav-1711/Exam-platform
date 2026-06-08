@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Trash2,
@@ -11,8 +11,10 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
+  Edit,
 } from "lucide-react";
 import { useListSubjects, customFetch } from "@/lib/api";
+import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { motion } from "framer-motion";
@@ -37,7 +39,9 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { YEARS } from "@/lib/data";
+import { API_BASE_URL } from "@/lib/api-config";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { Loader2, Upload } from "lucide-react";
 
 interface PypPaper {
   id: number;
@@ -67,7 +71,9 @@ export default function PypAdminPage() {
 
   // Sheet state
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<PypPaper | null>(null);
   const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const { getToken } = useAuth();
 
   // Form state
   const [examName, setExamName] = useState("");
@@ -77,6 +83,30 @@ export default function PypAdminPage() {
   const [questionPaperUrl, setQuestionPaperUrl] = useState("");
   const [answerKeyUrl, setAnswerKeyUrl] = useState("");
   const [answerKeyPdf, setAnswerKeyPdf] = useState("");
+  const [paperFile, setPaperFile] = useState<File | null>(null);
+  const [paperFileName, setPaperFileName] = useState("");
+  const [answerKeyFile, setAnswerKeyFile] = useState<File | null>(null);
+  const [answerKeyFileName, setAnswerKeyFileName] = useState("");
+  const [uploadMode, setUploadMode] = useState<"url" | "file">("url");
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+  // Sync form when sheet opens for editing
+  useEffect(() => {
+    if (sheetOpen) {
+      if (editingItem) {
+        setExamName(editingItem.examName);
+        setShiftName(editingItem.shiftName);
+        setYear(String(editingItem.year));
+        setSubjectId(editingItem.subjectId ? String(editingItem.subjectId) : "");
+        setQuestionPaperUrl(editingItem.questionPaperUrl || "");
+        setAnswerKeyUrl(editingItem.answerKeyUrl || "");
+        setAnswerKeyPdf(editingItem.answerKeyPdf || "");
+        setUploadMode("url");
+      } else {
+        resetForm();
+      }
+    }
+  }, [sheetOpen, editingItem]);
 
   // Search
   const [search, setSearch] = useState("");
@@ -119,6 +149,29 @@ export default function PypAdminPage() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, body }: { id: number; body: Record<string, unknown> }) => {
+      return customFetch<PypPaper>(`/api/admin/pyp/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "pyp"] });
+      setSheetOpen(false);
+      setEditingItem(null);
+      toast({ title: "Updated", description: "PYP paper updated successfully" });
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Failed to update",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       return customFetch<{ success: boolean }>(`/api/admin/pyp/${id}`, {
@@ -141,6 +194,22 @@ export default function PypAdminPage() {
     },
   });
 
+  const handlePaperFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setPaperFile(selected);
+      setPaperFileName(selected.name);
+    }
+  };
+
+  const handleAnswerKeyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setAnswerKeyFile(selected);
+      setAnswerKeyFileName(selected.name);
+    }
+  };
+
   const resetForm = () => {
     setExamName("");
     setShiftName("Shift 1");
@@ -149,9 +218,14 @@ export default function PypAdminPage() {
     setQuestionPaperUrl("");
     setAnswerKeyUrl("");
     setAnswerKeyPdf("");
+    setPaperFile(null);
+    setPaperFileName("");
+    setAnswerKeyFile(null);
+    setAnswerKeyFileName("");
+    setUploadMode("url");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!examName.trim()) {
       toast({
@@ -161,7 +235,8 @@ export default function PypAdminPage() {
       });
       return;
     }
-    createMutation.mutate({
+
+    const payload = {
       examName: examName.trim(),
       shiftName,
       year: parseInt(year),
@@ -169,7 +244,76 @@ export default function PypAdminPage() {
       questionPaperUrl: questionPaperUrl.trim() || null,
       answerKeyUrl: answerKeyUrl.trim() || null,
       answerKeyPdf: answerKeyPdf.trim() || null,
-    });
+    };
+
+    if (editingItem) {
+      // Edit mode - PATCH existing
+      updateMutation.mutate({ id: editingItem.id, body: payload });
+      return;
+    }
+
+    if (uploadMode === "file" && paperFile) {
+      // Upload via document-pyp route with files
+      setUploadingPdf(true);
+      try {
+        const token = await getToken();
+
+        // Upload question paper
+        const paperData = new FormData();
+        paperData.append("title", examName.trim());
+        paperData.append("subject", subjects.find((s: any) => s.id === parseInt(subjectId))?.name || "");
+        paperData.append("year", year);
+        paperData.append("examType", "Other");
+        paperData.append("file", paperFile);
+
+        const paperRes = await fetch("/api/admin/document-pyp/upload", {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          body: paperData,
+        });
+
+        if (!paperRes.ok) {
+          const err = await paperRes.json().catch(() => ({}));
+          throw new Error(err.error || "Paper upload failed");
+        }
+
+        const paperResult = await paperRes.json();
+        let answerKeyPdfUrl = answerKeyPdf.trim() || null;
+
+        // Upload answer key if provided
+        if (answerKeyFile) {
+          const keyData = new FormData();
+          keyData.append("title", `${examName.trim()} - Answer Key`);
+          keyData.append("subject", subjects.find((s: any) => s.id === parseInt(subjectId))?.name || "");
+          keyData.append("year", year);
+          keyData.append("examType", "Other");
+          keyData.append("file", answerKeyFile);
+
+          const keyRes = await fetch("/api/admin/document-pyp/upload", {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            body: keyData,
+          });
+
+          if (keyRes.ok) {
+            const keyResult = await keyRes.json();
+            answerKeyPdfUrl = keyResult.cloudinaryUrl || null;
+          }
+        }
+
+        createMutation.mutate({
+          ...payload,
+          questionPaperUrl: paperResult.cloudinaryUrl || null,
+          answerKeyPdf: answerKeyPdfUrl,
+        });
+      } catch (err: any) {
+        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      } finally {
+        setUploadingPdf(false);
+      }
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   return (
@@ -194,7 +338,10 @@ export default function PypAdminPage() {
           </div>
         </div>
         <Button
-          onClick={() => setSheetOpen(true)}
+          onClick={() => {
+            setEditingItem(null);
+            setSheetOpen(true);
+          }}
           className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl gap-1.5 shadow-sm"
         >
           <Plus className="w-4 h-4" /> Add Paper
@@ -317,6 +464,17 @@ export default function PypAdminPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => {
+                            setEditingItem(paper);
+                            setSheetOpen(true);
+                          }}
+                          className="h-8 gap-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setDeleteId(paper.id)}
                           className="h-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                         >
@@ -332,19 +490,18 @@ export default function PypAdminPage() {
         )}
       </Card>
 
-      {/* Create Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      {/* Create/Edit Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setEditingItem(null); setSheetOpen(open); }}>
         <SheetContent
           side="right"
           className="w-full sm:max-w-md overflow-y-auto"
         >
           <SheetHeader className="mb-6">
             <SheetTitle className="text-lg font-bold text-gray-900">
-              Add PYP Paper
+              {editingItem ? "Edit PYP Paper" : "Add PYP Paper"}
             </SheetTitle>
             <SheetDescription>
-              Add a previous year paper with URLs to the question paper and
-              answer key
+              {editingItem ? "Update the paper details below." : "Add a previous year paper with URLs to the question paper and answer key"}
             </SheetDescription>
           </SheetHeader>
 
@@ -416,48 +573,83 @@ export default function PypAdminPage() {
               </select>
             </div>
 
-            <div className="border-t pt-4 space-y-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  Question Paper URL
-                </Label>
-                <Input
-                  value={questionPaperUrl}
-                  onChange={(e) => setQuestionPaperUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="rounded-xl h-10"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  Answer Key URL
-                </Label>
-                <Input
-                  value={answerKeyUrl}
-                  onChange={(e) => setAnswerKeyUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="rounded-xl h-10"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  Answer Key PDF URL
-                </Label>
-                <Input
-                  value={answerKeyPdf}
-                  onChange={(e) => setAnswerKeyPdf(e.target.value)}
-                  placeholder="https://..."
-                  className="rounded-xl h-10"
-                />
-              </div>
+            {/* Upload mode toggle */}
+            <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
+              <button type="button" onClick={() => setUploadMode("url")}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}
+              >
+                URL Link
+              </button>
+              <button type="button" onClick={() => setUploadMode("file")}
+                className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-amber-700 shadow-sm" : "text-gray-500"}`}
+              >
+                Upload PDF
+              </button>
             </div>
+
+            {uploadMode === "file" ? (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-amber-500 transition-all hover:bg-amber-50/20">
+                  <input type="file" accept=".pdf" onChange={handlePaperFileChange} className="hidden" id="pyp-file-input" />
+                  <label htmlFor="pyp-file-input" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-gray-700">{paperFileName || "Select Question Paper PDF"}</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                  </label>
+                </div>
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-500 transition-all hover:bg-emerald-50/20">
+                  <input type="file" accept=".pdf" onChange={handleAnswerKeyFileChange} className="hidden" id="pyp-answerkey-input" />
+                  <label htmlFor="pyp-answerkey-input" className="cursor-pointer block">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm font-semibold text-gray-700">{answerKeyFileName || "Select Answer Key PDF (optional)"}</p>
+                    <p className="text-xs text-gray-400 mt-1">Optional — upload answer key separately</p>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t pt-4 space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Question Paper URL
+                  </Label>
+                  <Input
+                    value={questionPaperUrl}
+                    onChange={(e) => setQuestionPaperUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl h-10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Answer Key URL
+                  </Label>
+                  <Input
+                    value={answerKeyUrl}
+                    onChange={(e) => setAnswerKeyUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl h-10"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Answer Key PDF URL
+                  </Label>
+                  <Input
+                    value={answerKeyPdf}
+                    onChange={(e) => setAnswerKeyPdf(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl h-10"
+                  />
+                </div>
+              </div>
+            )}
 
             <Button
               type="submit"
-              disabled={createMutation.isPending || !examName.trim()}
+              disabled={createMutation.isPending || updateMutation.isPending || uploadingPdf || !examName.trim()}
               className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl h-11"
             >
-              {createMutation.isPending ? "Creating..." : "Add PYP Paper"}
+              {uploadingPdf ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Uploading…</> : editingItem ? (updateMutation.isPending ? "Saving..." : "Save Changes") : createMutation.isPending ? "Creating..." : "Add PYP Paper"}
             </Button>
           </form>
         </SheetContent>

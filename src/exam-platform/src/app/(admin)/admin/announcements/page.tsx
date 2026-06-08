@@ -16,6 +16,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Loader2,
+
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -49,6 +50,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@/lib/api";
+import { ALL_NAV_ITEMS } from "@/components/layout/AppLayout";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -732,12 +734,39 @@ function AnnouncementFormSheet({
       id: "linkUrl",
       label: "Redirect URL",
       node: (
-        <Input
-          value={linkUrl}
-          onChange={(e) => setLinkUrl(e.target.value)}
-          placeholder="/syllabus or https://..."
-          className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
-        />
+        <div className="space-y-2">
+          <Input
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            placeholder="/syllabus or https://..."
+            className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {ALL_NAV_ITEMS.filter((item) => !item.protected || item.label === "Home").slice(0, 8).map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => setLinkUrl(item.href)}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold rounded-full border border-border/60 bg-gray-50 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all"
+                >
+                  <Icon className="w-3 h-3" />
+                  {item.label}
+                </button>
+              );
+            })}
+            {linkUrl && (
+              <button
+                type="button"
+                onClick={() => setLinkUrl("")}
+                className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-semibold rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-all"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
       ),
     },
   ];

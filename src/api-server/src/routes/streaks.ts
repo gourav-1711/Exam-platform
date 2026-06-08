@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/express";
 import { userStreaksTable } from "@workspace/db";
 import { db } from "../db";
 import { eq, desc } from "drizzle-orm";
+import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const POINTS: Record<string, number> = {
   quiz: 5,
   mock: 50,
   pyq: 3,
+  login: 0,    // login tracking — no points, just updates lastActivityDate
 };
 
 function todayStr(): string {
@@ -24,9 +26,7 @@ function yesterdayStr(): string {
 router.get("/streaks/me", async (req, res, next) => {
   const { userId } = getAuth(req);
   if (!userId) {
-    return next(
-      new (require("../middleware/errorHandler").AppError)(401, "Unauthorized"),
-    );
+    return next(new AppError(401, "Unauthorized"));
   }
 
   try {
@@ -65,9 +65,7 @@ router.get("/streaks/me", async (req, res, next) => {
 router.post("/streaks/activity", async (req, res, next) => {
   const { userId } = getAuth(req);
   if (!userId) {
-    return next(
-      new (require("../middleware/errorHandler").AppError)(401, "Unauthorized"),
-    );
+    return next(new AppError(401, "Unauthorized"));
   }
 
   const { activityType, displayName } = req.body as {
@@ -75,13 +73,8 @@ router.post("/streaks/activity", async (req, res, next) => {
     displayName?: string;
   };
 
-  if (!activityType || !["quiz", "mock", "pyq"].includes(activityType)) {
-    return next(
-      new (require("../middleware/errorHandler").AppError)(
-        400,
-        "activityType must be quiz | mock | pyq",
-      ),
-    );
+  if (!activityType || !["quiz", "mock", "pyq", "login"].includes(activityType)) {
+    return next(new AppError(400, "activityType must be quiz | mock | pyq | login"));
   }
 
   const today = todayStr();
@@ -133,28 +126,30 @@ router.post("/streaks/activity", async (req, res, next) => {
     const newLongest = Math.max(existing.longestStreak, newStreak);
     const newPoints = existing.totalPoints + pointsEarned;
 
+    // For login activity, don't add points — just update the date
+    const updateData: Record<string, unknown> = {
+      displayName: safeDisplayName,
+      ...(activityType === "login"
+        ? {}
+        : { totalPoints: newPoints }),
+      currentStreak: newStreak,
+      longestStreak: newLongest,
+      lastActivityDate: today,
+      ...(activityType === "quiz" ? { quizCount: existing.quizCount + 1 } : {}),
+      ...(activityType === "mock" ? { mockCount: existing.mockCount + 1 } : {}),
+      ...(activityType === "pyq" ? { pyqCount: existing.pyqCount + 1 } : {}),
+      updatedAt: new Date(),
+    };
+
     await db
       .update(userStreaksTable)
-      .set({
-        displayName: safeDisplayName,
-        totalPoints: newPoints,
-        currentStreak: newStreak,
-        longestStreak: newLongest,
-        lastActivityDate: today,
-        quizCount:
-          activityType === "quiz" ? existing.quizCount + 1 : existing.quizCount,
-        mockCount:
-          activityType === "mock" ? existing.mockCount + 1 : existing.mockCount,
-        pyqCount:
-          activityType === "pyq" ? existing.pyqCount + 1 : existing.pyqCount,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(userStreaksTable.userId, userId));
 
     return res.json({
       currentStreak: newStreak,
       longestStreak: newLongest,
-      totalPoints: newPoints,
+      totalPoints: activityType === "login" ? existing.totalPoints : newPoints,
       pointsEarned,
       streakIncremented,
     });

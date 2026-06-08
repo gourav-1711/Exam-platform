@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { db } from "../../db";
 import { activityLogsTable } from "@workspace/db";
-
-import { eq, desc, like } from "drizzle-orm";
+import { eq, and, desc, like, sql } from "drizzle-orm";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
-router.get("/activity-logs", async (req, res) => {
+router.get("/activity-logs", async (req, res, next) => {
   try {
     const {
       page = "1",
@@ -22,7 +22,6 @@ router.get("/activity-logs", async (req, res) => {
     if (userId) conditions.push(eq(activityLogsTable.userId, userId));
     if (action) conditions.push(like(activityLogsTable.action, `%${action}%`));
 
-    const { and, sql } = await import("drizzle-orm");
     const where = conditions.length ? and(...conditions) : undefined;
 
     const [countRow] = await db
@@ -47,7 +46,7 @@ router.get("/activity-logs", async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch activity logs" });
+    return next(err);
   }
 });
 

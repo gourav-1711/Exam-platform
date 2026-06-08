@@ -7,7 +7,7 @@ import { dailyQuizzes } from "@workspace/db";
 import { routeParamInt } from "../../lib/routeParams";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { logger } from "../../lib/logger";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ const dailyQuizPayloadSchema = z.object({
 });
 
 // GET /api/admin/daily-quizzes
-router.get("/daily-quizzes", async (req, res) => {
+router.get("/daily-quizzes", async (req, res, next) => {
   try {
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = parseInt(req.query.limit as string, 10) || 10;
@@ -51,31 +51,29 @@ router.get("/daily-quizzes", async (req, res) => {
         totalPages,
       },
     });
-  } catch (error: any) {
-    logger.error({ error }, "Error fetching daily quizzes list");
-    return res.status(500).json({ message: "Server error", details: error?.message });
+  } catch (err) {
+    return next(err);
   }
 });
 
 // GET /api/admin/daily-quizzes/:id
-router.get("/daily-quizzes/:id", async (req, res) => {
+router.get("/daily-quizzes/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
 
-    const quiz = await db
+    const [quiz] = await db
       .select()
       .from(dailyQuizzes)
       .where(eq(dailyQuizzes.id, id));
 
-    if (!quiz.length) {
-      return res.status(404).json({ message: "Quiz not found" });
+    if (!quiz) {
+      return next(new AppError(404, "Quiz not found"));
     }
 
-    return res.json(quiz[0]);
-  } catch (error: any) {
-    logger.error({ error }, "Error fetching daily quiz details");
-    return res.status(500).json({ message: "Server error", details: error?.message });
+    return res.json(quiz);
+  } catch (err) {
+    return next(err);
   }
 });
 
@@ -83,19 +81,16 @@ router.get("/daily-quizzes/:id", async (req, res) => {
 router.post(
   "/daily-quizzes",
   logAdminActivity("create_daily_quiz", "daily_quiz"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const auth = getAuth(req);
       const parseResult = dailyQuizPayloadSchema.safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({
-          message: "Invalid payload",
-          errors: parseResult.error.format(),
-        });
+        return next(new AppError(400, `Invalid payload: ${parseResult.error.issues.map(i => i.message).join("; ")}`));
       }
 
       const data = parseResult.data;
-      const result = await db
+      const [result] = await db
         .insert(dailyQuizzes)
         .values({
           title: data.title,
@@ -110,10 +105,9 @@ router.post(
         })
         .returning();
 
-      return res.status(201).json(result[0]);
-    } catch (error: any) {
-      logger.error({ error }, "Error creating daily quiz");
-      return res.status(500).json({ message: "Server error", details: error?.message });
+      return res.status(201).json(result);
+    } catch (err) {
+      return next(err);
     }
   },
 );
@@ -122,21 +116,18 @@ router.post(
 router.patch(
   "/daily-quizzes/:id",
   logAdminActivity("update_daily_quiz", "daily_quiz"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
-    const id = routeParamInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      const id = routeParamInt(req.params.id);
+      if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
 
-    const parseResult = dailyQuizPayloadSchema.partial().safeParse(req.body);
+      const parseResult = dailyQuizPayloadSchema.partial().safeParse(req.body);
       if (!parseResult.success) {
-        return res.status(400).json({
-          message: "Invalid payload",
-          errors: parseResult.error.format(),
-        });
+        return next(new AppError(400, `Invalid payload: ${parseResult.error.issues.map(i => i.message).join("; ")}`));
       }
 
       const data = parseResult.data;
-      const result = await db
+      const [result] = await db
         .update(dailyQuizzes)
         .set({
           ...data,
@@ -145,30 +136,28 @@ router.patch(
         .where(eq(dailyQuizzes.id, id))
         .returning();
 
-      if (!result.length) {
-        return res.status(404).json({ message: "Quiz not found" });
+      if (!result) {
+        return next(new AppError(404, "Quiz not found"));
       }
 
-      return res.json(result[0]);
-    } catch (error: any) {
-      logger.error({ error }, "Error patching daily quiz");
-      return res.status(500).json({ message: "Server error", details: error?.message });
+      return res.json(result);
+    } catch (err) {
+      return next(err);
     }
   },
 );
 
 // DELETE /api/admin/daily-quizzes/:id
-router.delete("/daily-quizzes/:id", async (req, res) => {
+router.delete("/daily-quizzes/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
-    if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
 
     await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));
 
     return res.json({ message: "Quiz deleted successfully" });
-  } catch (error: any) {
-    logger.error({ error }, "Error deleting daily quiz");
-    return res.status(500).json({ message: "Server error", details: error?.message });
+  } catch (err) {
+    return next(err);
   }
 });
 

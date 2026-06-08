@@ -1,18 +1,16 @@
 import { Router } from "express";
 import {
   questionsTable,
-  examsTable,
   studentAttemptsTable,
   quizzesTable,
 } from "@workspace/db";
 import { db } from "../../db";
-
-import { sql, gte, desc } from "drizzle-orm";
+import { sql, gte } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 
 const router = Router();
 
-router.get("/analytics", async (req, res) => {
+router.get("/analytics", async (req, res, next) => {
   const cacheKey = "admin:analytics:overview";
   const cached = cacheGet<object>(cacheKey);
   if (cached) {
@@ -24,9 +22,6 @@ router.get("/analytics", async (req, res) => {
     const [questionCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(questionsTable);
-    const [examCount] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(examsTable);
     const [quizCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(quizzesTable);
@@ -81,7 +76,6 @@ router.get("/analytics", async (req, res) => {
     const data = {
       overview: {
         totalQuestions: Number(questionCount.count),
-        totalExams: Number(examCount.count),
         totalQuizzes: Number(quizCount.count),
         totalAttempts: Number(attemptCount.count),
         activeStudents: Number(distinctUsers.count),
@@ -107,7 +101,7 @@ router.get("/analytics", async (req, res) => {
     cacheSet(cacheKey, data, CacheTTL.ANALYTICS);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch analytics" });
+    return next(err);
   }
 });
 

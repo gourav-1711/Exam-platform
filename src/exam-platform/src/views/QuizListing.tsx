@@ -10,7 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, Play, FileText, CheckCircle2 } from "lucide-react";
+import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { Clock, Play, FileText, CheckCircle2, ClipboardList } from "lucide-react";
 
 export default function QuizListing() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history">("ongoing");
@@ -49,8 +50,12 @@ export default function QuizListing() {
                   <Skeleton key={i} className="h-48 rounded-2xl" />
                 ))
             ) : quizzes?.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-muted-foreground">
-                No ongoing quizzes found. Check back tomorrow!
+              <div className="col-span-full">
+                <Empty>
+                  <ClipboardList className="w-10 h-10 text-gray-300" />
+                  <EmptyTitle>No ongoing quizzes</EmptyTitle>
+                  <EmptyDescription>There are no ongoing quizzes right now. Check back tomorrow for new quizzes!</EmptyDescription>
+                </Empty>
               </div>
             ) : (
               quizzes?.map((quiz: any) => (
@@ -69,8 +74,12 @@ export default function QuizListing() {
                   <Skeleton key={i} className="h-48 rounded-2xl" />
                 ))
             ) : quizzes?.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-muted-foreground">
-                You haven't attempted any quizzes yet.
+              <div className="col-span-full">
+                <Empty>
+                  <ClipboardList className="w-10 h-10 text-gray-300" />
+                  <EmptyTitle>No quiz history</EmptyTitle>
+                  <EmptyDescription>You haven't attempted any quizzes yet. Start one now!</EmptyDescription>
+                </Empty>
               </div>
             ) : (
               quizzes?.map((quiz: any) => (

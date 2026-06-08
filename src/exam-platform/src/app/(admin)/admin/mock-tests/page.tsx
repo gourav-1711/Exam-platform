@@ -50,6 +50,7 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { QuestionSelector } from "@/components/admin/QuestionSelector";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface MockTest {
@@ -124,6 +125,7 @@ export default function MockTestsAdminPage() {
   const [formNegMarking, setFormNegMarking] = useState(0.25);
   const [formFeatured, setFormFeatured] = useState(false);
   const [formError, setFormError] = useState("");
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
 
   // Sync form when sheet opens
   useEffect(() => {
@@ -150,10 +152,11 @@ export default function MockTestsAdminPage() {
   }, [sheetOpen, editingItem]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: tests = [], isLoading } = useQuery<MockTest[]>({
+  const { data: testsResponse, isLoading } = useQuery<{ data: MockTest[]; pagination: any }>({
     queryKey: ["admin", "mock-tests"],
-    queryFn: () => customFetch<MockTest[]>("/api/admin/mock-tests"),
+    queryFn: () => customFetch<{ data: MockTest[]; pagination: any }>("/api/admin/mock-tests"),
   });
+  const tests = testsResponse?.data ?? [];
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "mock-tests"] });
@@ -250,6 +253,7 @@ export default function MockTestsAdminPage() {
       maxMarks: Number(formMaxMarks),
       negativeMarking: Number(formNegMarking),
       isFeatured: formFeatured,
+      questionIds: selectedQuestionIds,
     };
 
     if (editingItem) {
@@ -572,7 +576,16 @@ export default function MockTestsAdminPage() {
                 </motion.div>
               </div>
 
-              <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-center gap-3 pt-2">
+              {/* Question Selector */}
+              <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-3 border-t pt-4">
+                <div>
+                  <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Select Questions</h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Choose questions for this test ({selectedQuestionIds.length} selected)</p>
+                </div>
+                <QuestionSelector selectedIds={selectedQuestionIds} onChange={setSelectedQuestionIds} />
+              </motion.div>
+
+              <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible" className="flex items-center gap-3">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input type="checkbox" checked={formFeatured} onChange={(e) => setFormFeatured(e.target.checked)} className="accent-indigo-600 w-4 h-4" />
                   <span className="text-xs font-semibold text-gray-700">Feature on top grid</span>

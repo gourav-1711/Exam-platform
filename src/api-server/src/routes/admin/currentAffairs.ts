@@ -5,6 +5,9 @@ import { desc, sql, and, ilike, eq } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+import { cacheFlushPattern } from "../../lib/cache";
+import { formatZodIssues } from "../../utils/validation";
+import { AppError } from "../../middleware/errorHandler";
 
 const currentAffairSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -16,7 +19,7 @@ const currentAffairSchema = z.object({
 const router = Router();
 
 // GET /admin/current-affairs
-router.get("/current-affairs", async (req, res): Promise<any> => {
+router.get("/current-affairs", async (req, res, next): Promise<any> => {
   try {
     const {
       page = "1",
@@ -34,7 +37,6 @@ router.get("/current-affairs", async (req, res): Promise<any> => {
       filter !== "all" ? eq(currentAffairsTable.category, filter) : undefined,
     );
 
-    // current_affairs schema might differ; prefer publishedAt for ordering.
     const orderCol: any = (currentAffairsTable as any).publishedAt;
 
     const [items, countRows] = await Promise.all([
@@ -64,17 +66,13 @@ router.get("/current-affairs", async (req, res): Promise<any> => {
       page: p,
       limit: l,
     });
-  } catch (err: any) {
-    return res
-      .status(500)
-      .json({
-        error: (err as any)?.message ?? "Failed to fetch current affairs",
-      });
+  } catch (err) {
+    return next(err);
   }
 });
 
 // GET /admin/current-affairs/:id
-router.get("/current-affairs/:id", async (req, res) => {
+router.get("/current-affairs/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
     const [article] = await db
@@ -82,7 +80,7 @@ router.get("/current-affairs/:id", async (req, res) => {
       .from(currentAffairsTable)
       .where(eq(currentAffairsTable.id, id));
 
-    if (!article) return res.status(404).json({ error: "Article not found" });
+    if (!article) return next(new AppError(404, "Article not found"));
 
     return res.json({
       ...article,
@@ -92,21 +90,19 @@ router.get("/current-affairs/:id", async (req, res) => {
       prevId: null,
       nextId: null,
     });
-  } catch (err: any) {
-    return res.status(500).json({
-      error: err?.message ?? "Failed to fetch current affairs article",
-    });
+  } catch (err) {
+    return next(err);
   }
 });
 
 router.post(
   "/current-affairs",
   logAdminActivity("create_current_affair", "current_affair"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const parsed = currentAffairSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, formatZodIssues(parsed.error.issues)));
       }
       const { title, summary, content, category } = parsed.data;
 
@@ -120,6 +116,7 @@ router.post(
         })
         .returning();
 
+      cacheFlushPattern("current-affairs:");
       return res.status(201).json({
         ...article,
         publishedAt: (article as any).publishedAt
@@ -128,10 +125,8 @@ router.post(
         prevId: null,
         nextId: null,
       });
-    } catch (err: any) {
-      return res
-        .status(500)
-        .json({ error: err?.message ?? "Failed to create current affair" });
+    } catch (err) {
+      return next(err);
     }
   },
 );
@@ -139,12 +134,12 @@ router.post(
 router.patch(
   "/current-affairs/:id",
   logAdminActivity("update_current_affair", "current_affair"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = currentAffairSchema.partial().safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
+        return next(new AppError(400, formatZodIssues(parsed.error.issues)));
       }
       const [updated] = await db
         .update(currentAffairsTable)
@@ -152,8 +147,9 @@ router.patch(
         .where(eq(currentAffairsTable.id, id))
         .returning();
 
-      if (!updated) return res.status(404).json({ error: "Article not found" });
+      if (!updated) return next(new AppError(404, "Article not found"));
 
+      cacheFlushPattern("current-affairs:");
       return res.json({
         ...updated,
         publishedAt: (updated as any).publishedAt
@@ -162,10 +158,8 @@ router.patch(
         prevId: null,
         nextId: null,
       });
-    } catch (err: any) {
-      return res
-        .status(500)
-        .json({ error: err?.message ?? "Failed to update current affair" });
+    } catch (err) {
+      return next(err);
     }
   },
 );
@@ -173,17 +167,16 @@ router.patch(
 router.delete(
   "/current-affairs/:id",
   logAdminActivity("delete_current_affair", "current_affair"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       await db
         .delete(currentAffairsTable)
         .where(eq(currentAffairsTable.id, id));
+      cacheFlushPattern("current-affairs:");
       return res.json({ success: true });
-    } catch (err: any) {
-      return res
-        .status(500)
-        .json({ error: err?.message ?? "Failed to delete current affair" });
+    } catch (err) {
+      return next(err);
     }
   },
 );

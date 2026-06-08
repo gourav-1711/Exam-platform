@@ -5,6 +5,8 @@ import { supportTicketsTable, supportMessagesTable } from "@workspace/db";
 import { eq, desc, and, isNull, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
 import { routeParamInt } from "../lib/routeParams";
+import { sanitizeHtml } from "../utils/sanitize";
+import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
@@ -20,8 +22,8 @@ const SendMessageSchema = z.object({
 // All user support routes require auth
 router.use(requireAuth);
 
-// ── List user's own tickets (conversations) ──────────────────────────────────
-router.get("/support/tickets", async (req, res) => {
+// ── List user's own tickets ──────────────────────────────────────────────────
+router.get("/support/tickets", async (req, res, next) => {
   try {
     const userId = req.userId!;
 
@@ -43,7 +45,6 @@ router.get("/support/tickets", async (req, res) => {
       .where(
         and(
           eq(supportTicketsTable.userId, userId),
-          // Admin can see all; user sees only non-deleted
           isNull(supportTicketsTable.userDeletedAt),
         ),
       )
@@ -58,12 +59,12 @@ router.get("/support/tickets", async (req, res) => {
 
     res.json(serialized);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch tickets" });
+    return next(err);
   }
 });
 
 // ── Get unread reply count for user ─────────────────────────────────────────
-router.get("/support/unread-count", async (req, res) => {
+router.get("/support/unread-count", async (req, res, next) => {
   try {
     const userId = req.userId!;
 
@@ -80,12 +81,12 @@ router.get("/support/unread-count", async (req, res) => {
 
     res.json({ unreadCount: Number(result?.count ?? 0) });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch unread count" });
+    return next(err);
   }
 });
 
 // ── Get single ticket with messages ─────────────────────────────────────────
-router.get("/support/tickets/:id", async (req, res) => {
+router.get("/support/tickets/:id", async (req, res, next) => {
   try {
     const userId = req.userId!;
     const ticketId = routeParamInt(req.params.id);
@@ -102,8 +103,7 @@ router.get("/support/tickets/:id", async (req, res) => {
       );
 
     if (!ticket) {
-      res.status(404).json({ error: "Ticket not found" });
-      return;
+      return next(new AppError(404, "Ticket not found"));
     }
 
     const messages = await db
@@ -112,7 +112,6 @@ router.get("/support/tickets/:id", async (req, res) => {
       .where(eq(supportMessagesTable.ticketId, ticketId))
       .orderBy(supportMessagesTable.createdAt);
 
-    // Mark as read by user when they view it
     await db
       .update(supportTicketsTable)
       .set({ isReadByUser: true })
@@ -131,41 +130,41 @@ router.get("/support/tickets/:id", async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch ticket" });
+    return next(err);
   }
 });
 
-// ── Create a new ticket (conversation) ───────────────────────────────────────
-router.post("/support/tickets", async (req, res) => {
+// ── Create a new ticket ─────────────────────────────────────────────────────
+router.post("/support/tickets", async (req, res, next) => {
   try {
     const userId = req.userId!;
     const parsed = CreateTicketSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
-      return;
+      return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
     }
 
     const { title, message } = parsed.data;
+    const sanitizedTitle = sanitizeHtml(title);
+    const sanitizedMessage = sanitizeHtml(message);
     const now = new Date();
 
     const [ticket] = await db
       .insert(supportTicketsTable)
       .values({
         userId,
-        title,
+        title: sanitizedTitle,
         status: "open",
         isReadByUser: true,
-        isReadByAdmin: false, // Admin hasn't seen it yet
+        isReadByAdmin: false,
         lastMessageAt: now,
         createdAt: now,
         updatedAt: now,
       })
       .returning();
 
-    // Add the initial message
     await db.insert(supportMessagesTable).values({
       ticketId: ticket.id,
-      message,
+      message: sanitizedMessage,
       sender: "user",
     });
 
@@ -176,23 +175,23 @@ router.post("/support/tickets", async (req, res) => {
       lastMessageAt: ticket.lastMessageAt ? ticket.lastMessageAt.toISOString() : null,
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to create ticket" });
+    return next(err);
   }
 });
 
 // ── Send a message in an existing ticket ────────────────────────────────────
-router.post("/support/tickets/:id/messages", async (req, res) => {
+router.post("/support/tickets/:id/messages", async (req, res, next) => {
   try {
     const userId = req.userId!;
     const ticketId = routeParamInt(req.params.id);
 
     const parsed = SendMessageSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
-      return;
+      return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
     }
 
-    // Verify ownership
+    const sanitizedMessage = sanitizeHtml(parsed.data.message);
+
     const [ticket] = await db
       .select()
       .from(supportTicketsTable)
@@ -205,8 +204,7 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
       );
 
     if (!ticket) {
-      res.status(404).json({ error: "Ticket not found" });
-      return;
+      return next(new AppError(404, "Ticket not found"));
     }
 
     const now = new Date();
@@ -214,12 +212,11 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
       .insert(supportMessagesTable)
       .values({
         ticketId,
-        message: parsed.data.message,
+        message: sanitizedMessage,
         sender: "user",
       })
       .returning();
 
-    // Update ticket: new message, mark as unread by admin
     await db
       .update(supportTicketsTable)
       .set({
@@ -236,12 +233,12 @@ router.post("/support/tickets/:id/messages", async (req, res) => {
       createdAt: msg.createdAt.toISOString(),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to send message" });
+    return next(err);
   }
 });
 
-// ── Soft-delete a ticket (user hides it, admin still sees) ──────────────────
-router.delete("/support/tickets/:id", async (req, res) => {
+// ── Soft-delete a ticket ───────────────────────────────────────────────────
+router.delete("/support/tickets/:id", async (req, res, next) => {
   try {
     const userId = req.userId!;
     const ticketId = routeParamInt(req.params.id);
@@ -257,11 +254,9 @@ router.delete("/support/tickets/:id", async (req, res) => {
       );
 
     if (!ticket) {
-      res.status(404).json({ error: "Ticket not found" });
-      return;
+      return next(new AppError(404, "Ticket not found"));
     }
 
-    // Soft delete — admin still sees it
     await db
       .update(supportTicketsTable)
       .set({ userDeletedAt: new Date() })
@@ -269,7 +264,7 @@ router.delete("/support/tickets/:id", async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: "Failed to delete ticket" });
+    return next(err);
   }
 });
 

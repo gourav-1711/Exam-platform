@@ -36,6 +36,7 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch, useListSubjects } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { QuestionSelector } from "@/components/admin/QuestionSelector";
 import { CLASSES, MEDIUMS, EXAM_SET_TYPES } from "@/lib/data";
 
 interface ExamSet {
@@ -79,7 +80,7 @@ export default function ExamSetsAdminPage() {
   const [formSubjectId, setFormSubjectId] = useState("");
   const [formClassNum, setFormClassNum] = useState("");
   const [formMedium, setFormMedium] = useState("");
-  const [formQuestionIds, setFormQuestionIds] = useState("");
+  const [formQuestionIds, setFormQuestionIds] = useState<number[]>([]);
 
   // Filters & Pagination
   const [page, setPage] = useState(1);
@@ -161,7 +162,7 @@ export default function ExamSetsAdminPage() {
     setFormSubjectId("");
     setFormClassNum("");
     setFormMedium("");
-    setFormQuestionIds("");
+    setFormQuestionIds([]);
   };
 
   const openCreate = () => {
@@ -178,7 +179,7 @@ export default function ExamSetsAdminPage() {
     setFormSubjectId(item.subjectId ? String(item.subjectId) : "");
     setFormClassNum(item.classNum ? String(item.classNum) : "");
     setFormMedium(item.medium ?? "");
-    setFormQuestionIds(item.questionIds.join(", "));
+    setFormQuestionIds(item.questionIds);
     setSheetOpen(true);
   };
 
@@ -189,10 +190,7 @@ export default function ExamSetsAdminPage() {
       return;
     }
 
-    const questionIds = formQuestionIds
-      .split(",")
-      .map((s) => parseInt(s.trim()))
-      .filter((n) => !isNaN(n));
+    const questionIds = formQuestionIds;
 
     const payload = {
       title: formTitle.trim(),
@@ -515,20 +513,14 @@ export default function ExamSetsAdminPage() {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Question IDs
-              </Label>
-              <Input
-                value={formQuestionIds}
-                onChange={(e) => setFormQuestionIds(e.target.value)}
-                placeholder="e.g. 1, 2, 3, 4, 5"
-                className="rounded-xl h-10"
-              />
-              <p className="text-xs text-muted-foreground">
-                Comma-separated question IDs
-              </p>
-            </div>
+            {/* Question Selector */}
+            <motion.div className="space-y-3 pt-2 border-t">
+              <div>
+                <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wide">Select Questions</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Choose questions for this set ({formQuestionIds.length} selected)</p>
+              </div>
+              <QuestionSelector selectedIds={formQuestionIds} onChange={setFormQuestionIds} />
+            </motion.div>
 
             <div className="flex gap-3 pt-2">
               <Button

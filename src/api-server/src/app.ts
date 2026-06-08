@@ -6,6 +6,7 @@ import { env } from "./config/env";
 import { globalRateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
 import routes from "./routes";
+import webhooksRouter from "./routes/webhooks";
 
 export function createApp() {
   const app = express();
@@ -24,7 +25,11 @@ export function createApp() {
     }),
   );
 
-  // 3. Body parsing
+  // 3. Webhook route — must be BEFORE body parsers to get raw body
+  // Only apply express.raw() to the specific webhook path, not all /api routes
+  app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
+
+  // 4. Body parsing
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
 

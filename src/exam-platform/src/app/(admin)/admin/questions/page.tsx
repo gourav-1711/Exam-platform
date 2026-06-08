@@ -14,10 +14,9 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  FileSpreadsheet,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import Papa from "papaparse";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +54,7 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch, useListSubjects } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { CsvImportReview } from "@/components/admin/CsvImportReview";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Question {
@@ -152,8 +152,7 @@ export default function QuestionsAdminPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // CSV import
-  const [importing, setImporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvImportRef = useRef<HTMLInputElement>(null);
 
   // Subjects
   const { data: pyqSubjects = [] } = useListSubjects();
@@ -407,42 +406,7 @@ export default function QuestionsAdminPage() {
     }
   };
 
-  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImporting(true);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        setImporting(false);
-        const mapped = results.data.map((row: any) => ({
-          text: row.text || row.Question || "",
-          type: row.type || row.Category || "quiz",
-          optionA: row.optionA || row.option_a || row.OptionA || "",
-          optionB: row.optionB || row.option_b || row.OptionB || "",
-          optionC: row.optionC || row.option_c || row.OptionC || "",
-          optionD: row.optionD || row.option_d || row.OptionD || "",
-          correctIndex: parseInt(row.correctIndex || row.correct_index || row.CorrectIndex || "0", 10),
-          explanation: row.explanation || row.Explanation || "",
-          subject: row.subject || row.Subject || "",
-        }));
-
-        if (mapped.length === 0) {
-          toast({ title: "Empty file", description: "No valid rows found in CSV", variant: "destructive" });
-          return;
-        }
-
-        bulkUploadMutation.mutate(mapped);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      },
-      error: () => {
-        setImporting(false);
-        toast({ title: "Parsing failed", description: "Could not parse CSV file", variant: "destructive" });
-      },
-    });
-  };
+  // CSV import is now handled by CsvImportReview component
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const diffColor: Record<string, string> = {
@@ -501,24 +465,10 @@ export default function QuestionsAdminPage() {
               )}
             </AnimatePresence>
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept=".csv"
-              onChange={handleCsvImport}
-              className="hidden"
+            <CsvImportReview
+              invalidateKeys={[["admin", "questions"]]}
+              triggerRef={csvImportRef}
             />
-
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={importing || bulkUploadMutation.isPending}
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded-xl h-9 gap-1.5"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              {importing ? "Parsing..." : bulkUploadMutation.isPending ? "Uploading..." : "Import CSV"}
-            </Button>
 
             <motion.div
               whileHover={{ scale: 1.02 }}
@@ -617,13 +567,9 @@ export default function QuestionsAdminPage() {
                     >
                       <Plus className="w-4 h-4" /> Add one
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="rounded-xl gap-1.5"
-                    >
-                      <Upload className="w-4 h-4" /> Import CSV
-                    </Button>
+                    <CsvImportReview
+                      invalidateKeys={[["admin", "questions"]]}
+                    />
                   </div>
                 </motion.div>
               </Empty>

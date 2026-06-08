@@ -2,21 +2,25 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Users, ChevronLeft, ChevronRight, TrendingUp, HelpCircle, Calendar, CheckCircle2, Clock } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, TrendingUp, HelpCircle, Calendar, CheckCircle2, Clock, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { customFetch } from "@/lib/api";
 
 interface StudentStat {
   userId: string;
+  displayName: string;
+  email: string;
   totalAttempts: number;
   avgScore: number;
   totalScore: number;
   passedCount: number;
   lastAttemptAt: string | null;
+  joinedAt: string;
 }
 
 interface StudentAttempt {
@@ -30,54 +34,51 @@ interface StudentAttempt {
   attemptedAt: string;
 }
 
-async function fetchStudents(page: number): Promise<{
-  data: StudentStat[];
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-    limit: number;
-  };
-}> {
-  return customFetch<{
-    data: StudentStat[];
-    pagination: {
-      page: number;
-      total: number;
-      totalPages: number;
-      limit: number;
-    };
-  }>(`/api/admin/students?page=${page}&limit=20`);
-}
-
-async function fetchStudentAttempts(userId: string): Promise<StudentAttempt[]> {
-  return customFetch<StudentAttempt[]>(`/api/admin/students/${userId}/attempts`);
-}
-
 export default function StudentsPage() {
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "students", page],
-    queryFn: () => fetchStudents(page),
+    queryKey: ["admin", "students", page, searchQuery],
+    queryFn: () =>
+      customFetch<{
+        data: StudentStat[];
+        pagination: {
+          page: number;
+          total: number;
+          totalPages: number;
+          limit: number;
+        };
+      }>(`/api/admin/students?page=${page}&limit=20&search=${encodeURIComponent(searchQuery)}`),
     staleTime: 60 * 1000,
   });
 
   const { data: attempts = [], isLoading: loadingAttempts } = useQuery({
     queryKey: ["admin", "students", "attempts", selectedUserId],
-    queryFn: () => fetchStudentAttempts(selectedUserId!),
+    queryFn: () => customFetch<StudentAttempt[]>(`/api/admin/students/${selectedUserId}/attempts`),
     enabled: !!selectedUserId,
     staleTime: 30 * 1000,
   });
 
   return (
     <div className="p-6 md:p-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Students</h1>
-        <p className="text-gray-500 text-sm mt-0.5">
-          {data?.pagination.total ?? "–"} active students
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Students</h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {data?.pagination.total ?? "–"} registered students
+          </p>
+        </div>
+        <div className="relative max-w-xs w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name..."
+            className="pl-9 h-9 rounded-xl text-sm"
+          />
+        </div>
       </div>
 
       {isLoading ? (
@@ -96,9 +97,9 @@ export default function StudentsPage() {
               <CardContent className="py-16 text-center">
                 <Empty>
                   <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <EmptyTitle>No student attempts yet</EmptyTitle>
+                  <EmptyTitle>No registered students yet</EmptyTitle>
                   <EmptyDescription>
-                    There are no student attempts recorded yet.
+                    There are no registered students yet.
                   </EmptyDescription>
                 </Empty>
               </CardContent>
@@ -110,7 +111,7 @@ export default function StudentsPage() {
                   <thead>
                     <tr className="bg-gray-50 text-left">
                       <th className="px-6 py-3 font-semibold text-gray-600">
-                        User ID
+                        Student
                       </th>
                       <th className="px-6 py-3 font-semibold text-gray-600">
                         Attempts
@@ -119,10 +120,13 @@ export default function StudentsPage() {
                         Avg Score
                       </th>
                       <th className="px-6 py-3 font-semibold text-gray-600">
-                        Total Score
+                        Total
                       </th>
                       <th className="px-6 py-3 font-semibold text-gray-600">
                         Passed
+                      </th>
+                      <th className="px-6 py-3 font-semibold text-gray-600">
+                        Joined
                       </th>
                       <th className="px-6 py-3 font-semibold text-gray-600">
                         Last Active
@@ -138,12 +142,17 @@ export default function StudentsPage() {
                       >
                         <td className="px-6 py-3.5">
                           <div className="flex items-center gap-3">
-                            <div className="h-7 w-7 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-xs flex-shrink-0">
-                              {i + 1}
+                            <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-xs flex-shrink-0">
+                              {(s.displayName || s.userId).slice(0, 1).toUpperCase()}
                             </div>
-                            <span className="font-mono text-xs text-gray-600 truncate max-w-[150px]">
-                              {s.userId}
-                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate max-w-[150px]">
+                                {s.displayName || "Learner"}
+                              </p>
+                              <p className="text-[10px] font-mono text-gray-400 truncate max-w-[150px]">
+                                {s.email || s.userId}
+                              </p>
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-3.5 font-medium text-gray-900">
@@ -165,6 +174,9 @@ export default function StudentsPage() {
                           >
                             {s.passedCount}
                           </Badge>
+                        </td>
+                        <td className="px-6 py-3.5 text-gray-400 text-xs">
+                          {new Date(s.joinedAt).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-3.5 text-gray-400 text-xs">
                           {s.lastAttemptAt

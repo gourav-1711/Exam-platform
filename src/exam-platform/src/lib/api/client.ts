@@ -91,8 +91,20 @@ export async function apiFetch<T>(
   if (!res.ok) {
     const body = (await res
       .json()
-      .catch((): ApiErrorBody => ({}))) as ApiErrorBody;
-    const message = body.error ?? body.message ?? res.statusText;
+      .catch((): ApiErrorBody & { details?: Array<{ path: (string | number)[]; message: string }> } => ({}))) as ApiErrorBody & {
+      details?: Array<{ path: (string | number)[]; message: string }>;
+    };
+    let message = body.error ?? body.message ?? res.statusText;
+
+    // Append field-level validation details for better UX
+    if (body.details && Array.isArray(body.details) && body.details.length > 0) {
+      const fieldErrors = body.details
+        .map((d) => `${d.path?.join(".") || "?"}: ${d.message}`)
+        .slice(0, 3)
+        .join("; ");
+      message = `${message} — ${fieldErrors}`;
+    }
+
     throw new ApiError(res.status, message, body);
   }
 

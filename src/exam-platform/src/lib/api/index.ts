@@ -100,7 +100,6 @@ export type AdminActivityLog = {
 
 export type AdminDashboardStats = {
   totalQuestions: number;
-  totalExams: number;
   totalAttempts: number;
   passedAttempts: number;
   passPercentage: number;

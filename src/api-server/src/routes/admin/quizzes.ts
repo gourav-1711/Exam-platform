@@ -1,50 +1,79 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { quizzesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, like, and, sql } from "drizzle-orm";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
+import { cacheFlushPattern } from "../../lib/cache";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
-router.get("/quizzes", async (req, res): Promise<any> => {
+// GET /api/admin/quizzes — list with pagination and search
+router.get("/quizzes", async (req, res, next): Promise<any> => {
   try {
+    const { page = "1", limit = "20", search, status } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(page));
+    const limitNum = Math.min(100, parseInt(limit));
+    const offset = (pageNum - 1) * limitNum;
+
+    const conditions: any[] = [];
+    if (search) conditions.push(like(quizzesTable.title, `%${search}%`));
+    if (status) conditions.push(eq(quizzesTable.status, status));
+
+    const where = conditions.length ? and(...conditions) : undefined;
+
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(quizzesTable)
+      .where(where);
+
     const quizzes = await db
       .select()
       .from(quizzesTable)
-      .orderBy(desc(quizzesTable.createdAt));
-    return res.json(
-      quizzes.map((q) => ({
+      .where(where)
+      .orderBy(desc(quizzesTable.createdAt))
+      .limit(limitNum)
+      .offset(offset);
+
+    return res.json({
+      data: quizzes.map((q) => ({
         ...q,
         createdAt: q.createdAt.toISOString(),
       })),
-    );
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: Number(countRow?.count ?? 0),
+        totalPages: Math.ceil(Number(countRow?.count ?? 0) / limitNum),
+      },
+    });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch quizzes" });
+    return next(err);
   }
 });
 
-router.get("/quizzes/:id", async (req, res): Promise<any> => {
+router.get("/quizzes/:id", async (req, res, next): Promise<any> => {
   try {
     const id = routeParamInt(req.params.id);
     const [quiz] = await db
       .select()
       .from(quizzesTable)
       .where(eq(quizzesTable.id, id));
-    if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+    if (!quiz) return next(new AppError(404, "Quiz not found"));
     return res.json({
       ...quiz,
       createdAt: quiz.createdAt.toISOString(),
     });
   } catch (err) {
-    return res.status(500).json({ error: "Failed to fetch quiz" });
+    return next(err);
   }
 });
 
 router.post(
   "/quizzes",
   logAdminActivity("create_quiz", "quiz"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const {
         title,
@@ -56,9 +85,7 @@ router.post(
         instructions,
       } = req.body;
       if (!title || !subject) {
-        return res
-          .status(400)
-          .json({ error: "title and subject are required" });
+        return next(new AppError(400, "title and subject are required"));
       }
 
       const [quiz] = await db
@@ -77,12 +104,13 @@ router.post(
         })
         .returning();
 
+      cacheFlushPattern("quizzes:");
       return res.status(201).json({
         ...quiz,
         createdAt: quiz.createdAt.toISOString(),
       });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to create quiz" });
+      return next(err);
     }
   },
 );
@@ -90,7 +118,7 @@ router.post(
 router.patch(
   "/quizzes/:id",
   logAdminActivity("update_quiz", "quiz"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       const [updated] = await db
@@ -101,14 +129,15 @@ router.patch(
         .where(eq(quizzesTable.id, id))
         .returning();
 
-      if (!updated) return res.status(404).json({ error: "Quiz not found" });
+      if (!updated) return next(new AppError(404, "Quiz not found"));
 
+      cacheFlushPattern("quizzes:");
       return res.json({
         ...updated,
         createdAt: updated.createdAt.toISOString(),
       });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to update quiz" });
+      return next(err);
     }
   },
 );
@@ -116,13 +145,14 @@ router.patch(
 router.delete(
   "/quizzes/:id",
   logAdminActivity("delete_quiz", "quiz"),
-  async (req, res): Promise<any> => {
+  async (req, res, next): Promise<any> => {
     try {
       const id = routeParamInt(req.params.id);
       await db.delete(quizzesTable).where(eq(quizzesTable.id, id));
+      cacheFlushPattern("quizzes:");
       return res.json({ success: true });
     } catch (err) {
-      return res.status(500).json({ error: "Failed to delete quiz" });
+      return next(err);
     }
   },
 );

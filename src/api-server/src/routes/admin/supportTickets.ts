@@ -5,6 +5,9 @@ import { eq, like, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParam, routeParamInt } from "../../lib/routeParams";
+import { sanitizeHtml } from "../../utils/sanitize";
+import { formatZodIssues } from "../../utils/validation";
+import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
 
@@ -13,7 +16,7 @@ const ReplySchema = z.object({
 });
 
 // GET /admin/support-tickets — List all tickets (including user-deleted)
-router.get("/support-tickets", async (req, res) => {
+router.get("/support-tickets", async (req, res, next) => {
   try {
     const _page = routeParam(req.query.page as string | string[]) || "1";
     const _limit = routeParam(req.query.limit as string | string[]) || "20";
@@ -31,13 +34,11 @@ router.get("/support-tickets", async (req, res) => {
 
     const where = conditions.length ? and(...conditions) : undefined;
 
-    // Count
     const [countRow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(supportTicketsTable)
       .where(where);
 
-    // Fetch tickets with unread count
     const tickets = await db
       .select({
         id: supportTicketsTable.id,
@@ -67,7 +68,6 @@ router.get("/support-tickets", async (req, res) => {
       .limit(limitNum)
       .offset(offset);
 
-    // Mark all as read by admin when listing
     if (tickets.length > 0) {
       const unreadIds = tickets.filter((t) => !t.isReadByAdmin).map((t) => t.id);
       if (unreadIds.length > 0) {
@@ -91,12 +91,12 @@ router.get("/support-tickets", async (req, res) => {
       totalPages: Math.ceil(Number(countRow?.count ?? 0) / limitNum),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch support tickets" });
+    return next(err);
   }
 });
 
-// GET /admin/support-tickets/unread-count — Get count of unread tickets for admin
-router.get("/support-tickets/unread-count", async (req, res) => {
+// GET /admin/support-tickets/unread-count
+router.get("/support-tickets/unread-count", async (req, res, next) => {
   try {
     const [result] = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -105,12 +105,12 @@ router.get("/support-tickets/unread-count", async (req, res) => {
 
     res.json({ unreadCount: Number(result?.count ?? 0) });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch unread count" });
+    return next(err);
   }
 });
 
-// GET /admin/support-tickets/:id — Get ticket detail with messages
-router.get("/support-tickets/:id", async (req, res) => {
+// GET /admin/support-tickets/:id
+router.get("/support-tickets/:id", async (req, res, next) => {
   try {
     const id = routeParamInt(req.params.id);
     const [ticket] = await db
@@ -119,8 +119,7 @@ router.get("/support-tickets/:id", async (req, res) => {
       .where(eq(supportTicketsTable.id, id));
 
     if (!ticket) {
-      res.status(404).json({ error: "Ticket not found" });
-      return;
+      return next(new AppError(404, "Ticket not found"));
     }
 
     const messages = await db
@@ -143,21 +142,20 @@ router.get("/support-tickets/:id", async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch support ticket details" });
+    return next(err);
   }
 });
 
-// POST /admin/support-tickets/:id/replies — Admin replies to a ticket
+// POST /admin/support-tickets/:id/replies
 router.post(
   "/support-tickets/:id/replies",
   logAdminActivity("reply_support_ticket", "support_ticket"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       const parsed = ReplySchema.safeParse(req.body);
       if (!parsed.success) {
-        res.status(400).json({ error: "Validation failed", details: parsed.error.issues });
-        return;
+        return next(new AppError(400, formatZodIssues(parsed.error.issues)));
       }
 
       const [ticket] = await db
@@ -166,21 +164,20 @@ router.post(
         .where(eq(supportTicketsTable.id, id));
 
       if (!ticket) {
-        res.status(404).json({ error: "Ticket not found" });
-        return;
+        return next(new AppError(404, "Ticket not found"));
       }
 
       const now = new Date();
+      const sanitizedReply = sanitizeHtml(parsed.data.message);
       const [reply] = await db
         .insert(supportMessagesTable)
         .values({
           ticketId: id,
-          message: parsed.data.message,
+          message: sanitizedReply,
           sender: "support",
         })
         .returning();
 
-      // Mark as unread by user, reset user read status
       await db
         .update(supportTicketsTable)
         .set({
@@ -197,22 +194,21 @@ router.post(
         createdAt: reply.createdAt.toISOString(),
       });
     } catch (err) {
-      res.status(500).json({ error: "Failed to reply to support ticket" });
+      return next(err);
     }
   },
 );
 
-// PATCH /admin/support-tickets/:id/status — Update ticket status
+// PATCH /admin/support-tickets/:id/status
 router.patch(
   "/support-tickets/:id/status",
   logAdminActivity("update_support_ticket_status", "support_ticket"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       const { status } = req.body;
       if (!status) {
-        res.status(400).json({ error: "Status is required" });
-        return;
+        return next(new AppError(400, "Status is required"));
       }
 
       const [updated] = await db
@@ -228,16 +224,16 @@ router.patch(
         lastMessageAt: updated.lastMessageAt ? updated.lastMessageAt.toISOString() : null,
       });
     } catch (err) {
-      res.status(500).json({ error: "Failed to update ticket status" });
+      return next(err);
     }
   },
 );
 
-// PATCH /admin/support-tickets/:id/assign — Assign ticket to admin
+// PATCH /admin/support-tickets/:id/assign
 router.patch(
   "/support-tickets/:id/assign",
   logAdminActivity("assign_support_ticket", "support_ticket"),
-  async (req, res) => {
+  async (req, res, next) => {
     try {
       const id = routeParamInt(req.params.id);
       const { assignedTo } = req.body;
@@ -254,7 +250,7 @@ router.patch(
         updatedAt: updated.updatedAt.toISOString(),
       });
     } catch (err) {
-      res.status(500).json({ error: "Failed to assign ticket" });
+      return next(err);
     }
   },
 );

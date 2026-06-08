@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Bell, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,11 +21,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import Link from "next/link";
 import { useAdminSupportUnreadCount } from "@/lib/api";
+import { NAV } from "./AdminSidebar";
 
 export function AdminHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: unreadData, isLoading } = useAdminSupportUnreadCount({
     query: {
@@ -44,10 +56,22 @@ export function AdminHeader() {
       ? "bg-emerald-500/10 text-emerald-300"
       : "bg-amber-500/10 text-amber-200";
 
+  // Keyboard shortcut
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
       <div className="h-16 px-6 flex items-center justify-between gap-4">
-        <div className="min-w-0">
+        <div className="min-w-0 flex items-center gap-6">
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumb.map((b, idx) => {
@@ -71,6 +95,18 @@ export function AdminHeader() {
               })}
             </BreadcrumbList>
           </Breadcrumb>
+
+          {/* Search Bar */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground bg-muted/50 border border-border rounded-lg hover:bg-muted hover:text-foreground transition-colors min-w-[200px]"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Search pages...</span>
+            <kbd className="ml-auto text-[10px] font-mono bg-background border border-border px-1.5 py-0.5 rounded">
+              ⌘K
+            </kbd>
+          </button>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -131,6 +167,29 @@ export function AdminHeader() {
           {/* <UserButton  /> */}
         </div>
       </div>
+
+      {/* Search Dialog */}
+      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <CommandInput placeholder="Search admin pages..." />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Admin Pages">
+            {NAV.map((item) => (
+              <CommandItem
+                key={item.href}
+                value={item.label}
+                onSelect={() => {
+                  setSearchOpen(false);
+                  router.push(item.href);
+                }}
+              >
+                <item.icon className="mr-2 h-4 w-4" />
+                <span>{item.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
     </header>
   );
 }

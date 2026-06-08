@@ -1,7 +1,12 @@
 import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
-import { questionsTable } from "./quizzes";
+import { questionsTable } from "./questions";
+import { examSetsTable } from "./exams";
+import { mockTestsTable } from "./mockTests";
+import { syllabusTable } from "./syllabus";
+import { studyNotesTable } from "./studyNotes";
+import { previousYearPapersTable } from "./pyp";
 
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
@@ -15,6 +20,11 @@ export const subjects = pgTable("subjects", {
 
 export const subjectsRelations = relations(subjects, ({ many }) => ({
   questions: many(questionsTable),
+  examSets: many(examSetsTable),
+  mockTests: many(mockTestsTable),
+  syllabus: many(syllabusTable),
+  studyNotes: many(studyNotesTable),
+  previousYearPapers: many(previousYearPapersTable),
 }));
 
 export const insertSubjectSchema = createInsertSchema(subjects).omit({ id: true, createdAt: true, updatedAt: true });
