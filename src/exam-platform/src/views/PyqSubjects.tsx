@@ -40,7 +40,7 @@ export default function PyqSubjects() {
           </div>
         ) : (
           subjects?.map((subject) => (
-            <Link key={subject.id} href={`/pyq/${subject.id}`}>
+            <Link key={subject.id} href={`/pyq/${(subject as any).slug ?? subject.id}`}>
               <Card className="card-hover border-border/50 rounded-2xl bg-card cursor-pointer group">
                 <CardContent className="p-6 flex flex-col items-center text-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">

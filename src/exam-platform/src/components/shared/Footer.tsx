@@ -122,7 +122,8 @@ export default function Footer() {
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.15 }}
-      className="mt-4 bg-white  overflow-hidden w-full"
+      className="mt-4 bg-white overflow-hidden w-full"
+      style={{ overflowX: 'clip' }}
     >
       <div className="p-5">
         {/* ── Brand ──────────────────────────────────────────────────────────── */}

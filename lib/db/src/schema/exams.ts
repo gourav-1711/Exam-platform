@@ -15,6 +15,7 @@ import { subjects } from "./subjects";
 export const examSetsTable = pgTable("exam_sets", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
   type: text("type").notNull().default("pyq"),
   subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),

@@ -4,6 +4,7 @@ import { createInsertSchema } from "drizzle-zod";
 export const currentAffairsTable = pgTable("current_affairs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
   summary: text("summary").notNull(),
   content: text("content").notNull(),
   category: text("category").notNull().default("General"),

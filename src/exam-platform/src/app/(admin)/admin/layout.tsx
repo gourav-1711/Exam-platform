@@ -15,10 +15,10 @@ export default function AdminLayout({
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Access Denied</h1>
-          <p className="text-slate-400">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-500">
             You do not have permission to access the admin panel.
           </p>
         </div>
@@ -27,11 +27,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       <AdminSidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <AdminHeader />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">{children}</main>
       </div>
     </div>
   );

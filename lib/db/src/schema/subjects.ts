@@ -11,6 +11,7 @@ import { previousYearPapersTable } from "./pyp";
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   examCategory: text("exam_category").default("General"),
   description: text("description"),
   isActive: boolean("is_active").notNull().default(true),

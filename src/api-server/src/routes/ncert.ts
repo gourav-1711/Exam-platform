@@ -49,7 +49,14 @@ router.get("/ncert-mcq/questions", async (req, res, next) => {
     if (classNum) setConditions.push(eq(examSetsTable.classNum, parseInt(classNum)));
     if (subject) setConditions.push(eq(examSetsTable.title, subject));
     if (medium) setConditions.push(eq(examSetsTable.medium, medium));
-    if (setId) setConditions.push(eq(examSetsTable.id, parseInt(setId)));
+    if (setId) {
+      const setIdNum = parseInt(setId);
+      setConditions.push(
+        Number.isFinite(setIdNum) && String(setIdNum) === setId
+          ? eq(examSetsTable.id, setIdNum)
+          : eq(examSetsTable.slug, setId),
+      );
+    }
 
     const examSets = await db
       .select()

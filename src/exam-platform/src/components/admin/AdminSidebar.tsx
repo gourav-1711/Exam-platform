@@ -61,14 +61,14 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-white text-gray-900 transition-all duration-300 sticky top-0 border-r flex-shrink-0 z-40",
-        collapsed ? "w-16" : "w-60",
+        "flex flex-col h-screen bg-white text-gray-900 transition-all duration-300 sticky top-0 border-r flex-shrink-0 z-40",            collapsed ? "w-16" : "w-60",
       )}
+      style={{ borderRight: '1px solid #e2e8f0' }}
     >
-      <div className="flex items-center justify-between px-4 h-16 border-b flex-shrink-0">
+      <div className="flex items-center justify-between px-4 h-16 border-b border-gray-200 flex-shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm shadow-indigo-100">
+            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm shadow-violet-200">
               MK
             </div>
             <div className="min-w-0 flex-1 leading-tight">
@@ -77,8 +77,8 @@ export function AdminSidebar() {
             </div>
           </div>
         )}
-        {collapsed && (
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 mx-auto">
+        {          collapsed && (
+          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white font-extrabold text-xs shrink-0 mx-auto">
             MK
           </div>
         )}
@@ -108,7 +108,7 @@ export function AdminSidebar() {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors cursor-pointer",
                 isActive
-                  ? "bg-indigo-50 text-indigo-700 font-semibold"
+                  ? "bg-violet-50 text-violet-700 font-semibold"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
               )}
               title={collapsed ? label : undefined}

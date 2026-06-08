@@ -51,11 +51,11 @@ export default function MockTestDetail() {
                 <p className="text-xs text-muted-foreground">{label}</p>
               </div>
             ))}
-          </div>
-
-          <Button size="lg" className="w-full rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2">
-            <Play className="w-5 h-5" /> Start Mock Test
-          </Button>
+          </div>                  <Link href={`/quiz?mockTestId=${test.id}`}>
+                    <Button size="lg" className="w-full rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2">
+                      <Play className="w-5 h-5" /> Start Mock Test
+                    </Button>
+                  </Link>
         </CardContent>
       </Card>
     </PageTransition>

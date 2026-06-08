@@ -7,6 +7,16 @@ import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 
+/** Generate a URL-friendly slug from a string */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
+}
+
 const subjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
   examCategory: z.string().default("General"),
@@ -23,12 +33,12 @@ router.get("/subjects", async (req, res, next): Promise<any> => {
         name: subjects.name,
         examCategory: subjects.examCategory,
         description: subjects.description,
-        questionCount: sql<number>`count(${questionsTable.id})`,
+        questionCount: sql<number>`CAST(COUNT(DISTINCT ${questionsTable.id}) AS INT)`,
       })
       .from(subjects)
       .leftJoin(
         questionsTable,
-        eq(questionsTable.pyqSubjectId, subjects.id),
+        eq(questionsTable.subjectId, subjects.id),
       )
       .groupBy(subjects.id)
       .orderBy(subjects.name);
@@ -49,9 +59,11 @@ router.post(
         return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
 
+      const slug = slugify(parsed.data.name);
+      const insertData = { ...parsed.data, slug };
       const [subject] = await db
         .insert(subjects)
-        .values(parsed.data)
+        .values(insertData)
         .returning();
       return res.status(201).json(subject);
     } catch (err) {
@@ -70,9 +82,13 @@ router.patch(
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
       }
+      const updateData: Record<string, unknown> = { ...parsed.data };
+      if (updateData.name) {
+        updateData.slug = slugify(updateData.name as string);
+      }
       const [updated] = await db
         .update(subjects)
-        .set(parsed.data)
+        .set(updateData)
         .where(eq(subjects.id, id))
         .returning();
       if (!updated) return next(new AppError(404, "Subject not found"));

@@ -72,14 +72,19 @@ router.get("/exam-sets", async (req, res, next) => {
   }
 });
 
-// GET /api/exam-sets/:id — Public detail of an exam set
-router.get("/exam-sets/:id", async (req, res, next) => {
+// GET /api/exam-sets/:slug — Public detail of an exam set (supports both slug and ID)
+router.get("/exam-sets/:slug", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const slug = req.params.slug;
+    const id = parseInt(slug);
+    const condition = Number.isFinite(id) && String(id) === slug
+      ? eq(examSetsTable.id, id)
+      : eq(examSetsTable.slug, slug);
+
     const [set] = await db
       .select()
       .from(examSetsTable)
-      .where(and(eq(examSetsTable.id, id), eq(examSetsTable.isActive, true)));
+      .where(and(condition, eq(examSetsTable.isActive, true)));
 
     if (!set) {
       return next(new AppError(404, "Exam set not found"));

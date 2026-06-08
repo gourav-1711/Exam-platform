@@ -74,7 +74,11 @@ router.post(
   uploadDoc.single("file"),
   async (req, res, next) => {
     try {
-      const { title, subject, year, examType, externalUrl } = req.body;
+      const title = String(req.body.title ?? "");
+      const subject = String(req.body.subject ?? "");
+      const year = String(req.body.year ?? "");
+      const examType = String(req.body.examType ?? "");
+      const externalUrl = String(req.body.externalUrl ?? "");
       if (!title || !subject || !year || !examType) {
         return next(new AppError(400, "title, subject, year, examType are required"));
       }
@@ -85,15 +89,16 @@ router.post(
       let originalName = "External Link";
 
       if (req.file) {
+        const file = req.file as Express.Multer.File;
         const upload = await uploadToCloudinary(
-          req.file.buffer,
+          file.buffer,
           "exam-platform/pyp",
-          req.file.originalname,
+          file.originalname,
         );
         secureUrl = upload.secureUrl;
         publicId = upload.publicId;
-        size = req.file.size;
-        originalName = req.file.originalname;
+        size = file.size;
+        originalName = file.originalname;
       } else if (externalUrl) {
         secureUrl = externalUrl;
       } else {
@@ -127,8 +132,8 @@ router.patch(
   logAdminActivity("update_pyp_pdf", "pyp_pdf"),
   async (req, res, next) => {
     try {
-      const id = parseInt(req.params.id);
-      const parsed = pypPdfSchema.partial().safeParse(req.body);
+      const id = Number(req.params.id);
+      const parsed = pypPdfSchema.partial().safeParse(req.body as Record<string, unknown>);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
@@ -153,10 +158,12 @@ router.delete(
   logAdminActivity("delete_pyp_pdf", "pyp_pdf"),
   async (req, res, next) => {
     try {
-      const [record] = await db
+      const id = Number(req.params.id);
+    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+    const [record] = await db
         .select()
         .from(pypPdfsTable)
-        .where(eq(pypPdfsTable.id, Number(req.params.id)))
+        .where(eq(pypPdfsTable.id, id))
         .limit(1);
       if (!record) {
         return next(new AppError(404, "Not found"));
@@ -167,7 +174,7 @@ router.delete(
       }
       await db
         .delete(pypPdfsTable)
-        .where(eq(pypPdfsTable.id, Number(req.params.id)));
+        .where(eq(pypPdfsTable.id, id));
       res.json({ success: true });
     } catch (err) {
       return next(err);

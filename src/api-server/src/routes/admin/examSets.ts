@@ -25,6 +25,17 @@ const examSetSchema = z.object({
   questionIds: z.array(z.number()).default([]),
 });
 
+/** Generate a URL-friendly slug from a string */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
+}
+
+
 // GET /api/admin/exam-sets
 router.get("/exam-sets", async (req, res, next) => {
   try {
@@ -100,11 +111,13 @@ router.post(
       }
 
       const { questionIds, ...rest } = parsed.data;
+      const slug = slugify(parsed.data.title);
 
       const [set] = await db
         .insert(examSetsTable)
         .values({
           ...rest,
+          slug,
           questionIds,
           totalQuestions: questionIds.length,
         })
@@ -132,6 +145,7 @@ router.patch(
       const { questionIds, ...rest } = parsed.data;
       const updateData: Record<string, unknown> = {
         ...rest,
+        ...(rest.title ? { slug: slugify(rest.title) } : {}),
         ...(questionIds !== undefined ? { questionIds, totalQuestions: questionIds.length } : {}),
       };
 

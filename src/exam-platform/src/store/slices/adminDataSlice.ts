@@ -18,7 +18,6 @@ interface Question {
   id: number;
   quizId: number | null;
   subjectId: number | null;
-  pyqSubjectId: number | null;
   classNum: number | null;
   subject: string | null;
   medium: string | null;

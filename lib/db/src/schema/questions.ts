@@ -11,7 +11,6 @@ export const questionsTable = pgTable("questions", {
   id: serial("id").primaryKey(),
   quizId: integer("quiz_id"),
   subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
-  pyqSubjectId: integer("pyq_subject_id"),
   classNum: integer("class_num"),
   subject: text("subject"),
   medium: text("medium"),

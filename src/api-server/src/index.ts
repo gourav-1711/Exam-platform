@@ -9,6 +9,16 @@ import { env } from "./config/env";
 // Parse env at startup (fail fast)
 void env;
 
+// Global error handlers for unhandled rejections/uncaught exceptions
+process.on("unhandledRejection", (reason: unknown) => {
+  logger.error({ err: reason }, "Unhandled Promise rejection — server will continue");
+});
+
+process.on("uncaughtException", (err: Error) => {
+  logger.error({ err }, "Uncaught exception — exiting");
+  process.exit(1);
+});
+
 // Automatically sync database schema on startup in development
 // if (env.NODE_ENV === "development") {
 //   try {

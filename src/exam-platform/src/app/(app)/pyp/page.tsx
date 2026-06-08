@@ -1,8 +1,14 @@
 'use client';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { PageTransition } from '@/components/shared/PageTransition';
 import { apiFetch } from '@/lib/api/client';
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText, Calendar, BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Empty, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 
 interface PypPdf {
   id: number;
@@ -15,141 +21,121 @@ interface PypPdf {
   uploadedAt: string;
 }
 
-const SUBJECTS = ['All', 'Physics', 'Chemistry', 'Mathematics', 'Biology', 'English'];
-const EXAM_TYPES = ['All', 'JEE Main', 'JEE Advanced', 'NEET', 'CBSE Board', 'ICSE Board', 'State Board', 'Other'];
-const YEARS = [0, ...Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i)];
+const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);
 
 export default function PypPage() {
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState('All');
-  const [selectedExamType, setSelectedExamType] = useState('All');
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedExamType, setSelectedExamType] = useState<string>("all");
 
   const { data: pdfs = [], isLoading, error } = useQuery({
-    queryKey: ['pyp-pdfs'],
-    queryFn: () => apiFetch<PypPdf[]>('/document-pyp'),
+    queryKey: ['pyp-pdfs', selectedYear, selectedExamType],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (selectedYear !== "all") params.set("year", selectedYear);
+      if (selectedExamType !== "all") params.set("examType", selectedExamType);
+      const query = params.toString();
+      return apiFetch<PypPdf[]>(`/document-pyp${query ? `?${query}` : ""}`);
+    },
   });
 
-  const filtered = pdfs.filter((p) =>
-    (!selectedYear || p.year === selectedYear) &&
-    (selectedSubject === 'All' || p.subject === selectedSubject) &&
-    (selectedExamType === 'All' || p.examType === selectedExamType)
-  );
-
   return (
-    <div className="min-h-screen bg-slate-950 py-12 px-4">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <FileText className="w-10 h-10 text-indigo-400" />
-            <h1 className="text-4xl font-bold text-white">Previous Year Papers</h1>
+    <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Previous Year Papers</h1>
+        <p className="text-gray-500">Download official question papers and answer keys for competitive exams.</p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-[180px] bg-white border-gray-300">
+            <SelectValue placeholder="Select Year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Years</SelectItem>
+            {YEARS.map((y) => (
+              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={selectedExamType} onValueChange={setSelectedExamType}>
+          <SelectTrigger className="w-[200px] bg-white border-gray-300">
+            <SelectValue placeholder="Exam Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Exam Types</SelectItem>
+            <SelectItem value="JEE Main">JEE Main</SelectItem>
+            <SelectItem value="JEE Advanced">JEE Advanced</SelectItem>
+            <SelectItem value="NEET">NEET</SelectItem>
+            <SelectItem value="CBSE Board">CBSE Board</SelectItem>
+            <SelectItem value="State Board">State Board</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Papers Grid */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-52 rounded-2xl" />
+            ))}
           </div>
-          <p className="text-slate-400 text-lg">Access exam papers from previous years</p>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-3">Select Year</label>
-              <select
-                value={selectedYear ?? 0}
-                onChange={(e) => setSelectedYear(e.target.value === '0' ? null : Number(e.target.value))}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-              >
-                <option value={0}>All Years</option>
-                {YEARS.slice(1).map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-3">Select Subject</label>
-              <select
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-              >
-                {SUBJECTS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-3">Select Exam Type</label>
-              <select
-                value={selectedExamType}
-                onChange={(e) => setSelectedExamType(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
-              >
-                {EXAM_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+        ) : error ? (
+          <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-red-700">
+            Failed to load papers. Please try again later.
           </div>
-        </div>
-
-        {/* Papers Grid */}
-        <div className="space-y-4">
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-slate-900 border border-slate-800 rounded-lg h-48 animate-pulse" />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="p-6 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200">
-              Failed to load PYP. Please try again later.
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center bg-slate-900 border border-slate-800 rounded-lg">
-              <p className="text-slate-400 text-lg">No papers found for the selected filters.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((pdf) => (
-                <div key={pdf.id} className="bg-slate-900 border border-slate-800 rounded-lg p-6 hover:border-indigo-500 transition">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-white mb-1">{pdf.title}</h3>
-                      <p className="text-slate-400 text-sm">{pdf.subject} • {pdf.year}</p>
+        ) : pdfs.length === 0 ? (
+          <div className="col-span-full">
+            <Empty>
+              <FileText className="w-10 h-10 text-gray-300" />
+              <EmptyTitle>No papers found</EmptyTitle>
+              <EmptyDescription>No previous year papers match your current filters. Try a different selection.</EmptyDescription>
+            </Empty>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {pdfs.map((pdf) => (
+              <Card key={pdf.id} className="border border-gray-200 rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-5 flex flex-col h-full gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-gray-900 truncate">{pdf.title}</h3>
+                      <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-500">
+                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {pdf.year}</span>
+                        <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" /> {pdf.subject}</span>
+                      </div>
                     </div>
-                    <FileText className="w-8 h-8 text-indigo-400 flex-shrink-0" />
+                    <span className="shrink-0 px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-md">
+                      {pdf.examType}
+                    </span>
                   </div>
 
-                  <div className="space-y-3 mb-4 text-sm text-slate-400">
-                    <p>Exam: {pdf.examType}</p>
-                    <p>Size: {(pdf.fileSize / 1024 / 1024).toFixed(2)} MB</p>
-                    <p>Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}</p>
+                  <div className="text-xs text-gray-400">
+                    Size: {(pdf.fileSize / 1024 / 1024).toFixed(2)} MB · Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => window.open(pdf.cloudinaryUrl, '_blank')}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition"
+                    className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl"
                   >
                     <Download className="w-4 h-4" />
                     Download PDF
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {filtered.length > 0 && (
-          <div className="text-center text-slate-400 text-sm">
-            Showing {filtered.length} paper{filtered.length !== 1 ? 's' : ''}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
-    </div>
+
+      {pdfs.length > 0 && (
+        <div className="text-center text-gray-400 text-sm">
+          Showing {pdfs.length} paper{pdfs.length !== 1 ? 's' : ''}
+        </div>
+      )}
+    </PageTransition>
   );
 }

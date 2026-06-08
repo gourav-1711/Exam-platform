@@ -72,10 +72,18 @@ router.get("/pyq/questions", async (req, res, next) => {
     const setConditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];
     if (subjectId) {
       const sid = parseInt(subjectId);
-      if (Number.isNaN(sid)) {
-        return next(new AppError(400, "Invalid subjectId"));
+      if (Number.isFinite(sid) && String(sid) === subjectId) {
+        setConditions.push(eq(examSetsTable.subjectId, sid));
+      } else {
+        // Look up subject by slug first
+        const [subj] = await db
+          .select({ id: subjects.id })
+          .from(subjects)
+          .where(eq(subjects.slug, subjectId));
+        if (subj) {
+          setConditions.push(eq(examSetsTable.subjectId, subj.id));
+        }
       }
-      setConditions.push(eq(examSetsTable.subjectId, sid));
     }
     if (setId) {
       setConditions.push(eq(examSetsTable.id, parseInt(setId)));
@@ -105,11 +113,8 @@ router.get("/pyq/questions", async (req, res, next) => {
       .from(questionsTable)
       .where(inArray(questionsTable.id, uniqueIds));
 
-    // Additional subject filter if needed (for questions that also have pyqSubjectId)
-    if (subjectId) {
-      const sid = parseInt(subjectId);
-      all = all.filter((q) => q.pyqSubjectId === sid);
-    }
+    // Additional subject filter - questions are linked via examSetsTable.subjectId
+    // which is already filtered above, so no additional filter needed here
 
     const total = all.length;
     const data = all.slice(offset, offset + limit).map(mapQuestion);

@@ -15,7 +15,6 @@ function mockQuestion(id: number, text?: string): any {
     id,
     quizId: null,
     subjectId: null,
-    pyqSubjectId: null,
     classNum: null,
     subject: null,
     medium: null,

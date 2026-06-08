@@ -1,10 +1,14 @@
-import { v2 as cloudinary } from 'cloudinary';
-import { Readable } from 'stream';
+import { v2 as cloudinary } from "cloudinary";
+import { Readable } from "stream";
 
 // Validate required env vars
-if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+if (
+  !process.env.CLOUDINARY_CLOUD_NAME ||
+  !process.env.CLOUDINARY_API_KEY ||
+  !process.env.CLOUDINARY_API_SECRET
+) {
   throw new Error(
-    'Missing Cloudinary config: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required'
+    "Missing Cloudinary config: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required",
   );
 }
 
@@ -28,15 +32,16 @@ export async function uploadToCloudinary(
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: 'raw',
+        resource_type: "auto",
         use_filename: true,
         unique_filename: true,
         overwrite: false,
-        access_mode: 'public',
+        access_mode: "public",
         context: `original_name=${originalName}`,
       },
       (error, result) => {
-        if (error || !result) return reject(error ?? new Error('Cloudinary upload failed'));
+        if (error || !result)
+          return reject(error ?? new Error("Cloudinary upload failed"));
         resolve({ secureUrl: result.secure_url, publicId: result.public_id });
       },
     );
@@ -48,7 +53,7 @@ export async function uploadToCloudinary(
  * Delete a file from Cloudinary by public_id.
  */
 export async function deleteFromCloudinary(publicId: string): Promise<void> {
-  await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+  await cloudinary.uploader.destroy(publicId, { resource_type: "auto" });
 }
 
 export { cloudinary };

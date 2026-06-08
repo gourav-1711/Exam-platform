@@ -93,10 +93,10 @@ export default function StudyNotes() {
                 </div>
                 
                 <div className="flex gap-2 pt-2 border-t border-border/50 mt-auto">
-                  <Button variant="outline" className="flex-1 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 border-none">
+                  <Button variant="outline" className="flex-1 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 border-none" onClick={() => note.url ? window.open(note.url, '_blank') : null}>
                     <BookOpen className="w-4 h-4 mr-2" /> Read
                   </Button>
-                  <Button variant="outline" className="shrink-0 rounded-xl" size="icon">
+                  <Button variant="outline" className="shrink-0 rounded-xl" size="icon" onClick={() => note.url ? window.open(note.url, '_blank') : null}>
                     <Download className="w-4 h-4 text-muted-foreground" />
                   </Button>
                 </div>

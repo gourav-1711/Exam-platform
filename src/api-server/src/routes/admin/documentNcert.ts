@@ -74,7 +74,10 @@ router.post(
   uploadDoc.single("file"),
   async (req, res, next) => {
     try {
-      const { title, subject, classNumber, externalUrl } = req.body;
+      const title = String(req.body.title ?? "");
+      const subject = String(req.body.subject ?? "");
+      const classNumber = String(req.body.classNumber ?? "");
+      const externalUrl = String(req.body.externalUrl ?? "");
       if (!title || !subject || !classNumber) {
         return next(new AppError(400, "title, subject, classNumber are required"));
       }
@@ -85,15 +88,16 @@ router.post(
       let originalName = "External Link";
 
       if (req.file) {
+        const file = req.file as Express.Multer.File;
         const upload = await uploadToCloudinary(
-          req.file.buffer,
+          file.buffer,
           "exam-platform/ncert",
-          req.file.originalname,
+          file.originalname,
         );
         secureUrl = upload.secureUrl;
         publicId = upload.publicId;
-        size = req.file.size;
-        originalName = req.file.originalname;
+        size = file.size;
+        originalName = file.originalname;
       } else if (externalUrl) {
         secureUrl = externalUrl;
       } else {
@@ -127,8 +131,8 @@ router.patch(
   logAdminActivity("update_ncert_pdf", "ncert_pdf"),
   async (req, res, next) => {
     try {
-      const id = parseInt(req.params.id);
-      const parsed = ncertPdfSchema.partial().safeParse(req.body);
+      const id = Number(req.params.id);
+      const parsed = ncertPdfSchema.partial().safeParse(req.body as Record<string, unknown>);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
@@ -154,10 +158,12 @@ router.delete(
   logAdminActivity("delete_ncert_pdf", "ncert_pdf"),
   async (req, res, next) => {
     try {
-      const [record] = await db
+      const id = Number(req.params.id);
+    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+    const [record] = await db
         .select()
         .from(ncertPdfsTable)
-        .where(eq(ncertPdfsTable.id, Number(req.params.id)))
+        .where(eq(ncertPdfsTable.id, id))
         .limit(1);
       if (!record) {
         return next(new AppError(404, "Not found"));
@@ -168,7 +174,7 @@ router.delete(
       }
       await db
         .delete(ncertPdfsTable)
-        .where(eq(ncertPdfsTable.id, Number(req.params.id)));
+        .where(eq(ncertPdfsTable.id, id));
 
       cacheFlushPattern("document-ncert:");
       res.json({ success: true });

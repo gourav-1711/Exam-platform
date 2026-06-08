@@ -7,7 +7,8 @@ function slugifyTitle(value: string) {
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
 }
 
 export const getCurrentAffairs = async () => {
@@ -39,11 +40,13 @@ export const createCurrentAffair = async (data: {
 }) => {
   // Use first 150 characters of content as a fallback for the required summary field
   const summary = data.content ? data.content.substring(0, 150) : "";
+  const slug = slugifyTitle(data.title);
   const [newCurrentAffair] = await db
     .insert(currentAffairsTable)
     .values({
       title: data.title,
-      summary: summary,
+      slug,
+      summary,
       content: data.content,
       category: "General",
       publishedAt: data.date || new Date(),
@@ -58,11 +61,13 @@ export const updateCurrentAffair = async (
   data: { title: string; content: string; date: Date },
 ) => {
   const summary = data.content ? data.content.substring(0, 150) : "";
+  const slug = slugifyTitle(data.title);
   const [updatedCurrentAffair] = await db
     .update(currentAffairsTable)
     .set({
       title: data.title,
-      summary: summary,
+      slug,
+      summary,
       content: data.content,
       publishedAt: data.date,
     })

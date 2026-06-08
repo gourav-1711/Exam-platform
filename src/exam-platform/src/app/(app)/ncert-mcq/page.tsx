@@ -1,16 +1,9 @@
-"use client";
+import type { Metadata } from "next";
+import { ncertMcqMetadata } from "@/lib/seo";
+import NcertMcqSets from "@/views/NcertMcqSets";
 
-import dynamic from "next/dynamic";
-
-const NcertMcq = dynamic(() => import("@/views/NcertMcq"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-    </div>
-  ),
-});
+export const metadata: Metadata = ncertMcqMetadata;
 
 export default function NcertMcqPage() {
-  return <NcertMcq />;
+  return <NcertMcqSets />;
 }

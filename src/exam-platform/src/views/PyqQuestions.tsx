@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListPyqQuestions, getListPyqQuestionsQueryKey } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,10 +14,18 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function PyqQuestions() {
-  const params = useParams<{ subjectId: string }>();
-  const subjectId = params?.subjectId ?? "";
+  const params = useParams<{ slug: string }>();
+  const subjectSlug = params?.slug ?? "";
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useListPyqQuestions({ subjectId: Number(subjectId), page }, { query: { enabled: !!subjectId, queryKey: getListPyqQuestionsQueryKey({ subjectId: Number(subjectId), page }) } });
+  const { data, isLoading } = useQuery({
+    queryKey: ["pyq-questions", subjectSlug, page],
+    queryFn: () => {
+      const qp = new URLSearchParams({ page: String(page) });
+      if (subjectSlug) qp.set("subjectId", subjectSlug);
+      return apiFetch<any>(`/pyq/questions?${qp.toString()}`);
+    },
+    enabled: !!subjectSlug,
+  });
 
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);

@@ -31,7 +31,7 @@ const questionBodySchema = z.object({
   marks: z.coerce.number().optional().default(1),
   negativeMarking: z.coerce.number().optional().default(0),
   quizId: z.coerce.number().nullable().optional(),
-  pyqSubjectId: z.coerce.number().nullable().optional(),
+
   classNum: z.coerce.number().nullable().optional(),
   examLabel: z.string().nullable().optional(),
   medium: z.string().nullable().optional(),

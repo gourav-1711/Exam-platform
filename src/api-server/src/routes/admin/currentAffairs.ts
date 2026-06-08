@@ -9,6 +9,16 @@ import { cacheFlushPattern } from "../../lib/cache";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
 
+/** Generate a URL-friendly slug from a string */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
+}
+
 const currentAffairSchema = z.object({
   title: z.string().min(1, "Title is required"),
   summary: z.string().min(1, "Summary is required"),
@@ -106,14 +116,17 @@ router.post(
       }
       const { title, summary, content, category } = parsed.data;
 
+      const slug = slugify(title);
+      const insertData = {
+        title,
+        slug,
+        summary,
+        content,
+        category: category || "General",
+      };
       const [article] = await db
         .insert(currentAffairsTable)
-        .values({
-          title,
-          summary,
-          content,
-          category: category || "General",
-        })
+        .values(insertData)
         .returning();
 
       cacheFlushPattern("current-affairs:");
@@ -141,9 +154,14 @@ router.patch(
       if (!parsed.success) {
         return next(new AppError(400, formatZodIssues(parsed.error.issues)));
       }
+      const updateData: Record<string, unknown> = { ...parsed.data };
+      if (updateData.title) {
+        updateData.slug = slugify(updateData.title as string);
+      }
+
       const [updated] = await db
         .update(currentAffairsTable)
-        .set(parsed.data)
+        .set(updateData)
         .where(eq(currentAffairsTable.id, id))
         .returning();
 

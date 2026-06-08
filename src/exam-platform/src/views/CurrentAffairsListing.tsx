@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/pagination";
 import { Calendar, ChevronRight, Newspaper } from "lucide-react";
 
+// Fallback slugifier if DB slug is not available
 function slugifyTitle(value: string) {
   return value
     .toLowerCase()
@@ -91,7 +92,7 @@ export default function CurrentAffairsListing() {
                   {article.summary}
                 </p>
 
-                <Link href={`/current-affairs/${slugifyTitle(article.title)}`}>
+                <Link href={`/current-affairs/${article.slug ?? slugifyTitle(article.title)}`}>
                   <Button
                     variant="ghost"
                     className="w-full justify-between px-0 hover:bg-transparent hover:text-primary"

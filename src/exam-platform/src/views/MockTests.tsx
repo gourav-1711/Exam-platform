@@ -50,7 +50,7 @@ export default function MockTests() {
                     <Clock className="w-4 h-4 text-muted-foreground" /> {test.durationMins}m
                   </div>
                   <div className="flex items-center gap-2 font-medium">
-                    <FileText className="w-4 h-4 text-muted-foreground" /> {test.questionCount} Qs
+                    <FileText className="w-4 h-4 text-muted-foreground" /> {test.questionCount ?? test.questionIds?.length ?? 0} Qs
                   </div>
                   <div className="flex items-center gap-2 font-medium col-span-2">
                     <Award className="w-4 h-4 text-muted-foreground" /> Max Marks: {test.maxMarks}

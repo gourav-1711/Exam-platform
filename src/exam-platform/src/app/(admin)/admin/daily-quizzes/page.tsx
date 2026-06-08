@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Timer,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -80,6 +81,50 @@ interface DailyQuizzesResponse {
   };
 }
 
+// ── Countdown hook ────────────────────────────────────────────────────────────
+function useCountdown(targetDate: string, targetTime: string) {
+  const [remaining, setRemaining] = useState("");
+
+  useEffect(() => {
+    const target = new Date(`${targetDate}T${targetTime}`);
+
+    function tick() {
+      const now = new Date();
+      const diff = target.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setRemaining("Now live!");
+        return;
+      }
+
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+
+      if (days > 0) setRemaining(`${days}d ${hours}h ${mins}m`);
+      else if (hours > 0) setRemaining(`${hours}h ${mins}m ${secs}s`);
+      else setRemaining(`${mins}m ${secs}s`);
+    }
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate, targetTime]);
+
+  return remaining;
+}
+
+function CountdownBadge({ date, time }: { date: string; time: string }) {
+  const countdown = useCountdown(date, time);
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 whitespace-nowrap">
+      <Timer className="w-3 h-3" />
+      {countdown}
+    </span>
+  );
+}
+
 // ── Animation variants ────────────────────────────────────────────────────────
 const pageVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
@@ -142,6 +187,18 @@ export default function DailyQuizzesAdminPage() {
   const [formPublished, setFormPublished] = useState(false);
   const [formError, setFormError] = useState("");
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
+
+  // Countdown timer for form
+  const formCountdown = useMemo(() => {
+    if (!formDate || !formTime) return "";
+    const target = new Date(`${formDate}T${formTime}`);
+    const now = new Date();
+    const diff = target.getTime() - now.getTime();
+    if (diff <= 0) return "Immediately (overdue)";
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    return `Publishes in ${hrs}h ${mins}m`;
+  }, [formDate, formTime]);
 
   // Sync form when sheet opens
   useEffect(() => {
@@ -345,7 +402,7 @@ export default function DailyQuizzesAdminPage() {
             >
               <Button
                 onClick={openCreate}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 h-10 font-bold gap-1.5 shadow-md shadow-indigo-200"
+                className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 h-10 font-bold gap-1.5 shadow-md shadow-violet-200"
               >
                 <Plus className="w-4 h-4" /> New Quiz
               </Button>
@@ -393,7 +450,7 @@ export default function DailyQuizzesAdminPage() {
                   <Button
                     onClick={openCreate}
                     variant="outline"
-                    className="mt-4 rounded-xl gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                    className="mt-4 rounded-xl gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50"
                   >
                     <Plus className="w-4 h-4" /> Create one
                   </Button>
@@ -415,10 +472,13 @@ export default function DailyQuizzesAdminPage() {
                       Duration
                     </TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">
-                      Questions
+                      Qs
                     </TableHead>
                     <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">
                       Status
+                    </TableHead>
+                    <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">
+                      Countdown
                     </TableHead>
                     <TableHead className="text-right font-bold text-xs uppercase tracking-wider text-gray-500 pr-5">
                       Actions
@@ -493,18 +553,18 @@ export default function DailyQuizzesAdminPage() {
                             {q.isPublished ? "Published" : "Draft"}
                           </span>
                         </TableCell>
+                        <TableCell>
+                          <CountdownBadge date={q.scheduledDate} time={q.scheduledTime} />
+                        </TableCell>
                         <TableCell className="text-right pr-5">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                >
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0 rounded-lg hover:bg-indigo-50 hover:text-indigo-600"
+                                    className="h-8 w-8 p-0 rounded-lg hover:bg-violet-50 hover:text-violet-600"
                                     onClick={() => openView(q)}
                                   >
                                     <Eye className="h-3.5 w-3.5" />
@@ -516,10 +576,7 @@ export default function DailyQuizzesAdminPage() {
 
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                >
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -535,10 +592,7 @@ export default function DailyQuizzesAdminPage() {
 
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <motion.div
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                >
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -642,7 +696,7 @@ export default function DailyQuizzesAdminPage() {
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Daily GK Quiz 22"
                   required
-                  className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
+                  className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
                 />
               </motion.div>
 
@@ -653,7 +707,7 @@ export default function DailyQuizzesAdminPage() {
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Optional description..."
                   rows={2}
-                  className="rounded-xl border-border/70 resize-none focus-visible:ring-indigo-500/30"
+                  className="rounded-xl border-border/70 resize-none focus-visible:ring-violet-500/30"
                 />
               </motion.div>
 
@@ -665,7 +719,7 @@ export default function DailyQuizzesAdminPage() {
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
                     required
-                    className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
+                    className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
                   />
                 </motion.div>
                 <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
@@ -675,10 +729,24 @@ export default function DailyQuizzesAdminPage() {
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
                     required
-                    className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
+                    className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
                   />
                 </motion.div>
               </div>
+
+              {/* Countdown Timer Display */}
+              {formDate && formTime && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl"
+                >
+                  <Timer className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-semibold text-amber-700">
+                    {formCountdown}
+                  </span>
+                </motion.div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
@@ -688,10 +756,9 @@ export default function DailyQuizzesAdminPage() {
                     min={1}
                     value={formDuration}
                     onChange={(e) => setFormDuration(Number(e.target.value))}
-                    className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
+                    className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
                   />
                 </motion.div>
-
               </div>
 
               {/* Question Selector */}
@@ -709,7 +776,7 @@ export default function DailyQuizzesAdminPage() {
                     type="checkbox"
                     checked={formPublished}
                     onChange={(e) => setFormPublished(e.target.checked)}
-                    className="accent-indigo-600 w-4 h-4"
+                    className="accent-violet-600 w-4 h-4"
                   />
                   <span className="text-xs font-semibold text-gray-700">Publish immediately</span>
                 </label>
@@ -735,7 +802,7 @@ export default function DailyQuizzesAdminPage() {
                   type="submit"
                   disabled={isPending || !formTitle.trim() || !formDate || !formTime}
                   onClick={handleSubmit}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 gap-2"
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-200 gap-2"
                 >
                   {isPending ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
@@ -800,6 +867,7 @@ export default function DailyQuizzesAdminPage() {
                       )}
                       {viewingItem.isPublished ? "Published" : "Draft"}
                     </span>
+                    <CountdownBadge date={viewingItem.scheduledDate} time={viewingItem.scheduledTime} />
                     {viewingItem.questionIds && viewingItem.questionIds.length > 0 && (
                       <span className="text-xs text-gray-500">
                         IDs: {viewingItem.questionIds.join(", ")}

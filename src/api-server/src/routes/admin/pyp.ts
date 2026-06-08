@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
-import { previousYearPapersTable } from "@workspace/db";
+import { previousYearPapersTable, subjects } from "@workspace/db";
 import { eq, desc, like, and, sql } from "drizzle-orm";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { routeParamInt } from "../../lib/routeParams";
@@ -85,13 +85,23 @@ router.post(
         return next(new AppError(400, "examName and year are required"));
       }
 
+      // Resolve subjectId to subject name if provided
+      let resolvedSubject = subject || null;
+      if (subjectId && !resolvedSubject) {
+        const [subj] = await db
+          .select({ name: subjects.name })
+          .from(subjects)
+          .where(eq(subjects.id, parseInt(subjectId)));
+        if (subj) resolvedSubject = subj.name;
+      }
+
       const [paper] = await db
         .insert(previousYearPapersTable)
         .values({
           examName,
           shiftName: shiftName || "Shift 1",
           year: parseInt(year),
-          subject: subject || null,
+          subject: resolvedSubject,
           subjectId: subjectId ? parseInt(subjectId) : null,
           questionPaperUrl: questionPaperUrl || null,
           answerKeyUrl: answerKeyUrl || null,
@@ -121,6 +131,15 @@ router.patch(
       const updateData: Record<string, unknown> = { ...req.body };
       if (updateData.year) updateData.year = parseInt(updateData.year as string);
       if (updateData.subjectId) updateData.subjectId = parseInt(updateData.subjectId as string);
+
+      // If subjectId changed but subject name not provided, auto-resolve it
+      if (updateData.subjectId && !updateData.subject) {
+        const [subj] = await db
+          .select({ name: subjects.name })
+          .from(subjects)
+          .where(eq(subjects.id, updateData.subjectId as number));
+        if (subj) updateData.subject = subj.name;
+      }
 
       const [updated] = await db
         .update(previousYearPapersTable)
