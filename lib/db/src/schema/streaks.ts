@@ -1,8 +1,8 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const userStreaksTable = pgTable("user_streaks", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().unique(),
   displayName: text("display_name").notNull().default("Learner"),
   currentStreak: integer("current_streak").notNull().default(0),

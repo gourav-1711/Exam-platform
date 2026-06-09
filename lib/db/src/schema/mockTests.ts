@@ -1,6 +1,6 @@
 import {
   pgTable,
-  serial,
+  uuid,
   text,
   integer,
   real,
@@ -12,7 +12,7 @@ import { relations } from "drizzle-orm";
 import { subjects } from "./subjects";
 
 export const mockTestsTable = pgTable("mock_tests", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
   durationMins: integer("duration_mins").notNull().default(60),
@@ -20,8 +20,8 @@ export const mockTestsTable = pgTable("mock_tests", {
   maxMarks: integer("max_marks").notNull().default(100),
   negativeMarking: real("negative_marking").notNull().default(0.25),
   /* Drizzle does not support relations on array columns; resolve via inArray queries at the service layer */
-  questionIds: integer("question_ids").array().notNull().default([]),
-  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  questionIds: uuid("question_ids").array().notNull().default([]),
+  subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   difficulty: text("difficulty").default("medium"),
   class: integer("class"),
   medium: text("medium"),

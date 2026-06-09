@@ -1,14 +1,14 @@
 import {
-  pgTable, serial, text, integer, real, boolean, timestamp, jsonb, index,
+  pgTable, uuid, text, integer, real, boolean, timestamp, jsonb, index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 
 export const studentAttemptsTable = pgTable("student_attempts", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull(),
-  examId: integer("exam_id"),
-  quizId: integer("quiz_id"),
+  examId: uuid("exam_id"),
+  quizId: uuid("quiz_id"),
   score: real("score").notNull().default(0),
   totalMarks: real("total_marks").notNull().default(0),
   correctCount: integer("correct_count").notNull().default(0),
@@ -22,7 +22,7 @@ export const studentAttemptsTable = pgTable("student_attempts", {
 }, (t) => [index("attempts_user_idx").on(t.userId), index("attempts_exam_idx").on(t.examId)]);
 
 export const activityLogsTable = pgTable("activity_logs", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull(),
   action: text("action").notNull(),
   entityType: text("entity_type"),

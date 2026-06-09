@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
@@ -9,7 +9,7 @@ import { relations } from "drizzle-orm";
  * isReadByUser / isReadByAdmin track unread replies.
  */
 export const supportTicketsTable = pgTable("support_tickets", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull(),
   title: text("title").notNull(),
   status: text("status").notNull().default("open"),
@@ -27,8 +27,8 @@ export const supportTicketsTable = pgTable("support_tickets", {
 });
 
 export const supportMessagesTable = pgTable("support_messages", {
-  id: serial("id").primaryKey(),
-  ticketId: integer("ticket_id").references(() => supportTicketsTable.id, { onDelete: 'cascade' }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  ticketId: uuid("ticket_id").references(() => supportTicketsTable.id, { onDelete: 'cascade' }),
   message: text("message").notNull(),
   sender: text("sender").notNull().default("user"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

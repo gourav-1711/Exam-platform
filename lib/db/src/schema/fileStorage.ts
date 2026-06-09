@@ -1,8 +1,8 @@
-import { pgTable, serial, text, timestamp, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, integer } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 
 export const ncertPdfsTable = pgTable('ncert_pdfs', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').defaultRandom().primaryKey(),
   title: text('title').notNull(),
   subject: text('subject').notNull(),
   classNumber: integer('class_number').notNull(),
@@ -14,7 +14,7 @@ export const ncertPdfsTable = pgTable('ncert_pdfs', {
 });
 
 export const pypPdfsTable = pgTable('pyp_pdfs', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').defaultRandom().primaryKey(),
   title: text('title').notNull(),
   subject: text('subject').notNull(),
   year: integer('year').notNull(),

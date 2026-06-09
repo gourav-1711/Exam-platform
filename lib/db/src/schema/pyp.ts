@@ -1,15 +1,15 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { subjects } from "./subjects";
 
 export const previousYearPapersTable = pgTable("previous_year_papers", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   examName: text("exam_name").notNull(),
   shiftName: text("shift_name").notNull(),
   year: integer("year").notNull(),
   subject: text("subject"),
-  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   questionPaperUrl: text("question_paper_url"),
   answerKeyUrl: text("answer_key_url"),
   answerKeyPdf: text("answer_key_pdf"),

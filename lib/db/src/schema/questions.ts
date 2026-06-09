@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, real, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, real, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { subjects } from "./subjects";
@@ -8,9 +8,9 @@ import { subjects } from "./subjects";
  * Each question has a `type` discriminator field.
  */
 export const questionsTable = pgTable("questions", {
-  id: serial("id").primaryKey(),
-  quizId: integer("quiz_id"),
-  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  id: uuid("id").defaultRandom().primaryKey(),
+  quizId: uuid("quiz_id"),
+  subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   classNum: integer("class_num"),
   subject: text("subject"),
   medium: text("medium"),

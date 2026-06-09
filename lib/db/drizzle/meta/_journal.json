@@ -22,6 +22,13 @@
       "when": 1780932192141,
       "tag": "0002_uneven_patriot",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1780983844377,
+      "tag": "0003_unknown_switch",
+      "breakpoints": true
     }
   ]
 }

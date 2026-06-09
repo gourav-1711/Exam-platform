@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 import { subjects } from "./subjects";
@@ -13,16 +13,16 @@ import { subjects } from "./subjects";
  * Use {@link import("./question-relations").resolveQuestionIds} to resolve to Question records.
  */
 export const examSetsTable = pgTable("exam_sets", {
-  id: serial("id").primaryKey(),
+  id: uuid("id").defaultRandom().primaryKey(),
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
   type: text("type").notNull().default("pyq"),
-  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  subjectId: uuid("subject_id").references(() => subjects.id, { onDelete: "set null" }),
   classNum: integer("class_num"),
   medium: text("medium"),
   /* Drizzle does not support relations on array columns; resolve via inArray queries at the service layer */
-  questionIds: integer("question_ids").array().notNull().default([]),
+  questionIds: uuid("question_ids").array().notNull().default([]),
   totalQuestions: integer("total_questions").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),

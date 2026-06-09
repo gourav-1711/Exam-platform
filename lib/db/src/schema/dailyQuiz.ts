@@ -1,9 +1,9 @@
 // lib/db/src/schema/dailyQuiz.ts
-import { pgTable, serial, text, date, time, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, date, time, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 
 export const dailyQuizzes = pgTable('daily_quizzes', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').defaultRandom().primaryKey(),
   title: text('title').notNull(),
   description: text('description'),
   scheduledDate: date('scheduled_date').notNull(),
@@ -11,7 +11,7 @@ export const dailyQuizzes = pgTable('daily_quizzes', {
   durationMinutes: integer('duration_minutes').notNull().default(30),
   totalQuestions: integer('total_questions').notNull(),
   /* Drizzle does not support relations on array columns; resolve via inArray queries at the service layer */
-  questionIds: integer('question_ids').array().notNull(),
+  questionIds: uuid('question_ids').array().notNull(),
   isPublished: boolean('is_published').default(false),
   isActive: boolean('is_active').notNull().default(true),
   createdBy: text('created_by').notNull(),
