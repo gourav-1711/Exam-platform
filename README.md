@@ -6,23 +6,23 @@ A comprehensive exam preparation platform built with Next.js 15, Express, Postgr
 
 ### Port Assignments
 
-- **Frontend:** `http://localhost:8080` (Next.js 15 App Router)
+- **Frontend:** `http://localhost:3000` (Next.js 16 App Router)
 - **Backend API:** `http://localhost:4000` (Express 5 server)
 - **Database:** PostgreSQL (configured via `DATABASE_URL` env var)
 
 ### Technology Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS v4, Framer Motion |
-| State | Redux Toolkit, TanStack Query (React Query v5) |
-| Auth | Clerk (Next.js + Express SDK) |
-| UI Kit | shadcn/ui (Radix primitives + Tailwind) |
-| Backend | Express 5, TypeScript, Drizzle ORM |
-| Database | PostgreSQL |
-| File Storage | Cloudinary (PDFs, docs) |
-| Validation | Zod (runtime + API) |
-| Icons | Lucide React |
+| Layer        | Technology                                                       |
+| ------------ | ---------------------------------------------------------------- |
+| Frontend     | Next.js 15, React 19, TypeScript, Tailwind CSS v4, Framer Motion |
+| State        | Redux Toolkit, TanStack Query (React Query v5)                   |
+| Auth         | Clerk (Next.js + Express SDK)                                    |
+| UI Kit       | shadcn/ui (Radix primitives + Tailwind)                          |
+| Backend      | Express 5, TypeScript, Drizzle ORM                               |
+| Database     | PostgreSQL                                                       |
+| File Storage | Cloudinary (PDFs, docs)                                          |
+| Validation   | Zod (runtime + API)                                              |
+| Icons        | Lucide React                                                     |
 
 ## Project Structure
 
@@ -94,18 +94,18 @@ pnpm -C src/exam-platform run dev
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `DATABASE_URL` | ✓ | — | PostgreSQL connection string |
-| `CLERK_SECRET_KEY` | ✓ | — | Clerk backend secret key |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ✓ | — | Clerk frontend publishable key |
-| `CLOUDINARY_CLOUD_NAME` | ✓ | — | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | ✓ | — | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | ✓ | — | Cloudinary API secret |
-| `API_PORT` | — | `4000` | Express server port |
-| `NODE_ENV` | — | `development` | Environment mode |
-| `ALLOWED_ORIGINS` | — | — | CORS origins (comma-separated) |
-| `NEXT_PUBLIC_API_URL` | — | `http://localhost:4000` | API base URL for frontend |
+| Variable                            | Required | Default                 | Description                    |
+| ----------------------------------- | -------- | ----------------------- | ------------------------------ |
+| `DATABASE_URL`                      | ✓        | —                       | PostgreSQL connection string   |
+| `CLERK_SECRET_KEY`                  | ✓        | —                       | Clerk backend secret key       |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ✓        | —                       | Clerk frontend publishable key |
+| `CLOUDINARY_CLOUD_NAME`             | ✓        | —                       | Cloudinary cloud name          |
+| `CLOUDINARY_API_KEY`                | ✓        | —                       | Cloudinary API key             |
+| `CLOUDINARY_API_SECRET`             | ✓        | —                       | Cloudinary API secret          |
+| `API_PORT`                          | —        | `4000`                  | Express server port            |
+| `NODE_ENV`                          | —        | `development`           | Environment mode               |
+| `ALLOWED_ORIGINS`                   | —        | —                       | CORS origins (comma-separated) |
+| `NEXT_PUBLIC_API_URL`               | —        | `http://localhost:4000` | API base URL for frontend      |
 
 ## Features
 
@@ -113,45 +113,45 @@ pnpm -C src/exam-platform run dev
 
 ### All Pages — Open to Everyone
 
-| Page | Route | Description |
-|------|-------|-------------|
-| Home | `/` | Feature grid, announcements, banners |
-| Current Affairs | `/current-affairs` | Daily news articles with pagination |
-| Study Notes | `/study-notes` | Subject-wise study material |
-| NCERT Books | `/ncert-books` | Browse/download NCERT textbooks by class & subject |
-| Previous Year Papers | `/pyp` | Access/download exam papers & answer keys |
-| Syllabus | `/syllabus` | Exam syllabus guides with download links |
-| Leaderboard | `/leaderboard` | Top aspirants ranking with points & streaks |
-| Support | `/support` | Multi-conversation support tickets & chat |
-| Daily Quiz | `/daily-quiz` | Daily MCQ quizzes with timer & scoring |
-| Quiz Player | `/daily-quiz/[id]/play` | Full-screen quiz interface with palette |
-| PYQ Practice | `/pyq` | Previous year questions by subject |
-| NCERT MCQs | `/ncert-mcq` | NCERT-based MCQ practice |
-| Mock Tests | `/mock-tests` | Full-length mock exams |
-| Profile | `/profile` | User stats, streak, settings |
-| About, Contact, Privacy, Terms | Various | Static information pages |
+| Page                           | Route                   | Description                                        |
+| ------------------------------ | ----------------------- | -------------------------------------------------- |
+| Home                           | `/`                     | Feature grid, announcements, banners               |
+| Current Affairs                | `/current-affairs`      | Daily news articles with pagination                |
+| Study Notes                    | `/study-notes`          | Subject-wise study material                        |
+| NCERT Books                    | `/ncert-books`          | Browse/download NCERT textbooks by class & subject |
+| Previous Year Papers           | `/pyp`                  | Access/download exam papers & answer keys          |
+| Syllabus                       | `/syllabus`             | Exam syllabus guides with download links           |
+| Leaderboard                    | `/leaderboard`          | Top aspirants ranking with points & streaks        |
+| Support                        | `/support`              | Multi-conversation support tickets & chat          |
+| Daily Quiz                     | `/daily-quiz`           | Daily MCQ quizzes with timer & scoring             |
+| Quiz Player                    | `/daily-quiz/[id]/play` | Full-screen quiz interface with palette            |
+| PYQ Practice                   | `/pyq`                  | Previous year questions by subject                 |
+| NCERT MCQs                     | `/ncert-mcq`            | NCERT-based MCQ practice                           |
+| Mock Tests                     | `/mock-tests`           | Full-length mock exams                             |
+| Profile                        | `/profile`              | User stats, streak, settings                       |
+| About, Contact, Privacy, Terms | Various                 | Static information pages                           |
 
 ### Admin Panel (`/admin`) — Clerk Admin Role Required
 
-| Page | Description |
-|------|-------------|
-| Dashboard | Overview stats, charts, recent activity |
-| Questions | CRUD + bulk upload/delete questions |
-| Exams | Manage full exams with question assignment |
-| Exam Sets | PYQ/NCERT question set management |
-| Daily Quizzes | Schedule and manage daily quizzes |
-| Students | View student attempts and activity |
-| Subjects | Manage subject categories |
-| Current Affairs | CRUD for current affairs articles |
-| Study Notes | CRUD for study notes with URL |
-| NCERT Books | CRUD for NCERT book entries |
-| PYP Papers | CRUD for previous year paper entries |
-| Syllabus | CRUD for syllabus guides |
-| Mock Tests | CRUD for mock test configurations |
-| Announcements | Create/manage notification banners |
+| Page            | Description                                      |
+| --------------- | ------------------------------------------------ |
+| Dashboard       | Overview stats, charts, recent activity          |
+| Questions       | CRUD + bulk upload/delete questions              |
+| Exams           | Manage full exams with question assignment       |
+| Exam Sets       | PYQ/NCERT question set management                |
+| Daily Quizzes   | Schedule and manage daily quizzes                |
+| Students        | View student attempts and activity               |
+| Subjects        | Manage subject categories                        |
+| Current Affairs | CRUD for current affairs articles                |
+| Study Notes     | CRUD for study notes with URL                    |
+| NCERT Books     | CRUD for NCERT book entries                      |
+| PYP Papers      | CRUD for previous year paper entries             |
+| Syllabus        | CRUD for syllabus guides                         |
+| Mock Tests      | CRUD for mock test configurations                |
+| Announcements   | Create/manage notification banners               |
 | Support Tickets | Chat-like ticket management with status & assign |
-| Analytics | Charts and data visualization |
-| Activity Logs | Track all admin actions |
+| Analytics       | Charts and data visualization                    |
+| Activity Logs   | Track all admin actions                          |
 
 ## Key Features Detail
 
@@ -190,42 +190,42 @@ pnpm -C src/exam-platform run dev
 
 ### Public Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/announcements` | List announcements |
-| GET | `/api/current-affairs` | Paginated current affairs |
-| GET | `/api/study-notes` | Study notes with filters |
-| GET | `/api/ncert-books` | NCERT books by class/subject |
-| GET | `/api/pyp` | Previous year papers |
-| GET | `/api/mock-tests` | List mock tests |
-| GET | `/api/quizzes` | List quizzes |
-| GET | `/api/syllabus` | Syllabus guides |
-| GET | `/api/pyq/questions` | PYQ questions by subject |
-| GET | `/api/exam-sets` | PYQ/NCERT question sets |
-| GET | `/api/support/tickets` | User's support tickets |
-| POST | `/api/support/tickets` | Create support ticket |
-| POST | `/api/support/tickets/:id/messages` | Send message |
-| DELETE | `/api/support/tickets/:id` | Soft-delete ticket |
-| GET | `/api/support/unread-count` | User unread reply count |
-| GET | `/api/streaks/me` | Current user streak |
-| POST | `/api/streaks/activity` | Record activity |
-| GET | `/api/leaderboard` | Leaderboard rankings |
+| Method | Path                                | Description                  |
+| ------ | ----------------------------------- | ---------------------------- |
+| GET    | `/api/health`                       | Health check                 |
+| GET    | `/api/announcements`                | List announcements           |
+| GET    | `/api/current-affairs`              | Paginated current affairs    |
+| GET    | `/api/study-notes`                  | Study notes with filters     |
+| GET    | `/api/ncert-books`                  | NCERT books by class/subject |
+| GET    | `/api/pyp`                          | Previous year papers         |
+| GET    | `/api/mock-tests`                   | List mock tests              |
+| GET    | `/api/quizzes`                      | List quizzes                 |
+| GET    | `/api/syllabus`                     | Syllabus guides              |
+| GET    | `/api/pyq/questions`                | PYQ questions by subject     |
+| GET    | `/api/exam-sets`                    | PYQ/NCERT question sets      |
+| GET    | `/api/support/tickets`              | User's support tickets       |
+| POST   | `/api/support/tickets`              | Create support ticket        |
+| POST   | `/api/support/tickets/:id/messages` | Send message                 |
+| DELETE | `/api/support/tickets/:id`          | Soft-delete ticket           |
+| GET    | `/api/support/unread-count`         | User unread reply count      |
+| GET    | `/api/streaks/me`                   | Current user streak          |
+| POST   | `/api/streaks/activity`             | Record activity              |
+| GET    | `/api/leaderboard`                  | Leaderboard rankings         |
 
 ### Admin Endpoints (require Clerk admin role)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/admin/dashboard` | Dashboard stats |
-| GET/POST/PATCH/DELETE | `/api/admin/questions` | Question CRUD |
-| POST | `/api/admin/questions/bulk-upload` | Bulk question upload |
-| GET/POST | `/api/admin/exam-sets` | Exam set management |
-| GET | `/api/admin/support-tickets` | All tickets (incl. deleted) |
-| POST | `/api/admin/support-tickets/:id/replies` | Admin reply |
-| GET | `/api/admin/support-tickets/unread-count` | Admin unread count |
-| GET/POST/PATCH/DELETE | `/api/admin/current-affairs` | Current affairs CRUD |
-| GET/POST/PATCH/DELETE | `/api/admin/study-notes` | Study notes CRUD |
-| ... | ... | All admin CRUD routes follow similar patterns |
+| Method                | Path                                      | Description                                   |
+| --------------------- | ----------------------------------------- | --------------------------------------------- |
+| GET                   | `/api/admin/dashboard`                    | Dashboard stats                               |
+| GET/POST/PATCH/DELETE | `/api/admin/questions`                    | Question CRUD                                 |
+| POST                  | `/api/admin/questions/bulk-upload`        | Bulk question upload                          |
+| GET/POST              | `/api/admin/exam-sets`                    | Exam set management                           |
+| GET                   | `/api/admin/support-tickets`              | All tickets (incl. deleted)                   |
+| POST                  | `/api/admin/support-tickets/:id/replies`  | Admin reply                                   |
+| GET                   | `/api/admin/support-tickets/unread-count` | Admin unread count                            |
+| GET/POST/PATCH/DELETE | `/api/admin/current-affairs`              | Current affairs CRUD                          |
+| GET/POST/PATCH/DELETE | `/api/admin/study-notes`                  | Study notes CRUD                              |
+| ...                   | ...                                       | All admin CRUD routes follow similar patterns |
 
 ## Development Commands
 
@@ -306,13 +306,13 @@ All UI components are built using **shadcn/ui** (Radix UI primitives + Tailwind 
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| API connection failed | Ensure `NEXT_PUBLIC_API_URL` matches running API server port |
-| Cloudinary upload fails | Verify credentials, file < 50MB, PDF/DOCX only |
-| DB connection error | Check `DATABASE_URL`, ensure PostgreSQL is running |
-| TypeScript errors | Run `pnpm run typecheck` and fix; clear `.tsbuildinfo` if stale |
-| Clerk not working | Verify both `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` |
+| Issue                   | Solution                                                               |
+| ----------------------- | ---------------------------------------------------------------------- |
+| API connection failed   | Ensure `NEXT_PUBLIC_API_URL` matches running API server port           |
+| Cloudinary upload fails | Verify credentials, file < 50MB, PDF/DOCX only                         |
+| DB connection error     | Check `DATABASE_URL`, ensure PostgreSQL is running                     |
+| TypeScript errors       | Run `pnpm run typecheck` and fix; clear `.tsbuildinfo` if stale        |
+| Clerk not working       | Verify both `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` |
 
 ## Performance
 

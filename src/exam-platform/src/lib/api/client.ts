@@ -4,7 +4,7 @@ function normalizeBaseUrl(baseUrl: string) {
 }
 
 const BASE_URL = normalizeBaseUrl(
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001",
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000",
 );
 
 export type ApiErrorBody = { error?: string; message?: string };

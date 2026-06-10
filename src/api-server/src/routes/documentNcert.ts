@@ -16,6 +16,7 @@ router.get("/", async (req, res, next) => {
     return;
   }
   try {
+    console.log("Fetching NCERT documents with query:", req.query);
     const page = parseInt(req.query.page as string, 10) || 1;
     const limit = parseInt(req.query.limit as string, 10) || 12;
     const offset = (page - 1) * limit;

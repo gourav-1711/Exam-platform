@@ -285,7 +285,7 @@ export default function Header() {
       {/* ── RIGHT ACTIONS ────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 shrink-0">
         {/* Scroll indicator pill — shows when scrolled */}
-        <AnimatePresence>
+        {/* <AnimatePresence>
           {scrolled && (
             <motion.div
               key="scroll-pill"
@@ -305,9 +305,9 @@ export default function Header() {
               </span>
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence> */}
 
-        <Link href="/support">
+        {/* <Link href="/support">
           <motion.div
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
@@ -321,7 +321,7 @@ export default function Header() {
               </span>
             )}
           </motion.div>
-        </Link>
+        </Link> */}
 
         <motion.div
           whileHover={{ scale: 1.08 }}

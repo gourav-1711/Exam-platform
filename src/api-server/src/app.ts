@@ -14,8 +14,20 @@ export function createApp() {
   // 1. Security headers first
   app.use(helmet());
   app.set("trust proxy", 1);
+
+  // 2. Webhook route — must be BEFORE body parsers to get raw body
+  // Only apply express.raw() to the specific webhook path, not all /api routes
+  app.use(
+    "/api/webhooks/clerk",
+    express.raw({ type: "application/json" }),
+    webhooksRouter,
+  );
+
+  // 3. clerk middleware (mount selectively so public routes stay public)
+  // NOTE: keep Clerk auth for only admin /api routes, but explicitly bypass known public endpoints
   app.use(clerkMiddleware());
-  // 2. CORS — whitelist only
+
+  // 4. CORS — whitelist only
   app.use(
     cors({
       origin: env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()),
@@ -25,24 +37,20 @@ export function createApp() {
     }),
   );
 
-  // 3. Webhook route — must be BEFORE body parsers to get raw body
-  // Only apply express.raw() to the specific webhook path, not all /api routes
-  app.use("/api/webhooks/clerk", express.raw({ type: "application/json" }), webhooksRouter);
-
-  // 4. Body parsing
-  app.use(express.json({ limit: "2mb" }));
+  // 5. Body parsing
+  app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ extended: true }));
 
-  // 4. Global rate limiter (lenient — per-route can be stricter)
+  // 6. Global rate limiter (lenient — per-route can be stricter)
   app.use(globalRateLimiter);
 
-  // 5. Routes
+  // 7. Routes
   app.use("/api", routes);
 
-  // 6. 404 handler
+  // 8. 404 handler
   app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
-  // 7. Central error handler — MUST be last
+  // 9. Central error handler — MUST be last
   app.use(errorHandler);
 
   return app;

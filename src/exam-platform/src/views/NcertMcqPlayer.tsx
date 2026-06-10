@@ -42,8 +42,13 @@ export default function NcertMcqPlayer() {
   const router = useRouter();
   const { requireAuth } = useRequireAuth();
   const setId = params?.slug ?? "";
+
   const [page, setPage] = useState(1);
   const [authChecked, setAuthChecked] = useState(false);
+
+  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [showAnswer, setShowAnswer] = useState(false);
 
   // Auth guard on mount
   useEffect(() => {
@@ -55,6 +60,7 @@ export default function NcertMcqPlayer() {
       }
       setAuthChecked(true);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!authChecked) {
@@ -64,14 +70,12 @@ export default function NcertMcqPlayer() {
       </div>
     );
   }
-  const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [showAnswer, setShowAnswer] = useState(false);
 
   // Fetch exam set details
   const { data: setData } = useQuery<{ title?: string; classNum?: number }>({
     queryKey: ["exam-set", setId],
-    queryFn: () => apiFetch<{ title?: string; classNum?: number }>(`/exam-sets/${setId}`),
+    queryFn: () =>
+      apiFetch<{ title?: string; classNum?: number }>(`/exam-sets/${setId}`),
     enabled: !!setId,
   });
 
@@ -149,15 +153,21 @@ export default function NcertMcqPlayer() {
         <div className="py-16">
           <Empty>
             <EmptyTitle>No questions found</EmptyTitle>
-            <EmptyDescription>This set doesn't have any questions yet.</EmptyDescription>
+            <EmptyDescription>
+              This set doesn't have any questions yet.
+            </EmptyDescription>
           </Empty>
         </div>
       ) : (
         <>
           {/* Progress */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Page {page}/{totalPages}</span>
-            <span>Q {currentQIndex + 1}/{questions.length}</span>
+            <span>
+              Page {page}/{totalPages}
+            </span>
+            <span>
+              Q {currentQIndex + 1}/{questions.length}
+            </span>
           </div>
 
           <AnimatePresence mode="wait">
@@ -174,7 +184,9 @@ export default function NcertMcqPlayer() {
                   <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                     {currentQIndex + 1}
                   </div>
-                  <p className="text-base md:text-lg font-medium leading-relaxed">{currentQ.text}</p>
+                  <p className="text-base md:text-lg font-medium leading-relaxed">
+                    {currentQ.text}
+                  </p>
                 </div>
 
                 {/* Options */}
@@ -191,26 +203,40 @@ export default function NcertMcqPlayer() {
                         onClick={() => handleOptionSelect(i)}
                         className={cn(
                           "p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3",
-                          !showAnswer && "hover:border-primary/40 hover:bg-primary/5",
+                          !showAnswer &&
+                            "hover:border-primary/40 hover:bg-primary/5",
                           showAnswer && "cursor-default",
-                          isSelected && !showAnswer && "border-primary bg-primary/5",
-                          showCorrect && "border-emerald-500 bg-emerald-50 text-emerald-800",
-                          isWrong && "border-destructive bg-destructive/10 text-destructive",
+                          isSelected &&
+                            !showAnswer &&
+                            "border-primary bg-primary/5",
+                          showCorrect &&
+                            "border-emerald-500 bg-emerald-50 text-emerald-800",
+                          isWrong &&
+                            "border-destructive bg-destructive/10 text-destructive",
                           !showAnswer && !isSelected && "border-border bg-card",
                         )}
                       >
-                        <div className={cn(
-                          "w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center text-xs font-bold",
-                          showCorrect ? "border-emerald-500 bg-emerald-500 text-white" :
-                          isWrong ? "border-destructive bg-destructive text-white" :
-                          isSelected ? "border-primary bg-primary text-white" :
-                          "border-muted-foreground/30"
-                        )}>
+                        <div
+                          className={cn(
+                            "w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center text-xs font-bold",
+                            showCorrect
+                              ? "border-emerald-500 bg-emerald-500 text-white"
+                              : isWrong
+                                ? "border-destructive bg-destructive text-white"
+                                : isSelected
+                                  ? "border-primary bg-primary text-white"
+                                  : "border-muted-foreground/30",
+                          )}
+                        >
                           {String.fromCharCode(65 + i)}
                         </div>
                         <span className="flex-1">{opt}</span>
-                        {showCorrect && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
-                        {isWrong && <AlertCircle className="w-5 h-5 text-destructive shrink-0" />}
+                        {showCorrect && (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                        )}
+                        {isWrong && (
+                          <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
+                        )}
                       </div>
                     );
                   })}
@@ -226,7 +252,9 @@ export default function NcertMcqPlayer() {
                     <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2 text-sm">
                       <Lightbulb className="w-4 h-4" /> Explanation
                     </div>
-                    <p className="text-sm text-blue-900 leading-relaxed">{currentQ.explanation}</p>
+                    <p className="text-sm text-blue-900 leading-relaxed">
+                      {currentQ.explanation}
+                    </p>
                   </motion.div>
                 )}
               </Card>
@@ -235,10 +263,19 @@ export default function NcertMcqPlayer() {
 
           {/* Navigation */}
           <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={handlePrev} disabled={isFirstQ && page === 1} className="rounded-xl gap-2">
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={isFirstQ && page === 1}
+              className="rounded-xl gap-2"
+            >
               <ChevronLeft className="w-4 h-4" /> Previous
             </Button>
-            <Button onClick={handleNext} disabled={isLastQ && page >= totalPages} className="rounded-xl gap-2 bg-foreground text-background hover:bg-foreground/90">
+            <Button
+              onClick={handleNext}
+              disabled={isLastQ && page >= totalPages}
+              className="rounded-xl gap-2 bg-foreground text-background hover:bg-foreground/90"
+            >
               Next <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
