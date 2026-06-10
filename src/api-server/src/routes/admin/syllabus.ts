@@ -6,7 +6,7 @@ import { z } from "zod";
 import { uploadDoc } from "../../middleware/upload";
 import { uploadToCloudinary } from "../../config/cloudinary";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { formatZodIssues } from "../../utils/validation";
 import { cacheFlushPattern } from "../../lib/cache";
 import { AppError } from "../../middleware/errorHandler";
@@ -14,7 +14,7 @@ import { AppError } from "../../middleware/errorHandler";
 const syllabusSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
-  subjectId: z.coerce.number().optional(),
+  subjectId: z.string().optional(),
   examCategory: z.string().optional(),
   readUrl: z.string().optional(),
   downloadUrl: z.string().optional(),
@@ -37,14 +37,14 @@ router.post(
   "/syllabus",
   uploadDoc.single("file"),
   logAdminActivity("create_syllabus", "syllabus"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
       const parsed = syllabusSchema.safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
 
-      const { title, description, examCategory } = parsed.data;
+      const { title, description, examCategory, subjectId } = parsed.data;
       let finalReadUrl = parsed.data.readUrl || null;
       let finalDownloadUrl = parsed.data.downloadUrl || null;
 
@@ -64,6 +64,7 @@ router.post(
           title,
           description: description || null,
           examCategory: examCategory || null,
+          subjectId: subjectId || null,
           readUrl: finalReadUrl,
           downloadUrl: finalDownloadUrl,
         })
@@ -81,9 +82,9 @@ router.post(
 router.patch(
   "/syllabus/:id",
   logAdminActivity("update_syllabus", "syllabus"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = syllabusSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
@@ -110,9 +111,9 @@ router.patch(
 router.delete(
   "/syllabus/:id",
   logAdminActivity("delete_syllabus", "syllabus"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       
       const [record] = await db
         .select()

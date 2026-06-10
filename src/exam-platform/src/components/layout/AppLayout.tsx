@@ -72,7 +72,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/", icon: Home, label: "Home", keywords: "home dashboard" },
       {
-        href: "/quiz",
+        href: "/daily-quiz",
         icon: Zap,
         label: "Daily Quizzes",
         keywords: "quiz mcq test questions",
@@ -184,7 +184,7 @@ export const ALL_NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 export const BOTTOM_NAV = [
   { href: "/", icon: Home, label: "HOME" },
-  { href: "/quiz", icon: FlaskConical, label: "QUIZZES" },
+  { href: "/daily-quiz", icon: FlaskConical, label: "QUIZZES" },
   { href: "/study-notes", icon: StickyNote, label: "NOTES" },
   { href: "/pyq", icon: RotateCcw, label: "PYQS" },
 ];

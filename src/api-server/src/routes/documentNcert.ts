@@ -10,7 +10,7 @@ const router = Router();
 // GET /api/document-ncert — list all with pagination and filters
 router.get("/", async (req, res, next) => {
   const cacheKey = `document-ncert:${req.query.page || "1"}:${req.query.classNumber || "all"}:${req.query.subject || "all"}`;
-  const cached = cacheGet<any>(cacheKey);
+  const cached = cacheGet<unknown>(cacheKey);
   if (cached) {
     res.json(cached);
     return;

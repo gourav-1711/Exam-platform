@@ -2,7 +2,7 @@ import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { userStreaksTable } from "@workspace/db";
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, gte, and } from "drizzle-orm";
 import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
@@ -161,11 +161,28 @@ router.post("/streaks/activity", async (req, res, next) => {
 // ── GET /leaderboard ─────────────────────────────────────────────────────────
 router.get("/leaderboard", async (req, res, next) => {
   const limit = Math.min(Number(req.query.limit ?? 20), 50);
+  const period = req.query.period as string | undefined;
 
   try {
+    const conditions = [];
+    if (period === "monthly") {
+      const firstOfMonth = new Date();
+      firstOfMonth.setDate(1);
+      conditions.push(gte(userStreaksTable.lastActivityDate, firstOfMonth.toISOString().split("T")[0]));
+    } else if (period === "weekly") {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(now.getFullYear(), now.getMonth(), diff);
+      conditions.push(gte(userStreaksTable.lastActivityDate, monday.toISOString().split("T")[0]));
+    }
+
+    const where = conditions.length ? and(...conditions) : undefined;
+
     const rows = await db
       .select()
       .from(userStreaksTable)
+      .where(where)
       .orderBy(desc(userStreaksTable.totalPoints))
       .limit(limit);
 

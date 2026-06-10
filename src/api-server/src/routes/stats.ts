@@ -1,20 +1,33 @@
 import { Router } from "express";
 import { db } from "../db";
 import {
-  quizzesTable,
   questionsTable,
   currentAffairsTable,
   studyNotesTable,
   mockTestsTable,
   subjects,
-  supportMessagesTable,
+  userStreaksTable,
 } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { cacheGet, cacheSet, CacheTTL } from "../lib/cache";
 
 const router = Router();
 
 router.get("/stats", async (req, res, next) => {
   try {
+    const cacheKey = "public:stats";
+    const cached = cacheGet<unknown>(cacheKey);
+    if (cached) { res.json(cached); return; }
+
+    const [usersRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userStreaksTable);
+
+    const [activeRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userStreaksTable)
+      .where(sql`${userStreaksTable.totalPoints} > 0`);
+
     const [subjectsRow] = await db
       .select({ count: sql<number>`count(*)` })
       .from(subjects);
@@ -31,15 +44,18 @@ router.get("/stats", async (req, res, next) => {
       .select({ count: sql<number>`count(*)` })
       .from(mockTestsTable);
 
-    res.json({
-      users: 22,
+    const result = {
+      users: Number(usersRow.count),
+      activeStudents: Number(activeRow.count),
       subjects: Number(subjectsRow.count),
-      topics: 245,
       questions: Number(questionsRow.count),
       currentAffairsCount: Number(caRow.count),
       studyNotesCount: Number(notesRow.count),
       mockTestsCount: Number(mockRow.count),
-    });
+    };
+
+    cacheSet(cacheKey, result, CacheTTL.ANALYTICS);
+    res.json(result);
   } catch (err) {
     next(err);
   }

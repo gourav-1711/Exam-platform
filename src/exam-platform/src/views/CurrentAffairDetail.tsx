@@ -21,7 +21,7 @@ export default function CurrentAffairDetail() {
       <PageTransition className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-12 w-3/4" />
-        <Skeleton className="h-[400px] w-full rounded-2xl" />
+        <Skeleton className="h-100 w-full rounded-2xl" />
       </PageTransition>
     );
   }
@@ -32,8 +32,7 @@ export default function CurrentAffairDetail() {
     );
   }
 
-  return (
-    <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto bg-background min-h-screen">
+  return (      <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto bg-background min-h-screen">
       <Link href="/current-affairs">
         <Button variant="ghost" className="-ml-4 mb-4 text-muted-foreground">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back
@@ -42,11 +41,7 @@ export default function CurrentAffairDetail() {
 
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2 items-center">
-          {(article as { tags?: string[] }).tags?.map((tag: string) => (
-            <span key={tag} className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded-full">
-              <Tag className="w-3 h-3" />{tag}
-            </span>
-          ))}
+          {/* Tags are not currently supported in the backend schema */}
           <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
             <Calendar className="w-3 h-3" />
             {new Date(article.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
@@ -80,7 +75,6 @@ export default function CurrentAffairDetail() {
         >
           <Share2 className="w-4 h-4" /> Share
         </Button>
-      </div>
-    </PageTransition>
+      </div>      </PageTransition>
   );
 }

@@ -90,7 +90,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Document Count</p>
                     <p className="text-xl font-black text-emerald-900">
-                      {dashboard?.stats?.totalQuestions && Math.floor(dashboard.stats.totalQuestions / 10) || "—"}
+                      {Math.floor((dashboard?.totalQuestions ?? 0) / 10)}
                     </p>
                   </div>
                 </div>

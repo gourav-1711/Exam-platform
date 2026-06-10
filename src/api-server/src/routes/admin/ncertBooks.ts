@@ -30,7 +30,7 @@ router.get("/ncert-books", async (req, res, next) => {
 
 router.get("/ncert-books/:id", async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id as string);
+    const id = String(req.params.id);
     const [book] = await db
       .select()
       .from(ncertBooksTable)
@@ -71,7 +71,7 @@ router.patch(
   logAdminActivity("update_ncert_book", "ncert_book"),
   async (req, res, next) => {
     try {
-      const id = parseInt(req.params.id as string);
+      const id = String(req.params.id);
       const parsed = ncertBookSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
@@ -99,7 +99,7 @@ router.delete(
   logAdminActivity("delete_ncert_book", "ncert_book"),
   async (req, res, next) => {
     try {
-      const id = parseInt(req.params.id as string);
+      const id = String(req.params.id);
       await db.delete(ncertBooksTable).where(eq(ncertBooksTable.id, id));
       cacheFlushPattern("ncert-books:");
       cacheFlushPattern("ncert-mcq:");

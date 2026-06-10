@@ -58,9 +58,8 @@ import { CsvImportReview } from "@/components/admin/CsvImportReview";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Question {
-  id: number;
+  id: string;
   text: string;
-  type: string;
   subject: string | null;
   difficulty?: string | null;
   correctIndex: number;
@@ -69,10 +68,6 @@ interface Question {
   optionC: string;
   optionD: string;
   explanation?: string | null;
-  questionType?: string;
-  chapter?: string | null;
-  tags?: string | null;
-  marks?: number;
   negativeMarking?: number;
   createdAt?: string;
 }
@@ -134,11 +129,10 @@ export default function QuestionsAdminPage() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [filterSubject, setFilterSubject] = useState("All");
-  const [filterType, setFilterType] = useState("All");
   const [filterDifficulty, setFilterDifficulty] = useState("All");
 
   // Bulk selection
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<Question | null>(null);
@@ -148,7 +142,7 @@ export default function QuestionsAdminPage() {
   const [editingItem, setEditingItem] = useState<Question | null>(null);
 
   // Delete
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // CSV import
@@ -159,8 +153,6 @@ export default function QuestionsAdminPage() {
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [formText, setFormText] = useState("");
-  const [formType, setFormType] = useState("quiz");
-  const [formQuestionType, setFormQuestionType] = useState("single");
   const [formOptionA, setFormOptionA] = useState("");
   const [formOptionB, setFormOptionB] = useState("");
   const [formOptionC, setFormOptionC] = useState("");
@@ -169,9 +161,6 @@ export default function QuestionsAdminPage() {
   const [formExplanation, setFormExplanation] = useState("");
   const [formSubject, setFormSubject] = useState("");
   const [formDifficulty, setFormDifficulty] = useState("medium");
-  const [formChapter, setFormChapter] = useState("");
-  const [formTags, setFormTags] = useState("");
-  const [formMarks, setFormMarks] = useState(1);
   const [formNegMarking, setFormNegMarking] = useState(0);
   const [formError, setFormError] = useState("");
 
@@ -180,8 +169,6 @@ export default function QuestionsAdminPage() {
     if (sheetOpen) {
       if (editingItem) {
         setFormText(editingItem.text);
-        setFormType(editingItem.type);
-        setFormQuestionType(editingItem.questionType ?? "single");
         setFormOptionA(editingItem.optionA ?? "");
         setFormOptionB(editingItem.optionB ?? "");
         setFormOptionC(editingItem.optionC ?? "");
@@ -190,14 +177,9 @@ export default function QuestionsAdminPage() {
         setFormExplanation(editingItem.explanation ?? "");
         setFormSubject(editingItem.subject ?? "");
         setFormDifficulty(editingItem.difficulty ?? "medium");
-        setFormChapter(editingItem.chapter ?? "");
-        setFormTags(editingItem.tags ?? "");
-        setFormMarks(editingItem.marks ?? 1);
         setFormNegMarking(editingItem.negativeMarking ?? 0);
       } else {
         setFormText("");
-        setFormType("quiz");
-        setFormQuestionType("single");
         setFormOptionA("");
         setFormOptionB("");
         setFormOptionC("");
@@ -206,9 +188,6 @@ export default function QuestionsAdminPage() {
         setFormExplanation("");
         setFormSubject("");
         setFormDifficulty("medium");
-        setFormChapter("");
-        setFormTags("");
-        setFormMarks(1);
         setFormNegMarking(0);
       }
       setFormError("");
@@ -227,12 +206,11 @@ export default function QuestionsAdminPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data, isLoading } = useQuery<QuestionsResponse>({
-    queryKey: ["admin", "questions", page, debouncedSearch, filterSubject, filterType, filterDifficulty],
+    queryKey: ["admin", "questions", page, debouncedSearch, filterSubject, filterDifficulty],
     queryFn: () => {
       const sp = new URLSearchParams({ page: String(page), limit: "20" });
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       if (filterSubject !== "All") sp.set("subject", filterSubject);
-      if (filterType !== "All") sp.set("type", filterType);
       if (filterDifficulty !== "All") sp.set("difficulty", filterDifficulty);
       return customFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
     },
@@ -247,7 +225,7 @@ export default function QuestionsAdminPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "questions"] });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) =>
+    mutationFn: async (payload: Record<string, unknown>) =>
       customFetch<Question>("/api/admin/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -258,14 +236,14 @@ export default function QuestionsAdminPage() {
       toast({ title: "Created!", description: "Question added successfully." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to create question");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: any }) =>
+    mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
       customFetch<Question>(`/api/admin/questions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -276,14 +254,14 @@ export default function QuestionsAdminPage() {
       toast({ title: "Saved!", description: "Question updated." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to update question");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) =>
+    mutationFn: async (id: string) =>
       customFetch<{ success?: boolean }>(`/api/admin/questions/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
@@ -294,7 +272,7 @@ export default function QuestionsAdminPage() {
   });
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: async (ids: number[]) =>
+    mutationFn: async (ids: string[]) =>
       customFetch<{ success?: boolean }>("/api/admin/questions/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -310,7 +288,7 @@ export default function QuestionsAdminPage() {
   });
 
   const bulkUploadMutation = useMutation({
-    mutationFn: async (questions: any[]) =>
+    mutationFn: async (questions: Record<string, unknown>[]) =>
       customFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -320,7 +298,7 @@ export default function QuestionsAdminPage() {
       invalidate();
       toast({ title: "Imported!", description: `Successfully uploaded ${res.count} questions.` });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Upload failed", description: err.message || "Invalid CSV layout", variant: "destructive" });
     },
   });
@@ -348,15 +326,13 @@ export default function QuestionsAdminPage() {
       setFormError("Question text is required.");
       return;
     }
-    if ((formQuestionType === "single" || formQuestionType === "multiple") && (!formOptionA.trim() || !formOptionB.trim())) {
+    if (!formOptionA.trim() || !formOptionB.trim()) {
       setFormError("At least options A and B are required.");
       return;
     }
 
     const basePayload = {
       text: formText.trim(),
-      type: formType,
-      questionType: formQuestionType,
       optionA: formOptionA.trim(),
       optionB: formOptionB.trim(),
       optionC: formOptionC.trim(),
@@ -365,25 +341,8 @@ export default function QuestionsAdminPage() {
       explanation: formExplanation.trim() || null,
       subject: formSubject || null,
       difficulty: formDifficulty,
-      chapter: formChapter.trim() || null,
-      tags: formTags.trim() || null,
-      marks: Number(formMarks),
       negativeMarking: Number(formNegMarking),
     };
-
-    // For true/false, auto-set options
-    if (formQuestionType === "truefalse") {
-      basePayload.optionA = "True";
-      basePayload.optionB = "False";
-      basePayload.optionC = "";
-      basePayload.optionD = "";
-    }
-    if (formQuestionType === "fillblank") {
-      basePayload.optionA = formOptionA.trim();
-      basePayload.optionB = "";
-      basePayload.optionC = "";
-      basePayload.optionD = "";
-    }
 
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, payload: basePayload });
@@ -392,7 +351,7 @@ export default function QuestionsAdminPage() {
     }
   };
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
@@ -502,20 +461,9 @@ export default function QuestionsAdminPage() {
             className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
           >
             <option value="All">All Subjects</option>
-            {pyqSubjects.map((s: any) => (
+            {pyqSubjects.map((s: { id: string; name: string }) => (
               <option key={s.id} value={s.name}>{s.name}</option>
             ))}
-          </select>
-          <select
-            value={filterType}
-            onChange={(e) => { setFilterType(e.target.value); setPage(1); setSelectedIds([]); }}
-            className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          >
-            <option value="All">All Categories</option>
-            <option value="quiz">Quiz</option>
-            <option value="pyq">PYQ</option>
-            <option value="ncert">NCERT</option>
-            <option value="mock">Mock Test</option>
           </select>
           <select
             value={filterDifficulty}
@@ -594,7 +542,6 @@ export default function QuestionsAdminPage() {
                     <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
                       <TableHead className="w-10 pl-5"></TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Question</TableHead>
-                      <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Category</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Subject</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Difficulty</TableHead>
                       <TableHead className="font-bold text-xs uppercase tracking-wider text-gray-500">Correct</TableHead>
@@ -625,11 +572,6 @@ export default function QuestionsAdminPage() {
                           </TableCell>
                           <TableCell className="py-3 max-w-[320px]">
                             <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{q.text}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-[10px] font-bold uppercase">
-                              {q.type}
-                            </Badge>
                           </TableCell>
                           <TableCell>
                             <span className="text-xs font-semibold text-gray-500">{q.subject ?? "—"}</span>
@@ -723,14 +665,6 @@ export default function QuestionsAdminPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Category</p>
-                      <Badge variant="outline" className="mt-1 text-xs font-bold uppercase">{viewingItem.type}</Badge>
-                    </div>
-                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Type</p>
-                      <p className="text-sm font-semibold text-gray-900 mt-0.5 capitalize">{viewingItem.questionType ?? "single"}</p>
-                    </div>
-                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Subject</p>
                       <p className="text-sm font-semibold text-gray-900 mt-0.5">{viewingItem.subject ?? "—"}</p>
                     </div>
@@ -772,20 +706,12 @@ export default function QuestionsAdminPage() {
                     </div>
                   )}
 
-                  {(viewingItem.marks || viewingItem.negativeMarking) && (
+                  {viewingItem.negativeMarking && (
                     <div className="grid grid-cols-2 gap-3">
-                      {viewingItem.marks && (
-                        <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Marks</p>
-                          <p className="text-sm font-bold text-gray-900 mt-0.5">{viewingItem.marks}</p>
-                        </div>
-                      )}
-                      {viewingItem.negativeMarking && (
-                        <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Neg. Marking</p>
-                          <p className="text-sm font-bold text-gray-900 mt-0.5">-{viewingItem.negativeMarking}</p>
-                        </div>
-                      )}
+                      <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Neg. Marking</p>
+                        <p className="text-sm font-bold text-gray-900 mt-0.5">-{viewingItem.negativeMarking}</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -831,118 +757,18 @@ export default function QuestionsAdminPage() {
                 <Textarea value={formText} onChange={(e) => setFormText(e.target.value)} placeholder="Enter the question..." rows={3} required className="rounded-xl resize-none" />
               </motion.div>
 
-              {/* Type & Question Type */}
-              <div className="grid grid-cols-2 gap-3">
-                <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Category</Label>
-                  <select value={formType} onChange={(e) => setFormType(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                    <option value="quiz">Quiz</option>
-                    <option value="pyq">PYQ</option>
-                    <option value="ncert">NCERT</option>
-                    <option value="mock">Mock Test</option>
-                  </select>
-                </motion.div>
-                <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Question Type</Label>
-                  <select value={formQuestionType} onChange={(e) => {
-                    setFormQuestionType(e.target.value);
-                    if (e.target.value === "truefalse") {
-                      setFormOptionA("True");
-                      setFormOptionB("False");
-                      setFormOptionC("");
-                      setFormOptionD("");
-                    } else if (e.target.value === "fillblank") {
-                      setFormOptionA("");
-                      setFormOptionB("");
-                      setFormOptionC("");
-                      setFormOptionD("");
-                    } else {
-                      setFormOptionA("");
-                      setFormOptionB("");
-                      setFormOptionC("");
-                      setFormOptionD("");
-                    }
-                  }} className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                    <option value="single">Single Choice</option>
-                    <option value="multiple">Multiple Choice</option>
-                    <option value="truefalse">True / False</option>
-                    <option value="fillblank">Fill in the Blank</option>
-                    <option value="subjective">Subjective</option>
-                  </select>
-                </motion.div>
-              </div>
-
-              {/* Options (for single/multiple choice) */}
-              {(formQuestionType === "single" || formQuestionType === "multiple") && (
-                <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-2">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Options</Label>
-                  {["A", "B", "C", "D"].map((letter, i) => (
-                    <div key={letter} className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="correctIndex"
-                        value={i}
-                        checked={formCorrectIndex === i}
-                        onChange={() => setFormCorrectIndex(i)}
-                        className="accent-indigo-600"
-                      />
-                      <span className="text-xs font-bold text-gray-500 w-5 shrink-0">{letter}</span>
-                      <Input
-                        value={[formOptionA, formOptionB, formOptionC, formOptionD][i]}
-                        onChange={(e) => {
-                          const vals = [formOptionA, formOptionB, formOptionC, formOptionD];
-                          vals[i] = e.target.value;
-                          setFormOptionA(vals[0]);
-                          setFormOptionB(vals[1]);
-                          setFormOptionC(vals[2]);
-                          setFormOptionD(vals[3]);
-                        }}
-                        placeholder={`Option ${letter}`}
-                        className="rounded-xl h-9"
-                      />
-                    </div>
-                  ))}
-                  <p className="text-[10px] text-gray-400 mt-1">Select the radio button next to the correct answer</p>
-                </motion.div>
-              )}
-
-              {/* True/False */}
-              {formQuestionType === "truefalse" && (
-                <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-2">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Correct Answer</Label>
-                  <div className="flex gap-3">
-                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formCorrectIndex === 0 ? "bg-green-50 border-green-400" : "border-gray-200 hover:border-gray-300"}`}>
-                      <input type="radio" name="tf" checked={formCorrectIndex === 0} onChange={() => { setFormCorrectIndex(0); setFormOptionA("True"); setFormOptionB("False"); }} className="accent-green-600" />
-                      <span className="text-sm font-bold text-green-700">True</span>
-                    </label>
-                    <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${formCorrectIndex === 1 ? "bg-red-50 border-red-400" : "border-gray-200 hover:border-gray-300"}`}>
-                      <input type="radio" name="tf" checked={formCorrectIndex === 1} onChange={() => { setFormCorrectIndex(1); setFormOptionA("True"); setFormOptionB("False"); }} className="accent-red-600" />
-                      <span className="text-sm font-bold text-red-700">False</span>
-                    </label>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Fill in the Blank */}
-              {formQuestionType === "fillblank" && (
-                <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Correct Answer</Label>
-                  <Input value={formOptionA} onChange={(e) => setFormOptionA(e.target.value)} placeholder="Enter the correct answer..." className="rounded-xl h-10" />
-                </motion.div>
-              )}
-
               {/* Subject & Difficulty */}
               <div className="grid grid-cols-2 gap-3">
-                <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Subject</Label>
                   <select value={formSubject} onChange={(e) => setFormSubject(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                     <option value="">None</option>
-                    {pyqSubjects.map((s: any) => (
+                    {pyqSubjects.map((s: { id: string; name: string }) => (
                       <option key={s.id} value={s.name}>{s.name}</option>
                     ))}
                   </select>
                 </motion.div>
-                <motion.div custom={5} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Difficulty</Label>
                   <select value={formDifficulty} onChange={(e) => setFormDifficulty(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                     <option value="easy">Easy</option>
@@ -952,35 +778,49 @@ export default function QuestionsAdminPage() {
                 </motion.div>
               </div>
 
+              {/* Options */}
+              <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-2">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Options</Label>
+                {["A", "B", "C", "D"].map((letter, i) => (
+                  <div key={letter} className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="correctIndex"
+                      value={i}
+                      checked={formCorrectIndex === i}
+                      onChange={() => setFormCorrectIndex(i)}
+                      className="accent-indigo-600"
+                    />
+                    <span className="text-xs font-bold text-gray-500 w-5 shrink-0">{letter}</span>
+                    <Input
+                      value={[formOptionA, formOptionB, formOptionC, formOptionD][i]}
+                      onChange={(e) => {
+                        const vals = [formOptionA, formOptionB, formOptionC, formOptionD];
+                        vals[i] = e.target.value;
+                        setFormOptionA(vals[0]);
+                        setFormOptionB(vals[1]);
+                        setFormOptionC(vals[2]);
+                        setFormOptionD(vals[3]);
+                      }}
+                      placeholder={`Option ${letter}`}
+                      className="rounded-xl h-9"
+                    />
+                  </div>
+                ))}
+                <p className="text-[10px] text-gray-400 mt-1">Select the radio button next to the correct answer</p>
+              </motion.div>
+
               {/* Explanation */}
               <motion.div custom={6} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Explanation</Label>
                 <Textarea value={formExplanation} onChange={(e) => setFormExplanation(e.target.value)} placeholder="Explain the correct answer..." rows={2} className="rounded-xl resize-none" />
               </motion.div>
 
-              {/* Chapter & Tags */}
-              <div className="grid grid-cols-2 gap-3">
-                <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Chapter</Label>
-                  <Input value={formChapter} onChange={(e) => setFormChapter(e.target.value)} placeholder="Chapter name..." className="rounded-xl h-10" />
-                </motion.div>
-                <motion.div custom={8} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Tags</Label>
-                  <Input value={formTags} onChange={(e) => setFormTags(e.target.value)} placeholder="tag1, tag2..." className="rounded-xl h-10" />
-                </motion.div>
-              </div>
-
-              {/* Marks & Neg Marking */}
-              <div className="grid grid-cols-2 gap-3">
-                <motion.div custom={9} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Marks</Label>
-                  <Input type="number" step={0.5} min={0} value={formMarks} onChange={(e) => setFormMarks(Number(e.target.value))} className="rounded-xl h-10" />
-                </motion.div>
-                <motion.div custom={10} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Negative Marks</Label>
-                  <Input type="number" step={0.25} min={0} value={formNegMarking} onChange={(e) => setFormNegMarking(Number(e.target.value))} className="rounded-xl h-10" />
-                </motion.div>
-              </div>
+              {/* Neg Marking */}
+              <motion.div custom={7} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Negative Marks</Label>
+                <Input type="number" step={0.25} value={formNegMarking} onChange={(e) => setFormNegMarking(Number(e.target.value))} className="rounded-xl h-10" />
+              </motion.div>
             </form>
 
             {/* Footer */}

@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { examSetsTable } from "@workspace/db";
-import { eq, desc, like, and, sql } from "drizzle-orm";
+import { eq, desc, like, and, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
@@ -19,10 +19,10 @@ const examSetSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   type: z.enum(["pyq", "ncert"]).default("pyq"),
-  subjectId: z.coerce.number().optional().nullable(),
+  subjectId: z.string().optional().nullable(),
   classNum: z.coerce.number().optional().nullable(),
   medium: z.string().optional().nullable(),
-  questionIds: z.array(z.number()).default([]),
+  questionIds: z.array(z.string()).default([]).transform((ids) => ids.filter((id): id is string => id !== null && id !== undefined && id !== "")),
 });
 
 /** Generate a URL-friendly slug from a string */
@@ -45,11 +45,11 @@ router.get("/exam-sets", async (req, res, next) => {
       type,
       search,
     } = req.query as Record<string, string>;
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(100, parseInt(limit));
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (type && (type === "pyq" || type === "ncert")) conditions.push(eq(examSetsTable.type, type));
     if (search) conditions.push(like(examSetsTable.title, `%${search}%`));
 
@@ -85,7 +85,7 @@ router.get("/exam-sets", async (req, res, next) => {
 // GET /api/admin/exam-sets/:id
 router.get("/exam-sets/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [set] = await db
       .select()
       .from(examSetsTable)
@@ -136,7 +136,7 @@ router.patch(
   logAdminActivity("update_exam_set", "exam_set"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = examSetSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
@@ -171,7 +171,14 @@ router.delete(
   logAdminActivity("delete_exam_set", "exam_set"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
+      const [existing] = await db
+        .select({ id: examSetsTable.id })
+        .from(examSetsTable)
+        .where(eq(examSetsTable.id, id));
+      if (!existing) {
+        return next(new AppError(404, "Exam set not found"));
+      }
       await db.delete(examSetsTable).where(eq(examSetsTable.id, id));
       res.json({ success: true });
     } catch (err) {

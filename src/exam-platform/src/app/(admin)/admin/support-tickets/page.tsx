@@ -1,64 +1,137 @@
-'use client';
+"use client";
 
-import { useAdminListSupportTickets, useAdminSupportTicket, useCreateSupportTicketReply, useUpdateSupportTicketStatus } from '@/lib/api';
-import { useState, useRef, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, User, CheckCircle2, Send, Search, RotateCcw, Clock, Inbox, Loader2, AlertCircle, ChevronLeft } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import {
+  useAdminListSupportTickets,
+  useAdminSupportTicket,
+  useCreateSupportTicketReply,
+  useUpdateSupportTicketStatus,
+} from "@/lib/api";
+import { useState, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import {
+  MessageSquare,
+  Send,
+  Search,
+  RotateCcw,
+  Clock,
+  Inbox,
+  Loader2,
+  ChevronLeft,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Circle,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-const statuses = ['all', 'open', 'pending', 'resolved', 'closed'] as const;
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-red-100 text-red-700 border-red-200',
-  pending: 'bg-amber-100 text-amber-700 border-amber-200',
-  resolved: 'bg-green-100 text-green-700 border-green-200',
-  closed: 'bg-gray-100 text-gray-500 border-gray-200',
+const STATUSES = ["all", "open", "pending", "resolved", "closed"] as const;
+type FilterStatus = (typeof STATUSES)[number];
+
+const STATUS_CONFIG: Record<
+  string,
+  { dot: string; badge: string; label: string }
+> = {
+  open: {
+    dot: "bg-rose-500",
+    badge: "bg-rose-50 text-rose-700 border-rose-200",
+    label: "Open",
+  },
+  pending: {
+    dot: "bg-amber-500",
+    badge: "bg-amber-50 text-amber-700 border-amber-200",
+    label: "Pending",
+  },
+  resolved: {
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    label: "Resolved",
+  },
+  closed: {
+    dot: "bg-gray-400",
+    badge: "bg-gray-100 text-gray-500 border-gray-200",
+    label: "Closed",
+  },
 };
+
+function relativeTime(dateStr: string | Date) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function messageTime(dateStr: string | Date) {
+  return new Date(dateStr).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SupportTicketsAdminPage() {
   const { toast } = useToast();
-  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [replyText, setReplyText] = useState('');
+  const queryClient = useQueryClient();
+
+  // FIX: UUIDs are strings, not numbers
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [replyText, setReplyText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch Tickets
-  const { data: ticketsList, isLoading: loadingList } = useAdminListSupportTickets({
-    status: filterStatus === 'all' ? undefined : filterStatus,
-    search: searchQuery || undefined,
-    page: 1,
-    limit: 50,
-  });
+  const { data: ticketsList, isLoading: loadingList } =
+    useAdminListSupportTickets({
+      status: filterStatus === "all" ? undefined : filterStatus,
+      search: searchQuery || undefined,
+      page: 1,
+      limit: 50,
+    });
 
-  // Fetch Single Ticket Thread (skip query when no ticket selected)
-  const { data: ticketThread, isLoading: loadingThread } = useAdminSupportTicket(
-    selectedTicketId ?? 0,
-    { query: { enabled: !!selectedTicketId } },
-  );
+  const { data: ticketThread, isLoading: loadingThread } =
+    useAdminSupportTicket(selectedTicketId ?? "", {
+      query: { enabled: !!selectedTicketId },
+    });
 
-  // Mutations
-  const replyMutation = useCreateSupportTicketReply(selectedTicketId ?? 0);
-  const statusMutation = useUpdateSupportTicketStatus(selectedTicketId ?? 0);
+  const replyMutation = useCreateSupportTicketReply(selectedTicketId ?? "");
+  const statusMutation = useUpdateSupportTicketStatus(selectedTicketId ?? "");
 
+  // Scroll to latest message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [ticketThread?.messages, replyMutation.isPending]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [ticketThread?.messages?.length]);
+
+  const invalidateTicket = () => {
+    // FIX: invalidate both detail and list so reply shows up immediately
+    queryClient.invalidateQueries({
+      queryKey: ["admin", "supportTickets", "detail", selectedTicketId],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["admin", "supportTickets", "list"],
+    });
+  };
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyText.trim() || !selectedTicketId) return;
-
     try {
       await replyMutation.mutateAsync({ message: replyText });
-      setReplyText('');
-      toast({ title: 'Reply sent' });
+      setReplyText("");
+      invalidateTicket();
+      toast({ title: "Reply sent" });
     } catch {
-      toast({ title: 'Failed to send reply', variant: 'destructive' });
+      toast({ title: "Failed to send reply", variant: "destructive" });
     }
   };
 
@@ -66,206 +139,235 @@ export default function SupportTicketsAdminPage() {
     if (!selectedTicketId) return;
     try {
       await statusMutation.mutateAsync(status);
-      toast({ title: `Ticket marked as ${status}` });
+      invalidateTicket();
+      toast({
+        title: `Ticket marked as ${STATUS_CONFIG[status]?.label ?? status}`,
+      });
     } catch {
-      toast({ title: 'Failed to update status', variant: 'destructive' });
+      toast({ title: "Failed to update status", variant: "destructive" });
     }
   };
 
   const tickets = ticketsList?.data ?? [];
 
+  const sharedProps = {
+    tickets,
+    loadingList,
+    selectedTicketId,
+    setSelectedTicketId,
+    filterStatus,
+    setFilterStatus,
+    searchQuery,
+    setSearchQuery,
+    ticketsList,
+  };
+
+  const detailProps = {
+    ticketThread,
+    loadingThread,
+    selectedTicketId,
+    handleStatusChange,
+    replyText,
+    setReplyText,
+    handleSendReply,
+    replyMutation,
+    messagesEndRef,
+    statusMutation,
+  };
+
   return (
-    <div className="max-w-6xl mx-auto space-y-4 p-2">
+    <div className="w-full px-5 py-4 space-y-3 h-[calc(100vh-4.5rem)] flex flex-col">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
-          <MessageSquare className="w-7 h-7 text-indigo-600" />
+      <div className="flex items-center justify-between shrink-0">
+        <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-violet-600" />
           Support Tickets
+          {ticketsList?.total != null && (
+            <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium ml-1">
+              {ticketsList.total}
+            </span>
+          )}
         </h1>
-        <p className="text-gray-500 text-sm mt-1">
-          View, reply, and manage student support tickets
+        <p className="text-xs text-gray-400">
+          Manage and reply to student support requests
         </p>
       </div>
 
-      {/* Mobile: show list or detail */}
-      <div className="lg:hidden">
+      {/* Mobile */}
+      <div className="lg:hidden flex-1 min-h-0">
         {selectedTicketId ? (
-          <div>
-            <Button
-              variant="ghost"
-              size="sm"
+          <div className="flex flex-col h-full gap-3">
+            <button
               onClick={() => setSelectedTicketId(null)}
-              className="mb-3 rounded-lg gap-1 text-gray-500"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors w-fit"
             >
-              <ChevronLeft className="w-4 h-4" /> Back to tickets
-            </Button>
-            <TicketDetailPanel
-              ticketThread={ticketThread}
-              loadingThread={loadingThread}
-              selectedTicketId={selectedTicketId}
-              handleStatusChange={handleStatusChange}
-              replyText={replyText}
-              setReplyText={setReplyText}
-              handleSendReply={handleSendReply}
-              replyMutation={replyMutation}
-              messagesEndRef={messagesEndRef}
-            />
+              <ChevronLeft className="w-3.5 h-3.5" /> Back to tickets
+            </button>
+            <TicketDetailPanel {...detailProps} />
           </div>
         ) : (
-          <TicketListPanel
-            tickets={tickets}
-            loadingList={loadingList}
-            selectedTicketId={selectedTicketId}
-            setSelectedTicketId={setSelectedTicketId}
-            filterStatus={filterStatus}
-            setFilterStatus={setFilterStatus}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            ticketsList={ticketsList}
-          />
+          <TicketListPanel {...sharedProps} />
         )}
       </div>
 
-      {/* Desktop: grid layout */}
-      <div className="hidden lg:grid lg:grid-cols-3 gap-5 h-[calc(100vh-12rem)]">
-        <TicketListPanel
-          tickets={tickets}
-          loadingList={loadingList}
-          selectedTicketId={selectedTicketId}
-          setSelectedTicketId={setSelectedTicketId}
-          filterStatus={filterStatus}
-          setFilterStatus={setFilterStatus}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          ticketsList={ticketsList}
-        />
-        <TicketDetailPanel
-          ticketThread={ticketThread}
-          loadingThread={loadingThread}
-          selectedTicketId={selectedTicketId}
-          handleStatusChange={handleStatusChange}
-          replyText={replyText}
-          setReplyText={setReplyText}
-          handleSendReply={handleSendReply}
-          replyMutation={replyMutation}
-          messagesEndRef={messagesEndRef}
-        />
+      {/* Desktop: 1/3 + 2/3 */}
+      <div className="hidden lg:grid lg:grid-cols-[1fr_2fr] gap-4 flex-1 min-h-0">
+        <TicketListPanel {...sharedProps} />
+        <TicketDetailPanel {...detailProps} />
       </div>
     </div>
   );
 }
 
 // ── Ticket List Panel ─────────────────────────────────────────────────────────
+
 function TicketListPanel({
-  tickets, loadingList, selectedTicketId, setSelectedTicketId,
-  filterStatus, setFilterStatus, searchQuery, setSearchQuery, ticketsList,
+  tickets,
+  loadingList,
+  selectedTicketId,
+  setSelectedTicketId,
+  filterStatus,
+  setFilterStatus,
+  searchQuery,
+  setSearchQuery,
+  ticketsList,
 }: {
-  tickets: any[]; loadingList: boolean; selectedTicketId: number | null;
-  setSelectedTicketId: (id: number | null) => void;
-  filterStatus: string; setFilterStatus: (s: string) => void;
-  searchQuery: string; setSearchQuery: (s: string) => void;
-  ticketsList: any;
+  tickets: Array<{ id: string; title: string; status: string; isReadByAdmin?: boolean; lastMessageAt?: Date | string | null; createdAt: Date | string; messageCount?: number }>;
+  loadingList: boolean;
+  selectedTicketId: string | null;
+  setSelectedTicketId: (id: string | null) => void;
+  filterStatus: FilterStatus;
+  setFilterStatus: (s: FilterStatus) => void;
+  searchQuery: string;
+  setSearchQuery: (s: string) => void;
+  ticketsList: { total?: number } | undefined;
 }) {
   return (
-    <div className="bg-white border border-border/50 rounded-2xl flex flex-col shadow-sm overflow-hidden">
-      {/* Filters */}
-      <div className="p-3 border-b space-y-2 shrink-0">
+    <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden min-h-0">
+      {/* Search + Filters */}
+      <div className="p-3 border-b border-gray-100 space-y-2.5 shrink-0">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tickets..."
-            className="pl-9 h-9 text-xs rounded-xl"
+            placeholder="Search by title..."
+            className="pl-8 h-8 text-xs rounded-lg border-gray-200 bg-gray-50 focus-visible:bg-white"
           />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-          {statuses.map((st) => (
-            <button
-              key={st}
-              onClick={() => setFilterStatus(st)}
-              className={cn(
-                'px-2.5 py-1 text-[10px] font-bold rounded-full uppercase whitespace-nowrap transition border',
-                filterStatus === st
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100',
-              )}
-            >
-              {st} {st === filterStatus && ticketsList?.total ? `(${ticketsList.total})` : ''}
-            </button>
-          ))}
+        <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
+          {STATUSES.map((st) => {
+            const active = filterStatus === st;
+            const cfg = STATUS_CONFIG[st];
+            return (
+              <button
+                key={st}
+                onClick={() => setFilterStatus(st)}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold rounded-full whitespace-nowrap transition-all border",
+                  active
+                    ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700",
+                )}
+              >
+                {st !== "all" && cfg && (
+                  <span
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      active ? "bg-white/70" : cfg.dot,
+                    )}
+                  />
+                )}
+                {st === "all" ? "All" : cfg?.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Ticket Items */}
+      {/* List */}
       <div className="flex-1 overflow-y-auto">
         {loadingList ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-xl" />
+          <div className="p-3 space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
             ))}
           </div>
         ) : tickets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6 py-12">
-            <Inbox className="w-10 h-10 text-gray-300" />
-            <div>
-              <p className="font-semibold text-sm text-gray-500">No tickets</p>
-              <p className="text-xs text-gray-400 mt-0.5">No tickets match the current filter.</p>
-            </div>
+          <div className="flex flex-col items-center justify-center h-full gap-2 py-16 px-6 text-center">
+            <Inbox className="w-8 h-8 text-gray-300" />
+            <p className="text-sm font-medium text-gray-500">
+              No tickets found
+            </p>
+            <p className="text-xs text-gray-400">Try adjusting your filters.</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {tickets.map((ticket) => (
-              <button
-                key={ticket.id}
-                onClick={() => setSelectedTicketId(ticket.id)}
-                className={cn(
-                  'w-full text-left p-3.5 hover:bg-gray-50 transition-colors cursor-pointer border-l-2',
-                  selectedTicketId === ticket.id ? 'bg-indigo-50/50 border-l-indigo-500' : 'border-l-transparent',
-                )}
-              >
-                <div className="flex items-start gap-2">
-                  <div className={cn(
-                    'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
-                    ticket.status === 'open' ? 'bg-red-100 text-red-600' :
-                    ticket.status === 'pending' ? 'bg-amber-100 text-amber-600' :
-                    'bg-green-100 text-green-600',
-                  )}>
-                    {ticket.title?.charAt(0).toUpperCase() || '?'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className={cn(
-                        'text-sm truncate',
-                        ticket.isReadByAdmin === false ? 'font-bold text-gray-900' : 'font-medium text-gray-700',
-                      )}>
-                        {ticket.title}
-                      </p>
-                      {ticket.isReadByAdmin === false && (
-                        <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+          <div className="divide-y divide-gray-50">
+            {tickets.map((ticket) => {
+              const cfg = STATUS_CONFIG[ticket.status];
+              const isSelected = selectedTicketId === ticket.id;
+              const unread = ticket.isReadByAdmin === false;
+              return (
+                <button
+                  key={ticket.id}
+                  onClick={() => setSelectedTicketId(ticket.id)}
+                  className={cn(
+                    "w-full text-left px-4 py-3 transition-colors relative",
+                    isSelected
+                      ? "bg-violet-50 border-l-2 border-violet-500 pl-[14px]"
+                      : "border-l-2 border-transparent hover:bg-gray-50/80 pl-[14px]",
+                  )}
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    {/* Status dot */}
+                    <div
+                      className={cn(
+                        "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                        cfg?.dot ?? "bg-gray-300",
                       )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={cn(
-                        'text-[9px] px-1.5 py-0.5 rounded-full font-semibold border',
-                        STATUS_COLORS[ticket.status] || 'bg-gray-100 text-gray-500',
-                      )}>
-                        {ticket.status}
-                      </span>
-                      {ticket.lastMessageAt && (
-                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
-                          <Clock className="w-3 h-3" />
-                          {new Date(ticket.lastMessageAt).toLocaleDateString()}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p
+                          className={cn(
+                            "text-sm truncate flex-1",
+                            unread
+                              ? "font-semibold text-gray-900"
+                              : "font-medium text-gray-700",
+                          )}
+                        >
+                          {ticket.title}
+                        </p>
+                        {unread && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span
+                          className={cn(
+                            "text-[10px] px-1.5 py-px rounded border font-medium",
+                            cfg?.badge ??
+                              "bg-gray-100 text-gray-500 border-gray-200",
+                          )}
+                        >
+                          {cfg?.label ?? ticket.status}
                         </span>
-                      )}
-                      <span className="text-[10px] text-gray-400 ml-auto">
-                        {ticket.messageCount || 0} msgs
-                      </span>
+                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5 ml-auto">
+                          <Clock className="w-2.5 h-2.5" />
+                          {relativeTime(
+                            ticket.lastMessageAt ?? ticket.createdAt,
+                          )}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          {ticket.messageCount ?? 0} msg
+                          {ticket.messageCount !== 1 ? "s" : ""}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -274,26 +376,46 @@ function TicketListPanel({
 }
 
 // ── Ticket Detail Panel ───────────────────────────────────────────────────────
+
 function TicketDetailPanel({
-  ticketThread, loadingThread, selectedTicketId,
-  handleStatusChange, replyText, setReplyText,
-  handleSendReply, replyMutation, messagesEndRef,
+  ticketThread,
+  loadingThread,
+  selectedTicketId,
+  handleStatusChange,
+  replyText,
+  setReplyText,
+  handleSendReply,
+  replyMutation,
+  messagesEndRef,
+  statusMutation,
 }: {
-  ticketThread?: any; loadingThread?: boolean; selectedTicketId?: number | null;
+  ticketThread?: {
+    ticket: { id: string; title: string; status: string; userName?: string; userId: string };
+    messages: Array<{ id: string; sender: string; message: string; createdAt: Date | string }>;
+  } | undefined;
+  loadingThread?: boolean;
+  selectedTicketId?: string | null;
   handleStatusChange: (status: string) => Promise<void>;
-  replyText: string; setReplyText: (s: string) => void;
+  replyText: string;
+  setReplyText: (s: string) => void;
   handleSendReply: (e: React.FormEvent) => Promise<void>;
-  replyMutation: any; messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  replyMutation: { isPending: boolean };
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  statusMutation: { isPending: boolean };
 }) {
   if (!selectedTicketId) {
     return (
-      <div className="bg-white border border-border/50 rounded-2xl flex flex-col shadow-sm">
-        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3 px-6">
-          <MessageSquare className="w-14 h-14 text-gray-200" />
-          <div className="text-center">
-            <p className="font-semibold text-gray-500">Select a ticket</p>
-            <p className="text-xs text-gray-400 mt-0.5">Choose a ticket from the list to view the conversation.</p>
-          </div>
+      <div className="flex flex-col items-center justify-center bg-gray-50/50 border border-dashed border-gray-200 rounded-2xl gap-3 text-center px-6">
+        <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center">
+          <MessageSquare className="w-5 h-5 text-gray-400" />
+        </div>
+        <div>
+          <p className="font-medium text-gray-600 text-sm">
+            No ticket selected
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            Select a ticket from the list to view the conversation.
+          </p>
         </div>
       </div>
     );
@@ -301,59 +423,89 @@ function TicketDetailPanel({
 
   if (loadingThread || !ticketThread) {
     return (
-      <div className="bg-white border border-border/50 rounded-2xl flex flex-col shadow-sm">
-        <div className="flex-1 p-6 space-y-4">
-          <Skeleton className="h-6 w-1/3 rounded-lg" />
-          <Skeleton className="h-20 w-3/4 rounded-2xl" />
-          <Skeleton className="h-20 w-2/3 rounded-2xl ml-auto" />
+      <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden min-h-0">
+        <div className="p-4 border-b space-y-2">
+          <Skeleton className="h-5 w-2/5 rounded-lg" />
+          <Skeleton className="h-3.5 w-1/4 rounded" />
+        </div>
+        <div className="flex-1 p-5 space-y-4">
+          <Skeleton className="h-16 w-3/5 rounded-2xl" />
+          <Skeleton className="h-14 w-2/5 rounded-2xl ml-auto" />
+          <Skeleton className="h-16 w-1/2 rounded-2xl" />
         </div>
       </div>
     );
   }
 
+  const { ticket, messages } = ticketThread;
+  const cfg = STATUS_CONFIG[ticket.status];
+  const isTerminal = ticket.status === "resolved" || ticket.status === "closed";
+
   return (
-    <div className="bg-white border border-border/50 rounded-2xl flex flex-col shadow-sm overflow-hidden">
-      {/* Thread Header */}
-      <div className="px-5 py-3.5 border-b shrink-0 bg-gray-50/50">
-        <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden min-h-0">
+      {/* Thread header */}
+      <div className="px-5 py-3.5 border-b bg-white shrink-0">
+        <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-gray-900 truncate">{ticketThread.ticket.title}</h3>
-              <span className={cn(
-                'text-[10px] px-2 py-0.5 rounded-full font-bold border shrink-0',
-                STATUS_COLORS[ticketThread.ticket.status],
-              )}>
-                {ticketThread.ticket.status}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-gray-900 text-sm truncate">
+                {ticket.title}
+              </h3>
+              <span
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded-full border font-semibold shrink-0",
+                  cfg?.badge,
+                )}
+              >
+                {cfg?.label ?? ticket.status}
               </span>
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">
-              <User className="w-3 h-3 inline mr-0.5" />
-              <span className="font-mono">{ticketThread.ticket.userId?.slice(0, 20)}...</span>
-              {ticketThread.ticket.category && (
-                <>
-                  <span className="mx-1.5">·</span>
-                  <span className="font-semibold text-indigo-600 uppercase text-[10px]">{ticketThread.ticket.category}</span>
-                </>
-              )}
+            <p className="text-[11px] text-gray-400 mt-1 truncate">
+              {ticket.userName ?? ticket.userId}
             </p>
           </div>
+
+          {/* Status actions */}
           <div className="flex items-center gap-2 shrink-0">
-            {ticketThread.ticket.status !== 'resolved' && ticketThread.ticket.status !== 'closed' ? (
-              <Button
-                onClick={() => handleStatusChange('resolved')}
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 rounded-lg gap-1"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
-              </Button>
+            {!isTerminal ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs rounded-lg gap-1.5 border-gray-200 text-gray-600 hover:text-gray-900"
+                  onClick={() => handleStatusChange("closed")}
+                  disabled={statusMutation.isPending}
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Close
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs rounded-lg gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                  onClick={() => handleStatusChange("resolved")}
+                  disabled={statusMutation.isPending}
+                >
+                  {statusMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  )}
+                  Resolve
+                </Button>
+              </>
             ) : (
               <Button
-                onClick={() => handleStatusChange('open')}
                 size="sm"
                 variant="outline"
-                className="text-xs h-8 rounded-lg gap-1"
+                className="h-8 text-xs rounded-lg gap-1.5 border-gray-200"
+                onClick={() => handleStatusChange("open")}
+                disabled={statusMutation.isPending}
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Reopen
+                {statusMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-3.5 h-3.5" />
+                )}
+                Reopen
               </Button>
             )}
           </div>
@@ -361,71 +513,99 @@ function TicketDetailPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50/30">
-        {(!ticketThread.messages || ticketThread.messages.length === 0) && (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-400 px-6 text-center">
-            <AlertCircle className="w-8 h-8 text-gray-200" />
-            <div>
-              <p className="text-sm font-medium text-gray-500">No messages yet</p>
-              <p className="text-xs text-gray-400 mt-0.5">Start the conversation by replying below.</p>
-            </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/40 min-h-0">
+        {(!messages || messages.length === 0) && (
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-12">
+            <AlertCircle className="w-7 h-7 text-gray-300" />
+            <p className="text-sm text-gray-500 font-medium">No messages yet</p>
+            <p className="text-xs text-gray-400">
+              Reply below to start the conversation.
+            </p>
           </div>
         )}
-        {ticketThread.messages?.map((msg: any) => {
-          const isSupport = msg.sender === 'support';
+
+        {messages?.map((msg: { id: string; sender: string; message: string; createdAt: string }, idx: number) => {
+          const isSupport = msg.sender === "support";
+          // Group consecutive messages from the same sender
+          const prevSame = idx > 0 && messages[idx - 1]?.sender === msg.sender;
           return (
-            <div key={msg.id} className={cn('flex gap-3', isSupport ? 'justify-end' : 'justify-start')}>
-              <div className={cn(
-                'p-3 rounded-2xl max-w-[80%] space-y-1 shadow-sm',
-                isSupport
-                  ? 'bg-indigo-600 text-white rounded-tr-sm'
-                  : 'bg-white text-gray-800 rounded-tl-sm border border-gray-100',
-              )}>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.message}</p>
-                <div className={cn(
-                  'flex items-center gap-2 text-[10px]',
-                  isSupport ? 'text-indigo-200' : 'text-gray-400',
-                )}>
-                  <span className="flex items-center gap-1">
-                    {isSupport ? 'Support' : 'Student'}
+            <div
+              key={msg.id}
+              className={cn(
+                "flex",
+                isSupport ? "justify-end" : "justify-start",
+                prevSame ? "mt-1" : "mt-3",
+              )}
+            >
+              <div
+                className={cn(
+                  "flex flex-col max-w-[72%]",
+                  isSupport && "items-end",
+                )}
+              >
+                {!prevSame && (
+                  <span className="text-[10px] text-gray-400 mb-1 px-1">
+                    {isSupport ? "Support" : "Student"}
                   </span>
-                  {msg.sender !== 'support' && (
-                    <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
-                      NEW
-                    </span>
+                )}
+                <div
+                  className={cn(
+                    "px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm",
+                    isSupport
+                      ? "bg-violet-600 text-white rounded-2xl rounded-tr-sm"
+                      : "bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100",
                   )}
-                  <span>·</span>
-                  <span>{new Date(msg.createdAt).toLocaleDateString()} {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                >
+                  {msg.message}
                 </div>
+                <span
+                  className={cn(
+                    "text-[10px] mt-1 px-1",
+                    isSupport ? "text-gray-400 text-right" : "text-gray-400",
+                  )}
+                >
+                  {messageTime(msg.createdAt)}
+                </span>
               </div>
             </div>
           );
         })}
+
+        {/* Optimistic pending bubble */}
         {replyMutation.isPending && (
-          <div className="flex justify-end">
-            <div className="bg-indigo-100 text-indigo-600 p-3 rounded-2xl rounded-tr-sm flex items-center gap-2 shadow-sm">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span className="text-xs">Sending...</span>
+          <div className="flex justify-end mt-1">
+            <div className="bg-violet-400 text-white px-3.5 py-2.5 rounded-2xl rounded-tr-sm text-sm opacity-70 flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Sending…
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply Form */}
+      {/* Reply input */}
       <div className="p-3 border-t bg-white shrink-0">
-        <form onSubmit={handleSendReply} className="flex gap-2">
+        <form onSubmit={handleSendReply} className="flex gap-2 items-center">
           <Input
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
-            placeholder="Type your reply..."
-            className="flex-1 h-10 rounded-xl bg-gray-50 border-gray-200 focus-visible:ring-indigo-500/30 text-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (replyText.trim() && !replyMutation.isPending) {
+                  handleSendReply(e as unknown as React.FormEvent);
+                }
+              }
+            }}
+            placeholder="Reply to student… (Enter to send)"
+            className="flex-1 h-9 rounded-xl bg-gray-50 border-gray-200 text-sm focus-visible:ring-violet-500/30 focus-visible:bg-white"
             disabled={replyMutation.isPending}
           />
           <Button
             type="submit"
+            size="icon"
             disabled={replyMutation.isPending || !replyText.trim()}
-            className="h-10 w-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 shrink-0"
+            className="h-9 w-9 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-gray-200 shrink-0 shadow-sm"
           >
             {replyMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

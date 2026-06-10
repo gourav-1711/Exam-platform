@@ -4,15 +4,22 @@ import {
   questionsTable,
   studentAttemptsTable,
   activityLogsTable,
+  userStreaksTable,
+  dailyQuizzes,
+  mockTestsTable,
+  currentAffairsTable,
+  supportTicketsTable,
+  ncertPdfsTable,
+  pypPdfsTable,
 } from "@workspace/db";
-import { sql, desc } from "drizzle-orm";
+import { sql, desc, and, eq, gte, ne } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
 
 const router = Router();
 
 router.get("/dashboard", async (req, res, next) => {
   const cacheKey = "admin:dashboard:stats";
-  const cached = cacheGet<any>(cacheKey);
+  const cached = cacheGet<unknown>(cacheKey);
   if (cached) {
     res.json(cached);
     return;
@@ -29,6 +36,43 @@ router.get("/dashboard", async (req, res, next) => {
       .select({ count: sql<number>`count(*)` })
       .from(studentAttemptsTable)
       .where(sql`is_passed = true`);
+
+    // Aggregate stats
+    const [studentsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userStreaksTable);
+
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [newStudentsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(activityLogsTable)
+      .where(and(eq(activityLogsTable.action, "user.created"), gte(activityLogsTable.createdAt, weekAgo)));
+
+    const [quizzesRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(dailyQuizzes);
+
+    const [mockTestsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(mockTestsTable);
+
+    const [currentAffairsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(currentAffairsTable);
+
+    const [openTicketsRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(supportTicketsTable)
+      .where(ne(supportTicketsTable.status, "closed"));
+
+    const [ncertStorageRow] = await db
+      .select({ total: sql<number>`COALESCE(SUM(file_size), 0)` })
+      .from(ncertPdfsTable);
+    const [pypStorageRow] = await db
+      .select({ total: sql<number>`COALESCE(SUM(file_size), 0)` })
+      .from(pypPdfsTable);
+    const totalStorageBytes = Number(ncertStorageRow.total) + Number(pypStorageRow.total);
+    const storageUsedMb = Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
 
     const recentActivity = await db
       .select()
@@ -50,6 +94,16 @@ router.get("/dashboard", async (req, res, next) => {
         ...a,
         createdAt: a.createdAt.toISOString(),
       })),
+      stats: {
+        totalStudents: Number(studentsRow.count),
+        newStudentsThisWeek: Number(newStudentsRow.count),
+        totalQuestions: Number(questionRow.count),
+        totalQuizzes: Number(quizzesRow.count),
+        totalMockTests: Number(mockTestsRow.count),
+        totalCurrentAffairs: Number(currentAffairsRow.count),
+        openSupportTickets: Number(openTicketsRow.count),
+        storageUsedMb,
+      },
     };
 
     cacheSet(cacheKey, data, CacheTTL.ANALYTICS);

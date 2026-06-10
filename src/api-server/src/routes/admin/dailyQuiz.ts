@@ -4,7 +4,7 @@ import { getAuth } from "@clerk/express";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { db } from "../../lib/db";
 import { dailyQuizzes } from "@workspace/db";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { AppError } from "../../middleware/errorHandler";
@@ -18,7 +18,7 @@ const dailyQuizPayloadSchema = z.object({
   scheduledTime: z.string().min(1),
   durationMinutes: z.coerce.number().int().min(1).default(30),
   totalQuestions: z.coerce.number().int().min(0).default(0),
-  questionIds: z.array(z.coerce.number().int()).default([]),
+  questionIds: z.array(z.string()).default([]),
   isPublished: z.boolean().default(false),
 });
 
@@ -58,20 +58,19 @@ router.get("/daily-quizzes", async (req, res, next) => {
 
 // GET /api/admin/daily-quizzes/:id
 router.get("/daily-quizzes/:id", async (req, res, next) => {
-  try {
-    const id = routeParamInt(req.params.id);
-    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+  try {      const id = routeParam(req.params.id);
+      if (!id) return next(new AppError(400, "Invalid ID"));
 
-    const [quiz] = await db
-      .select()
-      .from(dailyQuizzes)
-      .where(eq(dailyQuizzes.id, id));
+      const [quiz] = await db
+        .select()
+        .from(dailyQuizzes)
+        .where(eq(dailyQuizzes.id, id));
 
-    if (!quiz) {
-      return next(new AppError(404, "Quiz not found"));
-    }
+      if (!quiz) {
+        return next(new AppError(404, "Quiz not found"));
+      }
 
-    return res.json(quiz);
+      return res.json(quiz);
   } catch (err) {
     return next(err);
   }
@@ -101,7 +100,6 @@ router.post(
           totalQuestions: data.totalQuestions,
           questionIds: data.questionIds,
           isPublished: data.isPublished,
-          createdBy: auth.userId || "system",
         })
         .returning();
 
@@ -118,8 +116,8 @@ router.patch(
   logAdminActivity("update_daily_quiz", "daily_quiz"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
-      if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+      const id = routeParam(req.params.id);
+      if (!id) return next(new AppError(400, "Invalid ID"));
 
       const parseResult = dailyQuizPayloadSchema.partial().safeParse(req.body);
       if (!parseResult.success) {
@@ -149,11 +147,10 @@ router.patch(
 
 // DELETE /api/admin/daily-quizzes/:id
 router.delete("/daily-quizzes/:id", async (req, res, next) => {
-  try {
-    const id = routeParamInt(req.params.id);
-    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+  try {      const id = routeParam(req.params.id);
+      if (!id) return next(new AppError(400, "Invalid ID"));
 
-    await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));
+      await db.delete(dailyQuizzes).where(eq(dailyQuizzes.id, id));
 
     return res.json({ message: "Quiz deleted successfully" });
   } catch (err) {

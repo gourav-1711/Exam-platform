@@ -2,8 +2,8 @@
 export const queryKeys = {
   quizzes: {
     list: (params?: { status?: string } | undefined) =>
-      ["quizzes", "list", params ?? {}] as const,
-    detail: (id: string) => ["quizzes", "detail", id] as const,
+      ["dailyQuizzes", "list", params ?? {}] as const,
+    detail: (id: string) => ["dailyQuizzes", "detail", id] as const,
   },
   currentAffairs: {
     list: (params?: { page?: number; limit?: number } | undefined) =>

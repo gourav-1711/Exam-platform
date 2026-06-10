@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Clock, Play, FileText, CheckCircle2, ClipboardList } from "lucide-react";
+import type { QuizListItem } from "@/lib/types/api";
 
 export default function QuizListing() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history">("ongoing");
@@ -19,11 +20,10 @@ export default function QuizListing() {
   const { data: quizzes, isLoading } = useQuery({
     queryKey: queryKeys.quizzes.list({ status: activeTab }),
     queryFn: () => quizzesApi.list({ status: activeTab }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
-  return (
-    <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+  return (      <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Daily Quizzes</h1>
         <p className="text-muted-foreground">
@@ -33,7 +33,7 @@ export default function QuizListing() {
 
       <Tabs
         value={activeTab}
-        onValueChange={(v) => setActiveTab(v as any)}
+        onValueChange={(v) => setActiveTab(v as "ongoing" | "history")}
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
@@ -49,7 +49,7 @@ export default function QuizListing() {
                 .map((_, i) => (
                   <Skeleton key={i} className="h-48 rounded-2xl" />
                 ))
-            ) : quizzes?.length === 0 ? (
+            ) : !quizzes || quizzes.length === 0 ? (
               <div className="col-span-full">
                 <Empty>
                   <ClipboardList className="w-10 h-10 text-gray-300" />
@@ -58,7 +58,7 @@ export default function QuizListing() {
                 </Empty>
               </div>
             ) : (
-              quizzes?.map((quiz: any) => (
+              quizzes?.map((quiz: QuizListItem) => (
                 <QuizCard key={quiz.id} quiz={quiz} type="ongoing" />
               ))
             )}
@@ -73,7 +73,7 @@ export default function QuizListing() {
                 .map((_, i) => (
                   <Skeleton key={i} className="h-48 rounded-2xl" />
                 ))
-            ) : quizzes?.length === 0 ? (
+            ) : !quizzes || quizzes.length === 0 ? (
               <div className="col-span-full">
                 <Empty>
                   <ClipboardList className="w-10 h-10 text-gray-300" />
@@ -82,18 +82,17 @@ export default function QuizListing() {
                 </Empty>
               </div>
             ) : (
-              quizzes?.map((quiz: any) => (
+              quizzes?.map((quiz: QuizListItem) => (
                 <QuizCard key={quiz.id} quiz={quiz} type="history" />
               ))
             )}
           </div>
         </TabsContent>
-      </Tabs>
-    </PageTransition>
+      </Tabs>      </PageTransition>
   );
 }
 
-function QuizCard({ quiz, type }: { quiz: any; type: "ongoing" | "history" }) {
+function QuizCard({ quiz, type }: { quiz: QuizListItem; type: "ongoing" | "history" }) {
   return (
     <Card className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden flex flex-col">
       <CardContent className="p-5 flex flex-col flex-1 space-y-4">
@@ -126,7 +125,7 @@ function QuizCard({ quiz, type }: { quiz: any; type: "ongoing" | "history" }) {
         </div>
 
         {type === "ongoing" && (
-          <Link href={`/quiz/${quiz.id}`}>
+          <Link href={`/daily-quiz/${quiz.id}`}>
             <Button className="w-full mt-4 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90">
               <Play className="w-4 h-4 mr-2" /> Start Quiz
             </Button>

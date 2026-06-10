@@ -22,7 +22,7 @@ import type { CurrentAffair } from "@/lib/api";
 
 interface CurrentAffairsTableProps {
   data: CurrentAffair[];
-  onDelete: (id: number) => void;
+  onDelete: (id: string) => void;
   onEdit: (item: CurrentAffair) => void;
   onView: (item: CurrentAffair) => void;
   isLoading?: boolean;

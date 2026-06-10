@@ -60,7 +60,7 @@ export function StreakTracker() {
     fired.current = true;
     const displayName = user.fullName || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "Learner";
 
-    recordActivity({ data: { activityType: "quiz", displayName } })
+    recordActivity({ data: { activityType: "login", displayName } })
       .then((result) => {
         localStorage.setItem(STORAGE_KEY, today);
         if (result.streakIncremented) {

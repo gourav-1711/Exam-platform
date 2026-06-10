@@ -1,9 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageTransition } from '@/components/shared/PageTransition';
+
+import { DocumentActionButton } from '@/components/shared/DocumentActionButton';
 import { apiFetch } from '@/lib/api/client';
-import { Download, FileText, Calendar, BookOpen } from 'lucide-react';
+import { FileText, Calendar, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,19 +26,40 @@ interface PypPdf {
 const YEARS = Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i);
 
 export default function PypPage() {
+  const [page, setPage] = useState(1);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedExamType, setSelectedExamType] = useState<string>("all");
 
-  const { data: pdfs = [], isLoading, error } = useQuery({
-    queryKey: ['pyp-pdfs', selectedYear, selectedExamType],
+  // Reset to first page when filters change
+  const prevFilterKey = useRef(`${selectedYear}:${selectedExamType}`);
+  useEffect(() => {
+    const key = `${selectedYear}:${selectedExamType}`;
+    if (key !== prevFilterKey.current) {
+      setPage(1);
+      prevFilterKey.current = key;
+    }
+  }, [selectedYear, selectedExamType]);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['pyp-pdfs', page, selectedYear, selectedExamType],
     queryFn: () => {
       const params = new URLSearchParams();
       if (selectedYear !== "all") params.set("year", selectedYear);
       if (selectedExamType !== "all") params.set("examType", selectedExamType);
+      params.set("page", String(page));
+      params.set("limit", "12");
       const query = params.toString();
-      return apiFetch<PypPdf[]>(`/document-pyp${query ? `?${query}` : ""}`);
+      return apiFetch<{
+        data: PypPdf[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>(`/document-pyp${query ? `?${query}` : ""}`);
     },
   });
+
+  const pdfs = data?.data ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -46,7 +69,7 @@ export default function PypPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 p-4 bg-white border border-gray-200 rounded-2xl shadow-sm">
         <Select value={selectedYear} onValueChange={setSelectedYear}>
           <SelectTrigger className="w-[180px] bg-white border-gray-300">
             <SelectValue placeholder="Select Year" />
@@ -117,19 +140,44 @@ export default function PypPage() {
                     Size: {(pdf.fileSize / 1024 / 1024).toFixed(2)} MB · Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
                   </div>
 
-                  <Button
-                    onClick={() => window.open(pdf.cloudinaryUrl, '_blank')}
-                    className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                  </Button>
+                  <DocumentActionButton
+                    url={pdf.cloudinaryUrl}
+                    page="pyp"
+                    action="download"
+                  />
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {data && data.total > 12 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="rounded-lg"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground px-3">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="rounded-lg"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
 
       {pdfs.length > 0 && (
         <div className="text-center text-gray-400 text-sm">

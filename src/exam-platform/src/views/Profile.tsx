@@ -11,9 +11,11 @@ import { cn } from "@/lib/utils";
 import {
   User, Lock, BookOpen, FlaskConical, RotateCcw,
   LogOut, ChevronRight, CheckCircle2, Star,
-  Pencil, Save, X, Eye, EyeOff, Flame, Trophy, Zap
+  Pencil, Save, X, Eye, EyeOff, Flame, Trophy, Zap,
+  Clock, FileText, TrendingUp
 } from "lucide-react";
-import { useGetMyStreak } from "@/lib/api";
+import { useGetMyStreak, useRecordActivity, customFetch, useMyAttempts } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({ icon: Icon, label, value, color }: {
@@ -45,6 +47,7 @@ function ProfileContent() {
   const [lastName, setLastName] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [nameSuccess, setNameSuccess] = useState(false);
+  const { mutateAsync: recordActivity } = useRecordActivity();
 
   const [changingPw, setChangingPw] = useState(false);
   const [currentPw, setCurrentPw] = useState("");
@@ -55,6 +58,8 @@ function ProfileContent() {
   const [savingPw, setSavingPw] = useState(false);
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwError, setPwError] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const { data: myAttempts = [], isLoading: loadingAttempts } = useMyAttempts();
 
   if (!isLoaded || !user) {
     return (
@@ -89,6 +94,9 @@ function ProfileContent() {
     setSavingName(true);
     try {
       await user.update({ firstName: firstName.trim(), lastName: lastName.trim() });
+      // Sync display name with streaks table
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim() || "Learner";
+      await recordActivity({ data: { activityType: "login", displayName } }).catch(() => {});
       setEditingName(false);
       setNameSuccess(true);
       setTimeout(() => setNameSuccess(false), 3000);
@@ -109,8 +117,9 @@ function ProfileContent() {
       setCurrentPw(""); setNewPw(""); setConfirmPw("");
       setChangingPw(false);
       setTimeout(() => setPwSuccess(false), 4000);
-    } catch (e: any) {
-      setPwError(e?.errors?.[0]?.message ?? "Failed to change password. Check your current password.");
+    } catch (e: unknown) {
+      const err = e as { errors?: Array<{ message?: string }> } | null;
+      setPwError(err?.errors?.[0]?.message ?? "Failed to change password. Check your current password.");
     } finally {
       setSavingPw(false);
     }
@@ -344,6 +353,62 @@ function ProfileContent() {
                 <p className="text-sm text-muted-foreground text-center py-2">
                   Your account uses Google / social login. Password change is not available.
                 </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Attempt History ── */}
+        <div className="bg-white rounded-2xl border border-border/50 shadow-sm overflow-hidden">
+          <Button
+            variant="ghost"
+            className="w-full flex items-center justify-between px-5 py-4 rounded-none"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" />
+              <span className="font-bold text-sm">Attempt History</span>
+            </div>
+            <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform", showHistory && "rotate-90")} />
+          </Button>
+
+          {showHistory && (
+            <div className="p-5 space-y-3 max-h-[400px] overflow-y-auto">
+              {loadingAttempts ? (
+                <div className="text-center py-6 text-sm text-muted-foreground">Loading...</div>
+              ) : myAttempts.length === 0 ? (
+                <div className="text-center py-6 text-sm text-muted-foreground">No attempts yet. Start a quiz or mock test!</div>
+              ) : (
+                myAttempts.map((attempt) => (
+                  <div
+                    key={attempt.id}
+                    className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-2"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-gray-400" />
+                        <p className="text-sm font-bold text-gray-900">
+                          {attempt.examId ? `Mock Test` : `Daily Quiz`}
+                        </p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        attempt.isPassed
+                          ? "bg-green-50 text-green-700 border border-green-200"
+                          : "bg-red-50 text-red-600 border border-red-100"
+                      }`}>
+                        {attempt.isPassed ? "PASSED" : "FAILED"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 text-xs">
+                      <span className="font-semibold text-gray-500">
+                        {new Date(attempt.attemptedAt).toLocaleDateString()} - {new Date(attempt.attemptedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span className="font-extrabold text-violet-600">
+                        {attempt.score} / {attempt.totalMarks}
+                      </span>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           )}

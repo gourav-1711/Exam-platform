@@ -3,9 +3,9 @@ import { db } from "../../lib/db";
 import { ncertPdfsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { uploadDoc } from "../../middleware/upload";
+import { cacheFlushPattern } from "../../lib/cache";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../config/cloudinary";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { cacheFlushPattern } from "../../lib/cache";
 import { z } from "zod";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
@@ -54,7 +54,7 @@ router.get("/document-ncert", async (req, res, next) => {
 // GET /api/admin/document-ncert/:id — get single NCERT PDF
 router.get("/document-ncert/:id", async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = String(req.params.id);
     const [record] = await db
       .select()
       .from(ncertPdfsTable)
@@ -131,7 +131,7 @@ router.patch(
   logAdminActivity("update_ncert_pdf", "ncert_pdf"),
   async (req, res, next) => {
     try {
-      const id = Number(req.params.id);
+      const id = String(req.params.id);
       const parsed = ncertPdfSchema.partial().safeParse(req.body as Record<string, unknown>);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
@@ -158,8 +158,7 @@ router.delete(
   logAdminActivity("delete_ncert_pdf", "ncert_pdf"),
   async (req, res, next) => {
     try {
-      const id = Number(req.params.id);
-    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+      const id = String(req.params.id);
     const [record] = await db
         .select()
         .from(ncertPdfsTable)

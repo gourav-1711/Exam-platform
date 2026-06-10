@@ -1,30 +1,23 @@
 import type { Request, Response, NextFunction } from "express";
-
-export type {};
-
 import { getAuth } from "@clerk/express";
+import { AppError } from "./errorHandler";
 import { routeParam } from "../lib/routeParams";
-
 import { logger } from "../lib/logger";
+import { db } from "../lib/db";
+import { activityLogsTable } from "@workspace/db";
 
 export function requireAdmin(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction,
 ): void {
   const auth = getAuth(req);
-  if (!auth.userId) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
+  if (!auth.userId) return next(new AppError(401, "Unauthorized"));
 
   const role = (auth.sessionClaims?.metadata as { role?: string } | undefined)
     ?.role;
 
-  if (role !== "admin") {
-    res.status(403).json({ error: "Admin access required" });
-    return;
-  }
+  if (role !== "admin") return next(new AppError(403, "Forbidden"));
 
   next();
 }
@@ -34,10 +27,6 @@ export function logAdminActivity(action: string, entityType?: string) {
     const auth = getAuth(req);
 
     try {
-      const { db } = await import("../lib/db");
-
-      const { activityLogsTable } = await import("@workspace/db");
-
       await db.insert(activityLogsTable).values({
         userId: auth.userId ?? "unknown",
         action,

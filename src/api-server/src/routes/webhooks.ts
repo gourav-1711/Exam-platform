@@ -26,29 +26,31 @@ router.post(
 
       const payload = req.body as {
         type: string;
-        data: Record<string, any>;
+        data: Record<string, unknown>;
       };
+      type ClerkData = { [key: string]: unknown };
       const eventType = payload.type;
       const data = payload.data;
 
       switch (eventType) {
         case "user.created": {
-          const { id, first_name, last_name, email_addresses } = data;
+          const { id, first_name, last_name, email_addresses } = data as ClerkData;
+          const clerkUserId = id as string;
           const displayName = [first_name, last_name]
             .filter(Boolean)
             .join(" ")
             .trim() || "Learner";
-          const email = email_addresses?.[0]?.email_address ?? "";
+          const email = (email_addresses as Array<{ email_address: string }> | undefined)?.[0]?.email_address ?? "";
 
           // Create streak record for new user
           const existing = await db
             .select()
             .from(userStreaksTable)
-            .where(eq(userStreaksTable.userId, id));
+            .where(eq(userStreaksTable.userId, clerkUserId));
 
           if (existing.length === 0) {
             await db.insert(userStreaksTable).values({
-              userId: id,
+              userId: clerkUserId,
               displayName,
               currentStreak: 1,
               longestStreak: 1,
@@ -62,19 +64,20 @@ router.post(
 
           // Log signup activity
           await db.insert(activityLogsTable).values({
-            userId: id,
+            userId: clerkUserId,
             action: "user.created",
             entityType: "user",
-            entityId: id,
+            entityId: clerkUserId,
             details: { email, displayName },
           });
 
-          console.log(`Webhook: user.created -> ${id} (${displayName})`);
+          console.log(`Webhook: user.created -> ${clerkUserId} (${displayName})`);
           break;
         }
 
         case "user.updated": {
-          const { id, first_name, last_name } = data;
+          const { id, first_name, last_name } = data as ClerkData;
+          const clerkUserId = id as string;
           const displayName = [first_name, last_name]
             .filter(Boolean)
             .join(" ")
@@ -83,20 +86,21 @@ router.post(
           await db
             .update(userStreaksTable)
             .set({ displayName, updatedAt: new Date() })
-            .where(eq(userStreaksTable.userId, id));
+            .where(eq(userStreaksTable.userId, clerkUserId));
 
-          console.log(`Webhook: user.updated -> ${id}`);
+          console.log(`Webhook: user.updated -> ${clerkUserId}`);
           break;
         }
 
         case "session.created": {
-          const { user_id } = data;
-          if (user_id) {
+          const { user_id } = data as ClerkData;
+          const sessionUserId = user_id as string;
+          if (sessionUserId) {
             await db.insert(activityLogsTable).values({
-              userId: user_id,
+              userId: sessionUserId,
               action: "session.created",
               entityType: "session",
-              entityId: user_id,
+              entityId: sessionUserId,
             });
           }
           break;

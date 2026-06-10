@@ -1,13 +1,12 @@
 import { Router } from "express";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, sql } from "drizzle-orm";
 import { db } from "../db";
 import { subjects, questionsTable, examSetsTable } from "@workspace/db";
-import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
 
 function mapQuestion(q: {
-  id: number;
+  id: string;
   text: string;
   optionA: string;
   optionB: string;
@@ -15,7 +14,6 @@ function mapQuestion(q: {
   optionD: string;
   correctIndex: number;
   explanation: string | null;
-  examLabel: string | null;
 }) {
   return {
     id: q.id,
@@ -23,14 +21,36 @@ function mapQuestion(q: {
     options: [q.optionA, q.optionB, q.optionC, q.optionD],
     correctIndex: q.correctIndex,
     explanation: q.explanation,
-    examLabel: q.examLabel,
   };
 }
 
 router.get("/pyq/subjects", async (req, res, next) => {
   try {
-    const list = await db.select().from(subjects);
-    return res.json(list);
+    const rows = await db
+      .select({
+        id: subjects.id,
+        name: subjects.name,
+        slug: subjects.slug,
+        examCategory: subjects.examCategory,
+        description: subjects.description,
+        isActive: subjects.isActive,
+        createdAt: subjects.createdAt,
+        updatedAt: subjects.updatedAt,
+        questionCount: sql<number>`COALESCE(SUM(${examSetsTable.totalQuestions}), 0)`,
+      })
+      .from(subjects)
+      .leftJoin(
+        examSetsTable,
+        and(
+          eq(examSetsTable.subjectId, subjects.id),
+          eq(examSetsTable.type, "pyq"),
+          eq(examSetsTable.isActive, true),
+        ),
+      )
+      .groupBy(subjects.id)
+      .orderBy(subjects.name);
+
+    return res.json(rows);
   } catch (err) {
     return next(err);
   }
@@ -42,7 +62,7 @@ router.get("/pyq/sets", async (req, res, next) => {
     const { subjectId } = req.query as Record<string, string>;
     const conditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];
     if (subjectId) {
-      conditions.push(eq(examSetsTable.subjectId, parseInt(subjectId)));
+      conditions.push(eq(examSetsTable.subjectId, subjectId));
     }
     const sets = await db
       .select()
@@ -71,29 +91,34 @@ router.get("/pyq/questions", async (req, res, next) => {
     // First, get all active PYQ exam sets to find question IDs
     const setConditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];
     if (subjectId) {
-      const sid = parseInt(subjectId);
-      if (Number.isFinite(sid) && String(sid) === subjectId) {
-        setConditions.push(eq(examSetsTable.subjectId, sid));
+      // Try to look up subject by slug first
+      const [subj] = await db
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(eq(subjects.id, subjectId));
+      if (subj) {
+        setConditions.push(eq(examSetsTable.subjectId, subj.id));
       } else {
-        // Look up subject by slug first
-        const [subj] = await db
+        // Fall back to treating subjectId as a slug
+        const [subjBySlug] = await db
           .select({ id: subjects.id })
           .from(subjects)
           .where(eq(subjects.slug, subjectId));
-        if (subj) {
-          setConditions.push(eq(examSetsTable.subjectId, subj.id));
+        if (subjBySlug) {
+          setConditions.push(eq(examSetsTable.subjectId, subjBySlug.id));
         }
       }
     }
     if (setId) {
-      setConditions.push(eq(examSetsTable.id, parseInt(setId)));
-    }      const examSets = await db
+      setConditions.push(eq(examSetsTable.id, setId));
+    }
+    const examSets = await db
       .select()
       .from(examSetsTable)
       .where(and(...setConditions));
 
     // Collect all question IDs from the sets
-    const questionIds = examSets.reduce<number[]>((acc, set) => {
+    const questionIds = examSets.reduce<string[]>((acc, set) => {
       if (set.questionIds && set.questionIds.length > 0) {
         acc.push(...set.questionIds);
       }
@@ -111,7 +136,7 @@ router.get("/pyq/questions", async (req, res, next) => {
     let all = await db
       .select()
       .from(questionsTable)
-      .where(inArray(questionsTable.id, uniqueIds));
+      .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)));
 
     // Additional subject filter - questions are linked via examSetsTable.subjectId
     // which is already filtered above, so no additional filter needed here

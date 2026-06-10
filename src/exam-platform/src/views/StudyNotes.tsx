@@ -1,26 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
-import { useListStudyNotes } from "@/lib/api";
+import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
+import { useListStudyNotes, useListSubjects } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { Search, Download, BookOpen, Filter, FileText } from "lucide-react";
+import { Search, Download, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function StudyNotes() {
   const [search, setSearch] = useState("");
   const [subject, setSubject] = useState<string>("all");
   const [medium, setMedium] = useState<string>("all");
-  
+  const [page, setPage] = useState(1);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, subject, medium]);
+
+  const { data: pyqSubjects = [] } = useListSubjects();
   const { data, isLoading } = useListStudyNotes({
     search: search || undefined,
     subject: subject !== "all" ? subject : undefined,
     medium: medium !== "all" ? medium : undefined,
+    page,
   });
+
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -29,31 +40,32 @@ export default function StudyNotes() {
         <p className="text-muted-foreground">Premium study material for comprehensive preparation.</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 p-4 bg-card border rounded-2xl shadow-sm">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-card border rounded-2xl shadow-sm">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="Search notes by title..." 
-            className="pl-9"
+            className="pl-9 w-full"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Select value={subject} onValueChange={setSubject}>
-            <SelectTrigger className="w-full md:w-40">
+            <SelectTrigger className="flex-1 sm:w-40">
               <SelectValue placeholder="Subject" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Subjects</SelectItem>
-              <SelectItem value="History">History</SelectItem>
-              <SelectItem value="Geography">Geography</SelectItem>
-              <SelectItem value="Polity">Polity</SelectItem>
-              <SelectItem value="Economy">Economy</SelectItem>
+              {pyqSubjects.map((s) => (
+                <SelectItem key={s.id} value={s.name}>
+                  {s.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={medium} onValueChange={setMedium}>
-            <SelectTrigger className="w-full md:w-32">
+            <SelectTrigger className="flex-1 sm:w-32">
               <SelectValue placeholder="Medium" />
             </SelectTrigger>
             <SelectContent>
@@ -93,18 +105,61 @@ export default function StudyNotes() {
                 </div>
                 
                 <div className="flex gap-2 pt-2 border-t border-border/50 mt-auto">
-                  <Button variant="outline" className="flex-1 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 border-none" onClick={() => note.url ? window.open(note.url, '_blank') : null}>
-                    <BookOpen className="w-4 h-4 mr-2" /> Read
-                  </Button>
-                  <Button variant="outline" className="shrink-0 rounded-xl" size="icon" onClick={() => note.url ? window.open(note.url, '_blank') : null}>
-                    <Download className="w-4 h-4 text-muted-foreground" />
-                  </Button>
+                  <DocumentActionButton
+                    url={note.url || ""}
+                    page="study-notes"
+                    action="read"
+                  />
+                  <DocumentActionButton
+                    url={note.url || ""}
+                    page="study-notes"
+                    action="download"
+                    icon={<Download className="w-4 h-4 text-muted-foreground" />}
+                    variant="outline"
+                    label=""
+                    className="shrink-0 rounded-xl"
+                  />
                 </div>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {data && data.total > 12 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="rounded-lg"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+
+          <span className="text-sm text-muted-foreground px-3">
+            Page {page} of {totalPages}
+          </span>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="rounded-lg"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {data?.data && data.data.length > 0 && (
+        <div className="text-center text-muted-foreground text-sm">
+          Showing {data.data.length} study note{data.data.length !== 1 ? "s" : ""}
+        </div>
+      )}
     </PageTransition>
   );
 }

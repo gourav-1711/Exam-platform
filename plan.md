@@ -1,40 +1,103 @@
-# Plan — Admin Panel Refactor & Fixes
+# System Audit Plan
 
-## 1. Global Confirmation Dialog & Logo Fixes
-- Create a beautiful reusable Confirmation Dialog component using Shadcn `AlertDialog` in frontend components.
-- Fix logo alignment and styling in `AdminSidebar` and `Header` to prevent stretching.
-- Expand sidebar links to include NCERT Books, PYP Papers, and Syllabus.
-- Ensure the delete confirmation dialog is integrated into all delete operations (including Announcements, PYQ Subjects, etc.).
+## Purpose
 
-## 2. Dynamic NCERT/Syllabus/Study Notes (File Upload OR URL Input)
-- Support BOTH File Upload or URL input on Study Notes, NCERT, and Syllabus forms.
-- If a URL is supplied, store it directly in the respective columns (`cloudinaryUrl`/`downloadUrl`/`readUrl`).
+Systematically audit every feature domain across the full stack (DB → API → Frontend) to:
+1. Verify filtering, sorting, and querying logic is correct
+2. Eliminate all `any` and `unknown` type escapes
+3. Fix stale imports, dead code, and broken references
+4. Ensure the auth system (RequireAuthModal) is properly integrated
+5. Maintain consistent error handling
 
-## 3. Consolidation to Central Subjects Table & Route Updates
-- Migrate all endpoints and frontend components from using `pyq_subjects` to the central `subjects` table (`lib/db/src/schema/subjects.ts`).
-- Update the API server endpoints: Rename `/api/admin/pyq-subjects` to `/api/admin/subjects`.
-- Fix creation, updating, and deletion of subjects. Ensure subjects are dynamically loaded for all filters/forms.
-- Update sidebar and router views: `/admin/pyq-subjects` becomes `/admin/subjects`.
+---
 
-## 4. Bulk Question Upload via CSV
-- Implement a robust Question CSV uploader under `/admin/questions` using `papaparse`.
-- Add an API endpoint `POST /api/admin/questions/bulk-upload` in the backend to bulk-insert questions.
+## Audit Methodology
 
-## 5. Daily Quizzes & Exam Fixes
-- Fix the `dailyQuiz` schema parsing issues in backend `/api/admin/daily-quiz`. Ensure integers/booleans parse correctly.
-- Fix Exam Edit & Delete flows, ensuring they match correctly and the delete endpoint removes joins before deleting the exam paper.
-- Allow entering negative values or positive penalties freely without strict `min="0"` constraints on inputs.
+Each system follows the same 6-step process:
 
-## 6. Syllabus Admin Page & CRUD Routes
-- [x] Add backend routes `GET /api/admin/syllabus`, `POST /api/admin/syllabus`, `PATCH /api/admin/syllabus/:id`, and `DELETE /api/admin/syllabus/:id`.
-- [x] Build a responsive `/admin/syllabus` CRUD page.
-- [x] **Fixed**: Syllabus router was missing from admin route index — added import and mount.
+### Step 1: DB Schema (`lib/db/src/schema/<domain>.ts`)
+- Check column types match usage
+- Verify relations/joins are correct
+- Confirm insert/select types are properly exported
 
-## 7. Refactor Admin Pages to Announcements Pattern
-- [x] Redesign the Announcements admin page with Sheet for create/edit, Dialog, ConfirmDeleteDialog, and animations.
-- [x] **Current Affairs**: Merged `new/`, `[id]/`, `[id]/edit/` sub-pages into a single page with Sheet (create/edit), Dialog (detail), ConfirmDeleteDialog, and full Framer Motion animations.
-- [x] **Daily Quizzes**: Merged `new/`, `[id]/`, `[id]/edit/` sub-pages into a single page with Sheet (create/edit), Dialog (detail), ConfirmDeleteDialog, and animations.
-- [x] Fixed `adminApi.updateCurrentAffair` PUT→PATCH bug (was silently failing).
-- [x] Cleaned up `CurrentAffairsTable`: removed unused imports and duplicate delete confirmation.
-- [x] Deleted orphaned `DailyQuizzesAdmin.tsx` and unused sub-page directories.
-- [ ] **Future**: Refactor Exams and Questions pages (they still have separate `new/` and `[id]/edit/` sub-pages with complex forms).
+### Step 2: API Routes — Public (`src/api-server/src/routes/<domain>.ts`)
+- Check filtering logic (WHERE clauses, search params)
+- Verify pagination is correct (offset/limit)
+- Confirm caching strategy (cache keys, TTL, flush patterns)
+- Check error handling (try/catch with next(err))
+- Verify response serialization (dates, null handling)
+
+### Step 3: API Routes — Admin (`src/api-server/src/routes/admin/<domain>.ts`)
+- Same as Step 2, plus:
+- Verify Zod validation schemas match the DB schema
+- Check admin activity logging is wired up
+- Confirm cache invalidation on mutations
+
+### Step 4: Frontend Views (`src/exam-platform/src/views/<domain>.tsx`)
+- Check API integration (query keys, hooks)
+- Verify auth gating (RequireAuthModal for actions, not page-level AuthGuard)
+- Check loading/empty/error states are all handled
+- Verify filtering/search/pagination works end-to-end
+
+### Step 5: Admin Pages (`src/exam-platform/src/app/(admin)/admin/<domain>/page.tsx`)
+- Check CRUD operations (create, read, update, delete)
+- Verify form validation matches API expectations
+- Check cache invalidation on mutations
+- Verify Sheet/Dialog patterns are consistent
+
+### Step 6: Type Safety Sweep
+- Run `pnpm run typecheck` to catch all TS errors
+- Fix any remaining `any` types:
+  - `Promise<any>` → remove return type annotation (TS infers from Express types)
+  - `cacheGet<any>` → `cacheGet<unknown>` or `cacheGet<unknown[]>`
+  - `onError: (err: any)` → `onError: (err: Error)`
+  - `payload: any` → `payload: Record<string, unknown>`
+  - `as any` casts → proper type assertions or restructuring
+- Remove unused imports
+
+---
+
+## Systems to Audit (in suggested order)
+
+| # | System | Priority | Est. Effort |
+|---|--------|----------|-------------|
+| 1 | ✅ **Announcements** | Done | — |
+| 2 | ✅ **Current Affairs** | Done | — |
+| 3 | ✅ **Daily Quizzes** | Done | — |
+| 4 | ✅ **Mock Tests** | Done | All issues fixed — public API created, type safety resolved, UI enhanced |
+| 5 | ✅ **NCERT Books** | Done | — |
+| 6 | ✅ **Previous Year Papers (PYP)** | Done | — |
+| 7 | ✅ **PYQ** | Done | Audited and fixed — missing questionCount resolved |
+| 8 | ✅ **Study Notes** | Done | — |
+| 9 | ✅ **Syllabus** | Done | — |
+| 10 | ✅ **Support** | Done | Audited and all issues fixed — dead import removed, unnecessary casts eliminated, local type duplication replaced with imports |
+| 11 | ✅ **Questions** | Done | Audited and all issues fixed |
+| 12 | ✅ **Subjects** | Done | Audited and all issues fixed — GET fields expanded, duplicate slug check on POST, 404 check on DELETE, questionCount cast removed, examCategory & isActive UI added |
+| 13 | ✅ **Streaks / Leaderboard** | Done | Audited and all issues fixed — dead streaksApi.get removed, period filtering added to leaderboard (monthly/weekly), activeTab wired to API |
+| 14 | ✅ **Exam Sets** | Done | Audited and all issues fixed — 5 minor issues resolved (wrong number IDs in local interface, DELETE 404 check, misleading comment, debounced search, Subject type annotations) |
+| 15 | ✅ **Admin Dashboard** | Done | Audited and all issues fixed — dashboard backend enhanced with real aggregate stats, settings page falsy-0 bug fixed, dynamic imports in logAdminActivity replaced with static imports, analytics cache invalidation added |
+
+---
+
+## Common Issues to Watch For
+
+### DB / API
+- Missing `isActive` filter on public endpoints
+- Wrong sort order (should usually be `desc` by createdAt)
+- Missing `limit` on unbounded queries
+- `parseInt()` without radix 10
+- `Number()` coercion on Drizzle count results (necessary for JSON serialization)
+
+### Frontend
+- `AuthGuard` import still present (should use `RequireAuthModal` pattern instead)
+- `as any` or `as { customField }` type casts for non-existent DB fields
+- Missing `"use client"` directive in components using hooks
+- `Link` imported from `lucide-react` instead of `next/link`
+- Dead imports after refactoring (e.g., `AuthGuard`, `Link`, phantom `Icon`)
+
+### Type Safety
+- `customFetch<any>` → `customFetch<Record<string, unknown>>` or proper response type
+- `onError: (err: any)` → `onError: (err: Error)` (React Query error type)
+- `Promise<any>` on route handlers → remove annotation (TypeScript infers from Express)
+- `payload: any` in mutation functions → `payload: Record<string, unknown>`
+- `Record<string, string>` for query params → proper typed interface

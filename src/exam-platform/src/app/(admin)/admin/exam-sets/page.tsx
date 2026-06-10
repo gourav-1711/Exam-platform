@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Trash2,
   Edit,
+  Eye,
   BookOpen,
   Library,
   Search,
   Layers,
+  HelpCircle,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -32,26 +35,29 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListSubjects } from "@/lib/api";
+import { customFetch, useListSubjects, type Subject } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { QuestionSelector } from "@/components/admin/QuestionSelector";
 import { CLASSES, MEDIUMS, EXAM_SET_TYPES } from "@/lib/data";
 
-interface ExamSet {
-  id: number;
-  title: string;
-  description: string | null;
-  type: "pyq" | "ncert";
-  subjectId: number | null;
-  classNum: number | null;
-  medium: string | null;
-  questionIds: number[];
-  totalQuestions: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+import type { ExamSet } from "@workspace/db";
+
+interface BatchQuestion {
+  id: string;
+  text: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string | null;
 }
 
 interface ExamSetsResponse {
@@ -71,7 +77,8 @@ export default function ExamSetsAdminPage() {
   // Sheet state
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ExamSet | null>(null);
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
+  const [viewingItem, setViewingItem] = useState<ExamSet | null>(null);
 
   // Form state
   const [formTitle, setFormTitle] = useState("");
@@ -80,24 +87,26 @@ export default function ExamSetsAdminPage() {
   const [formSubjectId, setFormSubjectId] = useState("");
   const [formClassNum, setFormClassNum] = useState("");
   const [formMedium, setFormMedium] = useState("");
-  const [formQuestionIds, setFormQuestionIds] = useState<number[]>([]);
+  const [formQuestionIds, setFormQuestionIds] = useState<string[]>([]);
 
   // Filters & Pagination
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Subjects
   const { data: subjects = [] } = useListSubjects();
 
   const { data, isLoading } = useQuery<ExamSetsResponse>({
-    queryKey: ["admin", "exam-sets", typeFilter, search, page],
+    queryKey: ["admin", "exam-sets", typeFilter, debouncedSearch, page],
     queryFn: () => {
       const sp = new URLSearchParams();
       sp.set("page", String(page));
       sp.set("limit", "20");
       if (typeFilter) sp.set("type", typeFilter);
-      if (search.trim()) sp.set("search", search.trim());
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       const query = sp.toString();
       return customFetch<ExamSetsResponse>(
         `/api/admin/exam-sets${query ? `?${query}` : ""}`,
@@ -125,7 +134,7 @@ export default function ExamSetsAdminPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, body }: { id: number; body: Record<string, unknown> }) => {
+    mutationFn: async ({ id, body }: { id: string; body: Record<string, unknown> }) => {
       return customFetch<ExamSet>(`/api/admin/exam-sets/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -143,7 +152,7 @@ export default function ExamSetsAdminPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       return customFetch<{ success: boolean }>(`/api/admin/exam-sets/${id}`, {
         method: "DELETE",
       });
@@ -171,15 +180,19 @@ export default function ExamSetsAdminPage() {
     setSheetOpen(true);
   };
 
+  const openView = (item: ExamSet) => {
+    setViewingItem(item);
+  };
+
   const openEdit = (item: ExamSet) => {
     setEditingItem(item);
     setFormTitle(item.title);
     setFormDescription(item.description ?? "");
-    setFormType(item.type);
+    setFormType(item.type as "pyq" | "ncert");
     setFormSubjectId(item.subjectId ? String(item.subjectId) : "");
     setFormClassNum(item.classNum ? String(item.classNum) : "");
     setFormMedium(item.medium ?? "");
-    setFormQuestionIds(item.questionIds);
+    setFormQuestionIds(item.questionIds || []);
     setSheetOpen(true);
   };
 
@@ -190,16 +203,14 @@ export default function ExamSetsAdminPage() {
       return;
     }
 
-    const questionIds = formQuestionIds;
-
     const payload = {
       title: formTitle.trim(),
       description: formDescription.trim() || null,
       type: formType,
-      subjectId: formSubjectId ? parseInt(formSubjectId) : null,
+      subjectId: formSubjectId || null,
       classNum: formType === "ncert" && formClassNum ? parseInt(formClassNum) : null,
       medium: formMedium || null,
-      questionIds,
+      questionIds: formQuestionIds,
     };
 
     if (editingItem) {
@@ -222,8 +233,8 @@ export default function ExamSetsAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-violet-50 border border-violet-200 flex items-center justify-center">
-            <Layers className="w-5 h-5 text-violet-600" />
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+            <Layers className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">
@@ -248,7 +259,15 @@ export default function ExamSetsAdminPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSearch(val);
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+              debounceRef.current = setTimeout(() => {
+                setDebouncedSearch(val);
+                setPage(1);
+              }, 400);
+            }}
             placeholder="Search exam sets..."
             className="pl-9 rounded-xl h-10"
           />
@@ -262,7 +281,7 @@ export default function ExamSetsAdminPage() {
               onClick={() => setTypeFilter(t)}
               className={`rounded-xl h-9 text-xs font-bold ${
                 typeFilter === t
-                  ? "bg-violet-600 hover:bg-violet-700"
+                  ? "bg-indigo-600 hover:bg-indigo-700"
                   : ""
               }`}
             >
@@ -323,8 +342,8 @@ export default function ExamSetsAdminPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-600 text-sm">
-                      {subjects.find(
-                        (s: { id: number }) => s.id === set.subjectId,
+                      {                      subjects.find(
+                        (s: Subject) => String(s.id) === String(set.subjectId),
                       )?.name ?? (
                         <span className="text-gray-400 italic">N/A</span>
                       )}
@@ -340,6 +359,14 @@ export default function ExamSetsAdminPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openView(set)}
+                          className="h-8 w-8 p-0 rounded-lg hover:bg-indigo-50 hover:text-indigo-600"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -446,7 +473,7 @@ export default function ExamSetsAdminPage() {
                   onChange={(e) =>
                     setFormType(e.target.value as "pyq" | "ncert")
                   }
-                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   {EXAM_SET_TYPES.map((t) => (
                     <option key={t} value={t}>
@@ -462,10 +489,10 @@ export default function ExamSetsAdminPage() {
                 <select
                   value={formSubjectId}
                   onChange={(e) => setFormSubjectId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="">None</option>
-                  {subjects.map((s: { id: number; name: string }) => (
+                  {subjects.map((s: Subject) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -483,7 +510,7 @@ export default function ExamSetsAdminPage() {
                   <select
                     value={formClassNum}
                     onChange={(e) => setFormClassNum(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
                     <option value="">Select</option>
                     {CLASSES.map((c) => (
@@ -500,7 +527,7 @@ export default function ExamSetsAdminPage() {
                   <select
                     value={formMedium}
                     onChange={(e) => setFormMedium(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
                     <option value="">Any</option>
                     {MEDIUMS.map((m) => (
@@ -534,7 +561,7 @@ export default function ExamSetsAdminPage() {
               <Button
                 type="submit"
                 disabled={isPending || !formTitle.trim()}
-                className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl"
               >
                 {isPending
                   ? "Saving..."
@@ -547,6 +574,69 @@ export default function ExamSetsAdminPage() {
         </SheetContent>
       </Sheet>
 
+      {/* Detail Dialog with question previews */}
+      <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh]">
+          {viewingItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-indigo-500" />
+                  {viewingItem.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Exam set details and questions preview
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Set metadata */}
+              <div className="space-y-3">
+                {viewingItem.description && (
+                  <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                    <p className="text-xs text-gray-600">{viewingItem.description}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                    <p className="text-gray-400 font-semibold uppercase tracking-wide">Type</p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5 capitalize">{viewingItem.type}</p>
+                  </div>
+                  <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                    <p className="text-gray-400 font-semibold uppercase tracking-wide">Subject</p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">
+                      {subjects.find((s: Subject) => String(s.id) === String(viewingItem.subjectId))?.name ?? (
+                        <span className="text-gray-400 italic">N/A</span>
+                      )}
+                    </p>
+                  </div>
+                  {viewingItem.classNum && (
+                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                      <p className="text-gray-400 font-semibold uppercase tracking-wide">Class</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">Class {viewingItem.classNum}</p>
+                    </div>
+                  )}
+                  {viewingItem.medium && (
+                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
+                      <p className="text-gray-400 font-semibold uppercase tracking-wide">Medium</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{viewingItem.medium}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Questions preview */}
+              <div className="border-t pt-3 mt-1">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  Questions ({viewingItem.questionIds?.length ?? 0})
+                </h4>
+                <QuestionPreview questionIds={(viewingItem.questionIds ?? []) as string[]} />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDeleteDialog
         isOpen={deleteTargetId !== null}
         onClose={() => setDeleteId(null)}
@@ -557,3 +647,65 @@ export default function ExamSetsAdminPage() {
     </motion.div>
   );
 }
+
+// ── Question Preview Component ────────────────────────────────────────────
+function QuestionPreview({ questionIds }: { questionIds: string[] }) {
+  if (!questionIds.length) {
+    return (
+      <p className="text-xs text-gray-400 italic py-3 text-center">No questions selected for this set.</p>
+    );
+  }
+
+  const { data, isLoading, error } = useQuery<{ data: BatchQuestion[] }>({
+    queryKey: ["admin", "exam-sets", "question-preview", questionIds.join(",")],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      questionIds.forEach((id) => params.append("ids", id));
+      return customFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
+    },
+    staleTime: 60000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (error || !data?.data) {
+    return (
+      <p className="text-xs text-red-500 italic py-3 text-center">Failed to load question previews.</p>
+    );
+  }
+
+  const questions = data.data;
+
+  return (
+    <ScrollArea className="max-h-[280px] pr-2">
+      <div className="space-y-2">
+        {questions.map((q, i) => (
+          <div key={q.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold mt-0.5">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">
+                  {q.text}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span className="text-[10px] font-medium text-gray-400">
+                    4 options | Correct: {String.fromCharCode(65 + q.correctIndex)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
+  );
+}
+

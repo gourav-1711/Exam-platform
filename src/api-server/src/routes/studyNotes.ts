@@ -14,15 +14,15 @@ router.get("/study-notes", async (req, res, next) => {
       search,
       page: pageStr,
     } = req.query as Record<string, string>;
-    const page = parseInt(pageStr) || 1;
+    const page = parseInt(pageStr, 10) || 1;
     const limit = 12;
     const offset = (page - 1) * limit;
 
     const cacheKey = `study-notes:${page}:${subject || "all"}:${medium || "all"}:${search || ""}`;
-    const cached = cacheGet<any>(cacheKey);
+    const cached = cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const conditions = [];
+    const conditions = [eq(studyNotesTable.isActive, true)];
     if (subject) conditions.push(eq(studyNotesTable.subject, subject));
     if (medium) conditions.push(eq(studyNotesTable.medium, medium));
     if (search) conditions.push(ilike(studyNotesTable.title, `%${search}%`));

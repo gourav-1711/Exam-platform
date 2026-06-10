@@ -52,7 +52,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { adminApi, type AdminCurrentAffairsResponse } from "@/lib/api/endpoints";
-import type { CurrentAffair } from "@/lib/api";
+import type { CurrentAffairItem } from "@/lib/types/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -117,13 +117,13 @@ export default function CurrentAffairsAdminPage() {
 
   // Sheet (create/edit)
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<CurrentAffair | null>(null);
+  const [editingItem, setEditingItem] = useState<CurrentAffairItem | null>(null);
 
   // Dialog (detail view)
-  const [viewingItem, setViewingItem] = useState<CurrentAffair | null>(null);
+  const [viewingItem, setViewingItem] = useState<CurrentAffairItem | null>(null);
 
   // Delete
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
 
   // Form state
   const [formTitle, setFormTitle] = useState("");
@@ -176,12 +176,12 @@ export default function CurrentAffairsAdminPage() {
       toast({ title: "Created!", description: "Current affair published." });
       setSheetOpen(false);
     },
-    onError: (err: any) =>
+    onError: (err: Error) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: any }) => {
+    mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) => {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
       return adminApi.updateCurrentAffair(token, id, payload);
@@ -191,12 +191,12 @@ export default function CurrentAffairsAdminPage() {
       toast({ title: "Saved!", description: "Changes applied." });
       setSheetOpen(false);
     },
-    onError: (err: any) =>
+    onError: (err: Error) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
       return adminApi.deleteCurrentAffair(token, id);
@@ -206,7 +206,7 @@ export default function CurrentAffairsAdminPage() {
       setDeleteId(null);
       toast({ title: "Deleted", description: "Article removed." });
     },
-    onError: (err: any) =>
+    onError: (err: Error) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
@@ -216,12 +216,12 @@ export default function CurrentAffairsAdminPage() {
     setSheetOpen(true);
   };
 
-  const openEdit = (item: CurrentAffair) => {
+  const openEdit = (item: CurrentAffairItem) => {
     setEditingItem(item);
     setSheetOpen(true);
   };
 
-  const openView = (item: CurrentAffair) => {
+  const openView = (item: CurrentAffairItem) => {
     setViewingItem(item);
   };
 
@@ -262,7 +262,7 @@ export default function CurrentAffairsAdminPage() {
             <motion.div
               whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
               transition={{ duration: 0.45 }}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-200 shrink-0"
+              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0"
             >
               <Newspaper className="w-6 h-6 text-white" />
             </motion.div>
@@ -290,7 +290,7 @@ export default function CurrentAffairsAdminPage() {
                     transition={{ repeat: Infinity, duration: 2.2 }}
                     className="w-2 h-2 rounded-full bg-violet-500 inline-block"
                   />
-                  <span className="text-xs font-semibold text-violet-700">
+                  <span className="text-xs font-semibold text-indigo-700">
                     {items.length} shown
                   </span>
                 </motion.div>
@@ -372,8 +372,8 @@ export default function CurrentAffairsAdminPage() {
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
                   className="flex flex-col items-center"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center mb-4">
-                    <Megaphone className="w-7 h-7 text-violet-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+                    <Megaphone className="w-7 h-7 text-indigo-400" />
                   </div>
                   <EmptyTitle>No articles yet</EmptyTitle>
                   <EmptyDescription>
@@ -423,8 +423,8 @@ export default function CurrentAffairsAdminPage() {
                       >
                         <TableCell className="pl-5 py-3.5 max-w-[300px]">
                           <div className="flex items-start gap-2.5">
-                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                              <Newspaper className="w-3.5 h-3.5 text-violet-600" />
+                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+                              <Newspaper className="w-3.5 h-3.5 text-indigo-600" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">
@@ -441,7 +441,7 @@ export default function CurrentAffairsAdminPage() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className="capitalize text-xs bg-violet-50/50 text-violet-700 border-violet-200"
+                            className="capitalize text-xs bg-violet-50/50 text-indigo-700 border-violet-200"
                           >
                             {item.category}
                           </Badge>
@@ -449,7 +449,7 @@ export default function CurrentAffairsAdminPage() {
                         <TableCell>
                           <span className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
                             <Calendar className="w-3 h-3" />
-                            {new Date(item.publishedAt).toLocaleDateString()}
+                            {new Date(item.publishedAt ?? '').toLocaleDateString()}
                           </span>
                         </TableCell>
                         <TableCell className="text-right pr-5">
@@ -567,9 +567,9 @@ export default function CurrentAffairsAdminPage() {
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                  className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-200 flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center"
                 >
-                  <Newspaper className="w-5 h-5 text-violet-600" />
+                  <Newspaper className="w-5 h-5 text-indigo-600" />
                 </motion.div>
                 <div>
                   <SheetTitle className="text-base font-bold text-gray-900">
@@ -685,7 +685,7 @@ export default function CurrentAffairsAdminPage() {
                     </DialogTitle>
                     <Badge
                       variant="outline"
-                      className="capitalize shrink-0 bg-violet-50 text-violet-700 border-violet-200"
+                      className="capitalize shrink-0 bg-violet-50 text-indigo-700 border-violet-200"
                     >
                       {viewingItem.category}
                     </Badge>
@@ -693,7 +693,7 @@ export default function CurrentAffairsAdminPage() {
                   <DialogDescription className="flex items-center gap-2 text-xs text-gray-500 mt-2">
                     <Calendar className="w-3.5 h-3.5" />
                     Published on{" "}
-                    {new Date(viewingItem.publishedAt).toLocaleDateString("en-US", {
+                    {new Date(viewingItem.publishedAt ?? '').toLocaleDateString("en-US", {
                       dateStyle: "full",
                     })}
                   </DialogDescription>

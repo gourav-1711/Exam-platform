@@ -9,7 +9,7 @@ const router = Router();
 
 router.get("/announcements", async (req, res, next) => {
   const cacheKey = "announcements:active";
-  const cached = cacheGet<any[]>(cacheKey);
+  const cached = cacheGet<unknown[]>(cacheKey);
   if (cached) {
     res.json(cached);
     return;

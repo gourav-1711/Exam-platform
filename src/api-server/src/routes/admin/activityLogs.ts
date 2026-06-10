@@ -14,8 +14,8 @@ router.get("/activity-logs", async (req, res, next) => {
       userId,
       action,
     } = req.query as Record<string, string>;
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(200, parseInt(limit));
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(200, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];

@@ -48,7 +48,7 @@ const FEATURES: Feature[] = [
     icon: Zap,
     iconBg: "bg-teal-100",
     iconColor: "text-teal-600",
-    href: "/quiz",
+    href: "/daily-quiz",
     isNew: true,
   },
   {
@@ -303,7 +303,7 @@ export default function Home() {
                 strategy.
               </p>
             </div>
-            <Link href="/quiz">
+            <Link href="/daily-quiz">
               <Button
                 size="sm"
                 className="bg-white text-primary hover:bg-gray-100 font-bold rounded-xl shrink-0 shadow-md shadow-black/10 gap-1.5 px-4 h-10"

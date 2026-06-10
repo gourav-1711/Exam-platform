@@ -4,7 +4,7 @@ import { db } from "../db";
 import { supportTicketsTable, supportMessagesTable } from "@workspace/db";
 import { eq, desc, and, isNull, sql } from "drizzle-orm";
 import { requireAuth } from "../middleware/auth";
-import { routeParamInt } from "../lib/routeParams";
+import { routeParam } from "../lib/routeParams";
 import { sanitizeHtml } from "../utils/sanitize";
 import { AppError } from "../middleware/errorHandler";
 
@@ -48,7 +48,12 @@ router.get("/support/tickets", async (req, res, next) => {
           isNull(supportTicketsTable.userDeletedAt),
         ),
       )
-      .orderBy(desc(supportTicketsTable.lastMessageAt ?? supportTicketsTable.createdAt));
+      // FIX: use SQL COALESCE instead of JS ?? which never falls back on column objects
+      .orderBy(
+        desc(
+          sql`COALESCE(${supportTicketsTable.lastMessageAt}, ${supportTicketsTable.createdAt})`,
+        ),
+      );
 
     const serialized = tickets.map((t) => ({
       ...t,
@@ -89,7 +94,7 @@ router.get("/support/unread-count", async (req, res, next) => {
 router.get("/support/tickets/:id", async (req, res, next) => {
   try {
     const userId = req.userId!;
-    const ticketId = routeParamInt(req.params.id);
+    const ticketId = routeParam(req.params.id);
 
     const [ticket] = await db
       .select()
@@ -120,9 +125,12 @@ router.get("/support/tickets/:id", async (req, res, next) => {
     res.json({
       ticket: {
         ...ticket,
+        isReadByUser: true,
         createdAt: ticket.createdAt.toISOString(),
         updatedAt: ticket.updatedAt.toISOString(),
-        lastMessageAt: ticket.lastMessageAt ? ticket.lastMessageAt.toISOString() : null,
+        lastMessageAt: ticket.lastMessageAt
+          ? ticket.lastMessageAt.toISOString()
+          : null,
       },
       messages: messages.map((m) => ({
         ...m,
@@ -140,7 +148,12 @@ router.post("/support/tickets", async (req, res, next) => {
     const userId = req.userId!;
     const parsed = CreateTicketSchema.safeParse(req.body);
     if (!parsed.success) {
-      return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
+      return next(
+        new AppError(
+          400,
+          `Validation failed: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+        ),
+      );
     }
 
     const { title, message } = parsed.data;
@@ -172,7 +185,9 @@ router.post("/support/tickets", async (req, res, next) => {
       ...ticket,
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString(),
-      lastMessageAt: ticket.lastMessageAt ? ticket.lastMessageAt.toISOString() : null,
+      lastMessageAt: ticket.lastMessageAt
+        ? ticket.lastMessageAt.toISOString()
+        : null,
     });
   } catch (err) {
     return next(err);
@@ -183,11 +198,16 @@ router.post("/support/tickets", async (req, res, next) => {
 router.post("/support/tickets/:id/messages", async (req, res, next) => {
   try {
     const userId = req.userId!;
-    const ticketId = routeParamInt(req.params.id);
+    const ticketId = routeParam(req.params.id);
 
     const parsed = SendMessageSchema.safeParse(req.body);
     if (!parsed.success) {
-      return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
+      return next(
+        new AppError(
+          400,
+          `Validation failed: ${parsed.error.issues.map((i) => i.message).join("; ")}`,
+        ),
+      );
     }
 
     const sanitizedMessage = sanitizeHtml(parsed.data.message);
@@ -223,7 +243,8 @@ router.post("/support/tickets/:id/messages", async (req, res, next) => {
         isReadByAdmin: false,
         isReadByUser: true,
         lastMessageAt: now,
-        status: sql`CASE WHEN status = 'resolved' THEN 'pending' ELSE status END`,
+        // FIX: reopen both 'resolved' and 'closed' tickets consistently with admin router
+        status: sql`CASE WHEN status IN ('resolved', 'closed') THEN 'pending' ELSE status END`,
         updatedAt: now,
       })
       .where(eq(supportTicketsTable.id, ticketId));
@@ -241,7 +262,7 @@ router.post("/support/tickets/:id/messages", async (req, res, next) => {
 router.delete("/support/tickets/:id", async (req, res, next) => {
   try {
     const userId = req.userId!;
-    const ticketId = routeParamInt(req.params.id);
+    const ticketId = routeParam(req.params.id);
 
     const [ticket] = await db
       .select()

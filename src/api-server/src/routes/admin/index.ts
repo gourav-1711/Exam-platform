@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth";
-import { requireAdmin } from "../../middleware/adminAuth";
+import { requireAdmin } from "../../middleware/adminMiddleware";
 
 import dashboardRouter from "./dashboard";
 import questionsRouter from "./questions";
@@ -12,7 +12,6 @@ import activityLogsRouter from "./activityLogs";
 import supportTicketsRouter from "./supportTickets";
 import announcementsRouter from "./announcements";
 import currentAffairsRouter from "./currentAffairs";
-import quizzesRouter from "./quizzes";
 import mockTestsRouter from "./mockTests";
 import studyNotesRouter from "./studyNotes";
 import ncertBooksRouter from "./ncertBooks";
@@ -38,7 +37,6 @@ router.use(activityLogsRouter);
 router.use(supportTicketsRouter);
 router.use(announcementsRouter);
 router.use(currentAffairsRouter);
-router.use(quizzesRouter);
 router.use(mockTestsRouter);
 router.use(studyNotesRouter);
 router.use(ncertBooksRouter);

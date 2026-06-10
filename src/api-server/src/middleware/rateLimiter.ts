@@ -24,3 +24,15 @@ export const authRateLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many authentication attempts." },
 });
+
+export const questionCreationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: "Too many question creation requests." },
+});
+
+export const examCreationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: "Too many exam creation requests." },
+});

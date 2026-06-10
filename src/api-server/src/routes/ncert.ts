@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { db } from "../db";
 import { ncertBooksTable, questionsTable, examSetsTable } from "@workspace/db";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, sql } from "drizzle-orm";
 import { cacheGet, cacheSet, cacheFlushPattern, CacheTTL } from "../lib/cache";
 
 const router = Router();
 
 function mapQuestion(q: {
-  id: number;
+  id: string;
   text: string;
   optionA: string;
   optionB: string;
@@ -15,7 +15,6 @@ function mapQuestion(q: {
   optionD: string;
   correctIndex: number;
   explanation: string | null;
-  examLabel: string | null;
 }) {
   return {
     id: q.id,
@@ -23,7 +22,6 @@ function mapQuestion(q: {
     options: [q.optionA, q.optionB, q.optionC, q.optionD],
     correctIndex: q.correctIndex,
     explanation: q.explanation,
-    examLabel: q.examLabel,
   };
 }
 
@@ -37,25 +35,20 @@ router.get("/ncert-mcq/questions", async (req, res, next) => {
       page: pageStr,
       setId,
     } = req.query as Record<string, string>;
-    const page = parseInt(pageStr) || 1;
+    const page = parseInt(pageStr, 10) || 1;
     const limit = 10;
     const offset = (page - 1) * limit;
 
     const cacheKey = `ncert-mcq:${classNum || "all"}:${subject || "all"}:${medium || "all"}:${page}`;
-    const cached = cacheGet<any>(cacheKey);
+    const cached = cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const setConditions = [eq(examSetsTable.type, "ncert"), eq(examSetsTable.isActive, true)];
-    if (classNum) setConditions.push(eq(examSetsTable.classNum, parseInt(classNum)));
+    if (classNum) setConditions.push(eq(examSetsTable.classNum, parseInt(classNum, 10)));
     if (subject) setConditions.push(eq(examSetsTable.title, subject));
     if (medium) setConditions.push(eq(examSetsTable.medium, medium));
     if (setId) {
-      const setIdNum = parseInt(setId);
-      setConditions.push(
-        Number.isFinite(setIdNum) && String(setIdNum) === setId
-          ? eq(examSetsTable.id, setIdNum)
-          : eq(examSetsTable.slug, setId),
-      );
+      setConditions.push(eq(examSetsTable.slug, setId));
     }
 
     const examSets = await db
@@ -63,7 +56,7 @@ router.get("/ncert-mcq/questions", async (req, res, next) => {
       .from(examSetsTable)
       .where(and(...setConditions));
 
-    const questionIds = examSets.reduce<number[]>((acc, set) => {
+    const questionIds = examSets.reduce<string[]>((acc, set) => {
       if (set.questionIds && set.questionIds.length > 0) {
         acc.push(...set.questionIds);
       }
@@ -82,9 +75,9 @@ router.get("/ncert-mcq/questions", async (req, res, next) => {
     let all = await db
       .select()
       .from(questionsTable)
-      .where(inArray(questionsTable.id, uniqueIds));
+      .where(and(inArray(questionsTable.id, uniqueIds), eq(questionsTable.isActive, true)));
 
-    if (classNum) all = all.filter((q) => q.classNum === parseInt(classNum));
+    if (classNum) all = all.filter((q) => q.classNum === parseInt(classNum, 10));
     if (subject) all = all.filter((q) => q.subject?.toLowerCase() === subject.toLowerCase());
     if (medium) all = all.filter((q) => q.medium?.toLowerCase() === medium.toLowerCase());
 
@@ -103,7 +96,7 @@ router.get("/ncert-mcq/sets", async (req, res, next) => {
   try {
     const { classNum, medium } = req.query as Record<string, string>;
     const conditions = [eq(examSetsTable.type, "ncert"), eq(examSetsTable.isActive, true)];
-    if (classNum) conditions.push(eq(examSetsTable.classNum, parseInt(classNum)));
+    if (classNum) conditions.push(eq(examSetsTable.classNum, parseInt(classNum, 10)));
     if (medium) conditions.push(eq(examSetsTable.medium, medium));
 
     const sets = await db
@@ -124,21 +117,49 @@ router.get("/ncert-mcq/sets", async (req, res, next) => {
 
 router.get("/ncert-books", async (req, res, next) => {
   try {
-    const { classNum, subject, medium } = req.query as Record<string, string>;
-    const cacheKey = `ncert-books:${classNum || "all"}:${subject || "all"}:${medium || "all"}`;
-    const cached = cacheGet<any[]>(cacheKey);
+    const {
+      classNum,
+      subject,
+      medium,
+      page: pageStr = "1",
+      limit: limitStr = "50",
+    } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(pageStr, 10));
+    const limitNum = Math.min(100, Math.max(1, parseInt(limitStr, 10)));
+    const offset = (pageNum - 1) * limitNum;
+
+    const cacheKey = `ncert-books:${classNum || "all"}:${subject || "all"}:${medium || "all"}:${pageNum}:${limitNum}`;
+    const cached = cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    let all = await db.select().from(ncertBooksTable);
-    if (classNum) all = all.filter((b) => b.classNum === parseInt(classNum));
-    if (subject)
-      all = all.filter(
-        (b) => b.subject.toLowerCase() === subject.toLowerCase(),
-      );
-    if (medium)
-      all = all.filter((b) => b.medium.toLowerCase() === medium.toLowerCase());
-    cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
-    res.json(all);
+    const conditions = [eq(ncertBooksTable.isActive, true)];
+    if (classNum) conditions.push(eq(ncertBooksTable.classNum, parseInt(classNum, 10)));
+    if (subject) conditions.push(eq(ncertBooksTable.subject, subject));
+    if (medium) conditions.push(eq(ncertBooksTable.medium, medium));
+    const where = and(...conditions);
+
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(ncertBooksTable)
+      .where(where);
+
+    const data = await db
+      .select()
+      .from(ncertBooksTable)
+      .where(where)
+      .orderBy(ncertBooksTable.classNum, ncertBooksTable.subject)
+      .limit(limitNum)
+      .offset(offset);
+
+    const total = Number(countRow?.count ?? 0);
+    const result = {
+      data,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+    };
+    cacheSet(cacheKey, result, CacheTTL.QUESTIONS);
+    res.json(result);
   } catch (err) {
     return next(err);
   }

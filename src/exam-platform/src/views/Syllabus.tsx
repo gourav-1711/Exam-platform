@@ -2,12 +2,13 @@
 
 import React from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { useListSyllabus } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { FileText, Download, Eye, BookOpen } from "lucide-react";
+import { FileText, BookOpen } from "lucide-react";
 
 export default function Syllabus() {
   const { data: syllabi, isLoading } = useListSyllabus();
@@ -44,12 +45,24 @@ export default function Syllabus() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-500/10 hover:text-blue-600">
-                    <Eye className="w-5 h-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 hover:text-primary">
-                    <Download className="w-5 h-5" />
-                  </Button>
+                  {item.readUrl && (
+                    <DocumentActionButton
+                      url={item.readUrl}
+                      page="syllabus"
+                      action="read"
+                      label="Read"
+                      className="rounded-full hover:bg-blue-500/10 hover:text-blue-600 w-9 h-9 p-0 flex items-center justify-center"
+                    />
+                  )}
+                  {item.downloadUrl && (
+                    <DocumentActionButton
+                      url={item.downloadUrl}
+                      page="syllabus"
+                      action="download"
+                      label="Download"
+                      className="rounded-full hover:bg-primary/10 hover:text-primary w-9 h-9 p-0 flex items-center justify-center"
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { previousYearPapersTable, subjects } from "@workspace/db";
-import { eq, desc, like, and, sql } from "drizzle-orm";
+import { eq, desc, like, and, sql, type SQL } from "drizzle-orm";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { cacheFlushPattern } from "../../lib/cache";
 import { AppError } from "../../middleware/errorHandler";
 
@@ -13,7 +13,7 @@ const router = Router();
 router.get("/pyp", async (req, res, next) => {
   try {
     const { search } = req.query as Record<string, string>;
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(
@@ -44,7 +44,7 @@ router.get("/pyp", async (req, res, next) => {
 // GET /api/admin/pyp/:id
 router.get("/pyp/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [paper] = await db
       .select()
       .from(previousYearPapersTable)
@@ -91,7 +91,7 @@ router.post(
         const [subj] = await db
           .select({ name: subjects.name })
           .from(subjects)
-          .where(eq(subjects.id, parseInt(subjectId)));
+          .where(eq(subjects.id, subjectId));
         if (subj) resolvedSubject = subj.name;
       }
 
@@ -100,9 +100,9 @@ router.post(
         .values({
           examName,
           shiftName: shiftName || "Shift 1",
-          year: parseInt(year),
+          year: parseInt(year, 10),
           subject: resolvedSubject,
-          subjectId: subjectId ? parseInt(subjectId) : null,
+          subjectId: subjectId || null,
           questionPaperUrl: questionPaperUrl || null,
           answerKeyUrl: answerKeyUrl || null,
           answerKeyPdf: answerKeyPdf || null,
@@ -127,17 +127,16 @@ router.patch(
   logAdminActivity("update_pyp", "pyp"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const updateData: Record<string, unknown> = { ...req.body };
-      if (updateData.year) updateData.year = parseInt(updateData.year as string);
-      if (updateData.subjectId) updateData.subjectId = parseInt(updateData.subjectId as string);
+      if (updateData.year) updateData.year = parseInt(updateData.year as string, 10);
 
       // If subjectId changed but subject name not provided, auto-resolve it
       if (updateData.subjectId && !updateData.subject) {
         const [subj] = await db
           .select({ name: subjects.name })
           .from(subjects)
-          .where(eq(subjects.id, updateData.subjectId as number));
+          .where(eq(subjects.id, updateData.subjectId as string));
         if (subj) updateData.subject = subj.name;
       }
 
@@ -169,7 +168,7 @@ router.delete(
   logAdminActivity("delete_pyp", "pyp"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       await db.delete(previousYearPapersTable).where(eq(previousYearPapersTable.id, id));
       cacheFlushPattern("pyp:");
       res.json({ success: true });

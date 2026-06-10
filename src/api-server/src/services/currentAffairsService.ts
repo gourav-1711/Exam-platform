@@ -18,19 +18,25 @@ export const getCurrentAffairs = async () => {
     .orderBy(desc(currentAffairsTable.publishedAt));
 };
 
-export const getCurrentAffairById = async (id: string) => {
-  const numericId = Number.parseInt(id, 10);
-  const isNumericId = Number.isFinite(numericId) && String(numericId) === id.trim();
-  const normalized = slugifyTitle(id);
+export const getCurrentAffairById = async (slug: string) => {
+  const normalized = slugifyTitle(slug);
 
+  // Try UUID match first
+  const [article] = await db
+    .select()
+    .from(currentAffairsTable)
+    .where(eq(currentAffairsTable.slug, slug))
+    .limit(1);
+
+  if (article) return article;
+
+  // Fall back to slug match
   const allCurrentAffairs = await db
     .select()
     .from(currentAffairsTable)
     .orderBy(desc(currentAffairsTable.publishedAt));
 
-  return allCurrentAffairs.find((article) =>
-    isNumericId ? article.id === numericId : slugifyTitle(article.title) === normalized,
-  );
+  return allCurrentAffairs.find((a) => slugifyTitle(a.title) === normalized);
 };
 
 export const createCurrentAffair = async (data: {
@@ -71,7 +77,7 @@ export const updateCurrentAffair = async (
       content: data.content,
       publishedAt: data.date,
     })
-    .where(eq(currentAffairsTable.id, parseInt(id, 10)))
+    .where(eq(currentAffairsTable.id, id))
     .returning();
 
   return updatedCurrentAffair;
@@ -80,7 +86,7 @@ export const updateCurrentAffair = async (
 export const deleteCurrentAffair = async (id: string) => {
   const [deletedCurrentAffair] = await db
     .delete(currentAffairsTable)
-    .where(eq(currentAffairsTable.id, parseInt(id, 10)))
+    .where(eq(currentAffairsTable.id, id))
     .returning();
 
   return deletedCurrentAffair;

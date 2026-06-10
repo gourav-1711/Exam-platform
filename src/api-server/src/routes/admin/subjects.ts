@@ -4,7 +4,7 @@ import { subjects, questionsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 
 /** Generate a URL-friendly slug from a string */
@@ -25,14 +25,18 @@ const subjectSchema = z.object({
 
 const router = Router();
 
-router.get("/subjects", async (req, res, next): Promise<any> => {
+router.get("/subjects", async (req, res, next) => {
   try {
     const data = await db
       .select({
         id: subjects.id,
         name: subjects.name,
+        slug: subjects.slug,
         examCategory: subjects.examCategory,
         description: subjects.description,
+        isActive: subjects.isActive,
+        createdAt: subjects.createdAt,
+        updatedAt: subjects.updatedAt,
         questionCount: sql<number>`CAST(COUNT(DISTINCT ${questionsTable.id}) AS INT)`,
       })
       .from(subjects)
@@ -52,7 +56,7 @@ router.get("/subjects", async (req, res, next): Promise<any> => {
 router.post(
   "/subjects",
   logAdminActivity("create_subject", "subject"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
       const parsed = subjectSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -60,6 +64,16 @@ router.post(
       }
 
       const slug = slugify(parsed.data.name);
+
+      // Check for duplicate slug
+      const [existing] = await db
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(eq(subjects.slug, slug));
+      if (existing) {
+        return next(new AppError(409, `A subject with the name "${parsed.data.name}" already exists`));
+      }
+
       const insertData = { ...parsed.data, slug };
       const [subject] = await db
         .insert(subjects)
@@ -75,9 +89,9 @@ router.post(
 router.patch(
   "/subjects/:id",
   logAdminActivity("update_subject", "subject"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = subjectSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed: ${parsed.error.issues.map(i => i.message).join("; ")}`));
@@ -102,9 +116,16 @@ router.patch(
 router.delete(
   "/subjects/:id",
   logAdminActivity("delete_subject", "subject"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
+      const [existing] = await db
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(eq(subjects.id, id));
+      if (!existing) {
+        return next(new AppError(404, "Subject not found"));
+      }
       await db.delete(subjects).where(eq(subjects.id, id));
       return res.json({ success: true });
     } catch (err) {

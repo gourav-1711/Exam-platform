@@ -13,6 +13,7 @@ import {
   XCircle,
   Loader2,
   Timer,
+  HelpCircle,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -50,23 +51,31 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { customFetch } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { QuestionSelector } from "@/components/admin/QuestionSelector";
 
+interface BatchQuestion {
+  id: string;
+  text: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string | null;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DailyQuiz {
-  id: number;
+  id: string;
   title: string;
   description?: string | null;
   scheduledDate: string;
   scheduledTime: string;
   durationMinutes: number;
   totalQuestions: number;
-  questionIds: number[];
+  questionIds: string[];
   isPublished?: boolean | null;
-  createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -176,7 +185,7 @@ export default function DailyQuizzesAdminPage() {
   const [viewingItem, setViewingItem] = useState<DailyQuiz | null>(null);
 
   // Delete
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [formTitle, setFormTitle] = useState("");
@@ -186,7 +195,7 @@ export default function DailyQuizzesAdminPage() {
   const [formDuration, setFormDuration] = useState(30);
   const [formPublished, setFormPublished] = useState(false);
   const [formError, setFormError] = useState("");
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
 
   // Countdown timer for form
   const formCountdown = useMemo(() => {
@@ -231,7 +240,7 @@ export default function DailyQuizzesAdminPage() {
       customFetch<DailyQuizzesResponse>(
         `/api/admin/daily-quizzes?page=${page}&limit=20`,
       ),
-    staleTime: 30000,
+    staleTime: 0,
   });
 
   const quizzes = data?.quizzes ?? [];
@@ -241,13 +250,13 @@ export default function DailyQuizzesAdminPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "daily-quizzes"] });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) =>
+    mutationFn: async (payload: Record<string, unknown>) =>
       customFetch<DailyQuiz>("/api/admin/daily-quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       invalidate();
       // Calculate time until the quiz becomes visible
       const scheduledAt = new Date(`${variables.scheduledDate}T${variables.scheduledTime}`);
@@ -266,14 +275,14 @@ export default function DailyQuizzesAdminPage() {
       toast({ title: "Quiz Created!", description: `Will be shown to users ${timeUntil}` });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to create");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: any }) =>
+    mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
       customFetch<DailyQuiz>(`/api/admin/daily-quizzes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -284,21 +293,21 @@ export default function DailyQuizzesAdminPage() {
       toast({ title: "Saved!", description: "Changes applied." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to update");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) =>
-      customFetch<any>(`/api/admin/daily-quizzes/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: string) =>
+      customFetch<Record<string, unknown>>(`/api/admin/daily-quizzes/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
       toast({ title: "Deleted", description: "Quiz removed." });
     },
-    onError: (err: any) =>
+    onError: (err: Error) =>
       toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
@@ -360,7 +369,7 @@ export default function DailyQuizzesAdminPage() {
             <motion.div
               whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
               transition={{ duration: 0.45 }}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200 shrink-0"
+              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0"
             >
               <CalendarDays className="w-6 h-6 text-white" />
             </motion.div>
@@ -388,7 +397,7 @@ export default function DailyQuizzesAdminPage() {
                     transition={{ repeat: Infinity, duration: 2.2 }}
                     className="w-2 h-2 rounded-full bg-emerald-500 inline-block"
                   />
-                  <span className="text-xs font-semibold text-emerald-700">
+                  <span className="text-xs font-semibold text-indigo-700">
                     {quizzes.length} shown
                   </span>
                 </motion.div>
@@ -402,7 +411,7 @@ export default function DailyQuizzesAdminPage() {
             >
               <Button
                 onClick={openCreate}
-                className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl px-5 h-10 font-bold gap-1.5 shadow-md shadow-violet-200"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 h-10 font-bold gap-1.5 shadow-md shadow-indigo-200"
               >
                 <Plus className="w-4 h-4" /> New Quiz
               </Button>
@@ -440,8 +449,8 @@ export default function DailyQuizzesAdminPage() {
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
                   className="flex flex-col items-center"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4">
-                    <CalendarDays className="w-7 h-7 text-emerald-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+                    <CalendarDays className="w-7 h-7 text-indigo-400" />
                   </div>
                   <EmptyTitle>No quizzes yet</EmptyTitle>
                   <EmptyDescription>
@@ -450,7 +459,7 @@ export default function DailyQuizzesAdminPage() {
                   <Button
                     onClick={openCreate}
                     variant="outline"
-                    className="mt-4 rounded-xl gap-1.5 border-violet-200 text-violet-600 hover:bg-violet-50"
+                    className="mt-4 rounded-xl gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                   >
                     <Plus className="w-4 h-4" /> Create one
                   </Button>
@@ -500,8 +509,8 @@ export default function DailyQuizzesAdminPage() {
                       >
                         <TableCell className="pl-5 py-3.5 max-w-[200px]">
                           <div className="flex items-start gap-2.5">
-                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0">
-                              <CalendarDays className="w-3.5 h-3.5 text-emerald-600" />
+                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+                              <CalendarDays className="w-3.5 h-3.5 text-indigo-600" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">
@@ -541,7 +550,7 @@ export default function DailyQuizzesAdminPage() {
                           <span
                             className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${
                               q.isPublished
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                ? "bg-emerald-50 border-emerald-200 text-indigo-700"
                                 : "bg-gray-50 border-gray-200 text-gray-400"
                             }`}
                           >
@@ -564,7 +573,7 @@ export default function DailyQuizzesAdminPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 w-8 p-0 rounded-lg hover:bg-violet-50 hover:text-violet-600"
+                                    className="h-8 w-8 p-0 rounded-lg hover:bg-indigo-50 hover:text-indigo-600"
                                     onClick={() => openView(q)}
                                   >
                                     <Eye className="h-3.5 w-3.5" />
@@ -662,9 +671,9 @@ export default function DailyQuizzesAdminPage() {
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                  className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center"
                 >
-                  <CalendarDays className="w-5 h-5 text-emerald-600" />
+                  <CalendarDays className="w-5 h-5 text-indigo-600" />
                 </motion.div>
                 <div>
                   <SheetTitle className="text-base font-bold text-gray-900">
@@ -696,7 +705,7 @@ export default function DailyQuizzesAdminPage() {
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Daily GK Quiz 22"
                   required
-                  className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
+                  className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
                 />
               </motion.div>
 
@@ -707,7 +716,7 @@ export default function DailyQuizzesAdminPage() {
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Optional description..."
                   rows={2}
-                  className="rounded-xl border-border/70 resize-none focus-visible:ring-violet-500/30"
+                  className="rounded-xl border-border/70 resize-none focus-visible:ring-indigo-500/30"
                 />
               </motion.div>
 
@@ -719,7 +728,7 @@ export default function DailyQuizzesAdminPage() {
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
                     required
-                    className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
+                    className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
                   />
                 </motion.div>
                 <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
@@ -729,7 +738,7 @@ export default function DailyQuizzesAdminPage() {
                     value={formTime}
                     onChange={(e) => setFormTime(e.target.value)}
                     required
-                    className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
+                    className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
                   />
                 </motion.div>
               </div>
@@ -756,7 +765,7 @@ export default function DailyQuizzesAdminPage() {
                     min={1}
                     value={formDuration}
                     onChange={(e) => setFormDuration(Number(e.target.value))}
-                    className="rounded-xl h-10 border-border/70 focus-visible:ring-violet-500/30"
+                    className="rounded-xl h-10 border-border/70 focus-visible:ring-indigo-500/30"
                   />
                 </motion.div>
               </div>
@@ -776,7 +785,7 @@ export default function DailyQuizzesAdminPage() {
                     type="checkbox"
                     checked={formPublished}
                     onChange={(e) => setFormPublished(e.target.checked)}
-                    className="accent-violet-600 w-4 h-4"
+                    className="accent-indigo-600 w-4 h-4"
                   />
                   <span className="text-xs font-semibold text-gray-700">Publish immediately</span>
                 </label>
@@ -802,7 +811,7 @@ export default function DailyQuizzesAdminPage() {
                   type="submit"
                   disabled={isPending || !formTitle.trim() || !formDate || !formTime}
                   onClick={handleSubmit}
-                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-md shadow-violet-200 gap-2"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 gap-2"
                 >
                   {isPending ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
@@ -817,19 +826,22 @@ export default function DailyQuizzesAdminPage() {
           </SheetContent>
         </Sheet>
 
-        {/* ── Detail Dialog ───────────────────────────────────────────────── */}
+        {/* ── Detail Dialog with question previews ──────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg max-h-[85vh]">
             {viewingItem && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-bold text-gray-900">
+                  <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-indigo-500" />
                     {viewingItem.title}
                   </DialogTitle>
                   <DialogDescription className="text-xs text-muted-foreground">
-                    Quiz details and configuration
+                    Quiz details and questions preview
                   </DialogDescription>
                 </DialogHeader>
+
+                {/* Quiz metadata */}
                 <div className="space-y-3">
                   {viewingItem.description && (
                     <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
@@ -857,7 +869,7 @@ export default function DailyQuizzesAdminPage() {
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${
                       viewingItem.isPublished
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                        ? "bg-emerald-50 border-emerald-200 text-indigo-700"
                         : "bg-gray-50 border-gray-200 text-gray-400"
                     }`}>
                       {viewingItem.isPublished ? (
@@ -868,12 +880,16 @@ export default function DailyQuizzesAdminPage() {
                       {viewingItem.isPublished ? "Published" : "Draft"}
                     </span>
                     <CountdownBadge date={viewingItem.scheduledDate} time={viewingItem.scheduledTime} />
-                    {viewingItem.questionIds && viewingItem.questionIds.length > 0 && (
-                      <span className="text-xs text-gray-500">
-                        IDs: {viewingItem.questionIds.join(", ")}
-                      </span>
-                    )}
                   </div>
+                </div>
+
+                {/* Questions preview */}
+                <div className="border-t pt-3 mt-1">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Questions ({viewingItem.questionIds?.length ?? 0})
+                  </h4>
+                  <QuestionPreview questionIds={viewingItem.questionIds ?? []} />
                 </div>
               </>
             )}
@@ -890,5 +906,66 @@ export default function DailyQuizzesAdminPage() {
         />
       </motion.div>
     </TooltipProvider>
+  );
+}
+
+// ── Question Preview Component ────────────────────────────────────────────
+function QuestionPreview({ questionIds }: { questionIds: string[] }) {
+  if (!questionIds.length) {
+    return (
+      <p className="text-xs text-gray-400 italic py-3 text-center">No questions selected for this quiz.</p>
+    );
+  }
+
+  const { data, isLoading, error } = useQuery<{ data: BatchQuestion[] }>({
+    queryKey: ["admin", "daily-quizzes", "question-preview", questionIds.join(",")],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      questionIds.forEach((id) => params.append("ids", id));
+      return customFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
+    },
+    staleTime: 60000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (error || !data?.data) {
+    return (
+      <p className="text-xs text-red-500 italic py-3 text-center">Failed to load question previews.</p>
+    );
+  }
+
+  const questions = data.data;
+
+  return (
+    <ScrollArea className="max-h-[280px] pr-2">
+      <div className="space-y-2">
+        {questions.map((q, i) => (
+          <div key={q.id} className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold mt-0.5">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2">
+                  {q.text}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <span className="text-[10px] font-medium text-gray-400">
+                    4 options | Correct: {String.fromCharCode(65 + q.correctIndex)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
   );
 }

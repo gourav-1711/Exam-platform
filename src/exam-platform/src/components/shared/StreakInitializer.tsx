@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
 
@@ -13,6 +13,7 @@ import { apiFetch } from "@/lib/api/client";
  */
 export function StreakInitializer() {
   const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
   const queryClient = useQueryClient();
   const initialized = useRef(false);
 
@@ -26,13 +27,15 @@ export function StreakInitializer() {
     if (initialized.current) return;
     initialized.current = true;
 
+    const displayName = user?.fullName || `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Learner";
+
     const recordLogin = async () => {
       try {
         await apiFetch("/streaks/activity", {
           method: "POST",
           body: JSON.stringify({
             activityType: "login",
-            displayName: "Learner",
+            displayName,
           }),
         });
         // Invalidate streak cache so UI updates
@@ -45,7 +48,7 @@ export function StreakInitializer() {
     // Small delay to ensure session is fully restored
     const timer = setTimeout(recordLogin, 2000);
     return () => clearTimeout(timer);
-  }, [isSignedIn, userId, queryClient]);
+  }, [isSignedIn, userId, user, queryClient]);
 
   return null;
 }

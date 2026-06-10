@@ -15,14 +15,11 @@ interface Subject {
 }
 
 interface Question {
-  id: number;
-  quizId: number | null;
-  subjectId: number | null;
+  id: string;
+  subjectId: string | null;
   classNum: number | null;
   subject: string | null;
   medium: string | null;
-  type: string;
-  questionType: string | null;
   text: string;
   optionA: string;
   optionB: string;
@@ -30,13 +27,8 @@ interface Question {
   optionD: string;
   correctIndex: number;
   explanation: string | null;
-  examLabel: string | null;
   difficulty: string | null;
-  chapter: string | null;
-  tags: string | null;
-  marks: number | null;
   negativeMarking: number | null;
-  imageUrl: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -154,7 +146,7 @@ const adminDataSlice = createSlice({
         state.questions.data[idx] = action.payload;
       }
     },
-    removeQuestionFromCache(state, action: PayloadAction<number>) {
+    removeQuestionFromCache(state, action: PayloadAction<string>) {
       state.questions.data = state.questions.data.filter(
         (q) => q.id !== action.payload,
       );
@@ -170,9 +162,9 @@ const adminDataSlice = createSlice({
         state.subjects.data[idx] = action.payload;
       }
     },
-    removeSubjectFromCache(state, action: PayloadAction<number>) {
+    removeSubjectFromCache(state, action: PayloadAction<number | string>) {
       state.subjects.data = state.subjects.data.filter(
-        (s) => s.id !== action.payload,
+        (s) => String(s.id) !== String(action.payload),
       );
     },
   },

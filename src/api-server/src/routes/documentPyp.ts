@@ -1,39 +1,50 @@
 import { Router } from "express";
 import { db } from "../lib/db";
 import { pypPdfsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { routeParam } from "../lib/routeParams";
-import { AppError } from "../middleware/errorHandler";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 const router = Router();
 
-// GET /api/document-pyp — list all (optionally filter ?year=&examType=&subject=)
+// GET /api/document-pyp — list all (optionally filter ?year=&examType=&subject=) with pagination
 router.get("/", async (req, res, next) => {
   try {
-    const yearRaw = req.query.year;
-    const examTypeRaw = req.query.examType;
-    const subjectRaw = req.query.subject;
+    const {
+      year: yearStr,
+      examType,
+      subject,
+      page: pageStr,
+      limit: limitStr,
+    } = req.query as Record<string, string>;
 
-    const year = typeof yearRaw === "string" ? routeParam(yearRaw) : undefined;
-    const examType =
-      typeof examTypeRaw === "string" ? routeParam(examTypeRaw) : undefined;
-    const subject =
-      typeof subjectRaw === "string" ? routeParam(subjectRaw) : undefined;
+    const pageNum = Math.max(1, parseInt(pageStr, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limitStr, 10) || 20));
+    const offset = (pageNum - 1) * limitNum;
 
-    const allResults = await db.select().from(pypPdfsTable);
+    const conditions = [];
+    if (yearStr) conditions.push(eq(pypPdfsTable.year, parseInt(yearStr, 10)));
+    if (examType) conditions.push(eq(pypPdfsTable.examType, examType));
+    if (subject) conditions.push(eq(pypPdfsTable.subject, subject));
+    const where = conditions.length ? and(...conditions) : undefined;
 
-    let filtered = allResults;
-    if (year) {
-      filtered = filtered.filter((p) => p.year === Number(year));
-    }
-    if (examType) {
-      filtered = filtered.filter((p) => p.examType === examType);
-    }
-    if (subject) {
-      filtered = filtered.filter((p) => p.subject === subject);
-    }
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pypPdfsTable)
+      .where(where);
 
-    res.json(filtered);
+    const data = await db
+      .select()
+      .from(pypPdfsTable)
+      .where(where)
+      .orderBy(desc(pypPdfsTable.uploadedAt))
+      .limit(limitNum)
+      .offset(offset);
+
+    res.json({
+      data,
+      total: Number(countRow?.count ?? 0),
+      page: pageNum,
+      totalPages: Math.ceil(Number(countRow?.count ?? 0) / limitNum),
+    });
   } catch (err) {
     return next(err);
   }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
+import type { PyqQuestion } from "@/lib/types/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +23,7 @@ export default function PyqQuestions() {
     queryFn: () => {
       const qp = new URLSearchParams({ page: String(page) });
       if (subjectSlug) qp.set("subjectId", subjectSlug);
-      return apiFetch<any>(`/pyq/questions?${qp.toString()}`);
+      return apiFetch<{ data: PyqQuestion[]; total: number; page: number; totalPages: number }>(`/pyq/questions?${qp.toString()}`);
     },
     enabled: !!subjectSlug,
   });

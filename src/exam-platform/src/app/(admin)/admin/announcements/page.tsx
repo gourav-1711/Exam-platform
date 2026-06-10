@@ -161,7 +161,7 @@ export default function AnnouncementsAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
-      customFetch<any>(`/api/admin/announcements/${id}`, { method: "DELETE" }),
+      customFetch<Record<string, unknown>>(`/api/admin/announcements/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
       setDeleteId(null);
@@ -577,7 +577,7 @@ function AnnouncementFormSheet({
   const handleOpenChange = (v: boolean) => onOpenChange(v);
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) =>
+    mutationFn: (payload: Record<string, unknown>) =>
       customFetch<Announcement>("/api/admin/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -587,7 +587,7 @@ function AnnouncementFormSheet({
       toast({ title: "Published!", description: "Announcement is now live." });
       onSuccess();
     },
-    onError: (err: any) =>
+    onError: (err: Error) =>
       toast({
         title: "Error",
         description: err.message,
@@ -596,7 +596,7 @@ function AnnouncementFormSheet({
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: any }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
       customFetch<Announcement>(`/api/admin/announcements/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -606,7 +606,7 @@ function AnnouncementFormSheet({
       toast({ title: "Saved!", description: "Changes applied." });
       onSuccess();
     },
-    onError: (err: any) =>
+    onError: (err: Error) =>
       toast({
         title: "Error",
         description: err.message,

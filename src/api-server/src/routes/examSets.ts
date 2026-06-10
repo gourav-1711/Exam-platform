@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../lib/db";
 import { examSetsTable } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { routeParamInt } from "../lib/routeParams";
+import { routeParam } from "../lib/routeParams";
 import { AppError } from "../middleware/errorHandler";
 
 const router = Router();
@@ -19,8 +19,8 @@ router.get("/exam-sets", async (req, res, next) => {
       medium,
     } = req.query as Record<string, string>;
 
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(100, parseInt(limit));
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [eq(examSetsTable.isActive, true)];
@@ -28,10 +28,10 @@ router.get("/exam-sets", async (req, res, next) => {
       conditions.push(eq(examSetsTable.type, type));
     }
     if (subjectId) {
-      conditions.push(eq(examSetsTable.subjectId, parseInt(subjectId)));
+      conditions.push(eq(examSetsTable.subjectId, subjectId));
     }
     if (classNum) {
-      conditions.push(eq(examSetsTable.classNum, parseInt(classNum)));
+      conditions.push(eq(examSetsTable.classNum, parseInt(classNum, 10)));
     }
     if (medium) {
       conditions.push(eq(examSetsTable.medium, medium));
@@ -72,14 +72,11 @@ router.get("/exam-sets", async (req, res, next) => {
   }
 });
 
-// GET /api/exam-sets/:slug — Public detail of an exam set (supports both slug and ID)
+// GET /api/exam-sets/:slug — Public detail of an exam set by slug
 router.get("/exam-sets/:slug", async (req, res, next) => {
   try {
     const slug = req.params.slug;
-    const id = parseInt(slug);
-    const condition = Number.isFinite(id) && String(id) === slug
-      ? eq(examSetsTable.id, id)
-      : eq(examSetsTable.slug, slug);
+    const condition = eq(examSetsTable.slug, slug);
 
     const [set] = await db
       .select()

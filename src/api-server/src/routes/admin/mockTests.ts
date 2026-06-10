@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { mockTestsTable } from "@workspace/db";
-import { eq, desc, like, and, sql } from "drizzle-orm";
+import { eq, desc, like, and, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { formatZodIssues } from "../../utils/validation";
 import { cacheFlushPattern } from "../../lib/cache";
 import { AppError } from "../../middleware/errorHandler";
@@ -16,8 +16,8 @@ const mockTestSchema = z.object({
   questionCount: z.coerce.number().int().min(0).default(100),
   maxMarks: z.coerce.number().int().min(1).default(100),
   negativeMarking: z.coerce.number().min(0).default(0.25),
-  questionIds: z.array(z.number()).optional(),
-  subjectId: z.coerce.number().optional(),
+  questionIds: z.array(z.string()).optional(),
+  subjectId: z.string().optional(),
   difficulty: z.string().optional(),
   class: z.coerce.number().optional(),
   medium: z.string().optional(),
@@ -27,17 +27,17 @@ const mockTestSchema = z.object({
 const router = Router();
 
 // GET /api/admin/mock-tests — list with pagination and search
-router.get("/mock-tests", async (req, res, next): Promise<any> => {
+router.get("/mock-tests", async (req, res, next) => {
   try {
     const { page = "1", limit = "20", search, difficulty, subjectId } = req.query as Record<string, string>;
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(100, parseInt(limit));
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (search) conditions.push(like(mockTestsTable.title, `%${search}%`));
     if (difficulty) conditions.push(eq(mockTestsTable.difficulty, difficulty));
-    if (subjectId) conditions.push(eq(mockTestsTable.subjectId, parseInt(subjectId)));
+    if (subjectId) conditions.push(eq(mockTestsTable.subjectId, subjectId));
 
     const where = conditions.length ? and(...conditions) : undefined;
 
@@ -68,9 +68,9 @@ router.get("/mock-tests", async (req, res, next): Promise<any> => {
   }
 });
 
-router.get("/mock-tests/:id", async (req, res, next): Promise<any> => {
+router.get("/mock-tests/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [test] = await db
       .select()
       .from(mockTestsTable)
@@ -85,7 +85,7 @@ router.get("/mock-tests/:id", async (req, res, next): Promise<any> => {
 router.post(
   "/mock-tests",
   logAdminActivity("create_mock_test", "mock_test"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
       const parsed = mockTestSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -108,9 +108,9 @@ router.post(
 router.patch(
   "/mock-tests/:id",
   logAdminActivity("update_mock_test", "mock_test"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = mockTestSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
@@ -135,9 +135,9 @@ router.patch(
 router.delete(
   "/mock-tests/:id",
   logAdminActivity("delete_mock_test", "mock_test"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       await db.delete(mockTestsTable).where(eq(mockTestsTable.id, id));
       cacheFlushPattern("mock-tests:");
       return res.json({ success: true });

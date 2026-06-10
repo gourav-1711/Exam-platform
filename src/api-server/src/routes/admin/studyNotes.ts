@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { db } from "../../lib/db";
 import { studyNotesTable } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, like, and, sql, desc, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { cacheFlushPattern } from "../../lib/cache";
 import { formatZodIssues } from "../../utils/validation";
 import { uploadDoc } from "../../middleware/upload";
@@ -19,17 +19,27 @@ const studyNoteSchema = z.object({
   url: z.string().optional().nullable(),
 });
 
+/** Generate a URL-friendly slug from a string */
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 200);
+}
+
 const router = Router();
 
 // GET /api/admin/study-notes — list with pagination and search
-router.get("/study-notes", async (req, res, next): Promise<any> => {
+router.get("/study-notes", async (req, res, next) => {
   try {
     const { page = "1", limit = "20", search, subject, medium } = req.query as Record<string, string>;
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(100, parseInt(limit));
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.min(100, parseInt(limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions: any[] = [];
+    const conditions: SQL[] = [];
     if (search) conditions.push(like(studyNotesTable.title, `%${search}%`));
     if (subject) conditions.push(eq(studyNotesTable.subject, subject));
     if (medium) conditions.push(eq(studyNotesTable.medium, medium));
@@ -63,9 +73,9 @@ router.get("/study-notes", async (req, res, next): Promise<any> => {
   }
 });
 
-router.get("/study-notes/:id", async (req, res, next): Promise<any> => {
+router.get("/study-notes/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [note] = await db
       .select()
       .from(studyNotesTable)
@@ -81,7 +91,7 @@ router.post(
   "/study-notes",
   uploadDoc.single("file"),
   logAdminActivity("create_study_note", "study_note"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
       const parsed = studyNoteSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -117,17 +127,36 @@ router.post(
 
 router.patch(
   "/study-notes/:id",
+  uploadDoc.single("file"),
   logAdminActivity("update_study_note", "study_note"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = studyNoteSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
       }
+
+      let finalUrl = parsed.data.url || null;
+
+      if (req.file) {
+        const upload = await uploadToCloudinary(
+          req.file.buffer,
+          "exam-platform/study-notes",
+          req.file.originalname,
+        );
+        finalUrl = upload.secureUrl;
+      }
+
+      const updateData: Record<string, unknown> = {
+        ...parsed.data,
+        ...(finalUrl ? { url: finalUrl } : {}),
+        updatedAt: new Date(),
+      };
+
       const [updated] = await db
         .update(studyNotesTable)
-        .set(parsed.data)
+        .set(updateData)
         .where(eq(studyNotesTable.id, id))
         .returning();
 
@@ -145,9 +174,9 @@ router.patch(
 router.delete(
   "/study-notes/:id",
   logAdminActivity("delete_study_note", "study_note"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       await db.delete(studyNotesTable).where(eq(studyNotesTable.id, id));
       cacheFlushPattern("study-notes:");
       return res.json({ success: true });

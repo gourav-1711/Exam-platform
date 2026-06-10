@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { useRequireAuth } from "@/components/shared/RequireAuthModal";
 import { useGetQuiz, getGetQuizQueryKey } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,8 @@ export default function QuizInstructions() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
   const router = useRouter();
-  const { data: quiz, isLoading, isError } = useGetQuiz(Number(id), { query: { enabled: !!id, queryKey: getGetQuizQueryKey(Number(id)) } });
+  const { requireAuth } = useRequireAuth();
+  const { data: quiz, isLoading, isError } = useGetQuiz(id, { query: { enabled: !!id, queryKey: getGetQuizQueryKey(id) } });
 
   if (isLoading) {
     return (
@@ -32,7 +34,7 @@ export default function QuizInstructions() {
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-2xl font-bold">Quiz Not Found</h2>
           <p className="text-muted-foreground mt-2 mb-6">The quiz you&apos;re looking for doesn&apos;t exist or has been removed.</p>
-          <Button onClick={() => router.push("/quiz")}>Back to Quizzes</Button>
+          <Button onClick={() => router.push("/daily-quiz")}>Back to Quizzes</Button>
         </div>
       </PageTransition>
     );
@@ -40,7 +42,7 @@ export default function QuizInstructions() {
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
-      <Link href="/quiz">
+      <Link href="/daily-quiz">
         <Button variant="ghost" className="mb-2 -ml-4 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Quizzes
         </Button>
@@ -77,12 +79,18 @@ export default function QuizInstructions() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
-            <Link href={`/quiz/${id}/play`} className="flex-1">
-              <Button size="lg" className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-14">
-                Start Test Now
-              </Button>
-            </Link>
-            <Link href="/quiz" className="flex-1">
+            <Button
+              size="lg"
+              className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-14"
+              onClick={async () => {
+                await requireAuth(() => {
+                  router.push(`/daily-quiz/${id}/play`);
+                });
+              }}
+            >
+              Start Test Now
+            </Button>
+            <Link href="/daily-quiz" className="flex-1">
               <Button size="lg" variant="outline" className="w-full rounded-xl h-14 text-lg">
                 Cancel
               </Button>

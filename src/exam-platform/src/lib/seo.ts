@@ -94,11 +94,11 @@ export const homeMetadata = buildMetadata({
   path: "/",
 });
 
-/** Quiz listing */
-export const quizMetadata = buildMetadata({
+/** Daily Quiz listing */
+export const dailyQuizMetadata = buildMetadata({
   title: "Daily Quizzes",
   description: "Take daily free quizzes to sharpen your competitive exam preparation. Practice MCQs on current affairs, GK, and subject-wise topics.",
-  path: "/quiz",
+  path: "/daily-quiz",
   keywords: [...defaultKeywords, "daily quiz", "free online quiz", "GK quiz", "MCQ practice"],
 });
 

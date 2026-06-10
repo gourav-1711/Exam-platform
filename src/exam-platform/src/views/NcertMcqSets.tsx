@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
@@ -16,23 +15,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
+import { useRouter } from "next/navigation";
+import { useRequireAuth } from "@/components/shared/RequireAuthModal";
 import { Cpu, BookOpen, Play, ChevronRight } from "lucide-react";
-
-interface ExamSet {
-  id: number;
-  slug: string;
-  title: string;
-  description: string | null;
-  type: "pyq" | "ncert";
-  subjectId: number | null;
-  classNum: number | null;
-  medium: string | null;
-  questionIds: number[];
-  totalQuestions: number;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { ExamSet } from "@workspace/db";
 
 interface ExamSetsResponse {
   data: ExamSet[];
@@ -48,6 +34,8 @@ const CLASSES = ["all", ...Array.from({ length: 12 }, (_, i) => String(i + 1))];
 const MEDIUMS = ["all", "English", "Hindi"];
 
 export default function NcertMcqSets() {
+  const router = useRouter();
+  const { requireAuth } = useRequireAuth();
   const [classNum, setClassNum] = useState("all");
   const [medium, setMedium] = useState("all");
 
@@ -73,7 +61,7 @@ export default function NcertMcqSets() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 p-4 bg-card border rounded-2xl shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-card border rounded-2xl shadow-sm">
         <Select value={classNum} onValueChange={setClassNum}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Class" />
@@ -141,11 +129,17 @@ export default function NcertMcqSets() {
                   <span className="text-xs font-semibold text-muted-foreground">
                     {set.totalQuestions ?? set.questionIds?.length ?? 0} Questions
                   </span>
-                  <Link href={`/ncert-mcq/${set.slug ?? set.id}`}>
-                    <Button size="sm" className="rounded-xl gap-1 bg-violet-600 hover:bg-violet-700 text-white">
-                      Start <ChevronRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
+                  <Button
+                    size="sm"
+                    className="rounded-xl gap-1 bg-violet-600 hover:bg-violet-700 text-white"
+                    onClick={async () => {
+                      await requireAuth(() => {
+                        router.push(`/ncert-mcq/${set.slug ?? set.id}`);
+                      });
+                    }}
+                  >
+                    Start <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>

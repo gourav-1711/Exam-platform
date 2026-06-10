@@ -1,85 +1,53 @@
 import { apiFetch } from "./client";
 import type { CurrentAffair } from "@workspace/db";
+import type {
+  AdminAnalyticsResponse,
+  AdminActivityLogsResponse,
+  AdminCurrentAffairsResponse,
+  DailyQuiz,
+  QuizListItem,
+} from "../types/api";
 
-export type AdminAnalyticsResponse = {
-  overview: {
-    totalQuestions: number;
-    activeStudents: number;
-    avgScore: number;
-    passRate: number;
-  };
-  dailyAttempts: Array<{
-    date: string;
-    count: number;
-    avgScore: number;
-  }>;
-  subjectStats: Array<{
-    subject: string;
-    count: number;
-    percent: number;
-  }>;
-  topScorers: Array<{
-    userId: string;
-    totalScore: number;
-    attempts: number;
-  }>;
+/** Re-export types for consumers that import from endpoints */
+export type {
+  AdminAnalyticsResponse,
+  AdminActivityLogsResponse,
+  AdminCurrentAffairsResponse,
+  DailyQuiz,
+  QuizListItem,
 };
 
-export type AdminActivityLog = {
-  id: number;
-  action: string;
-  entityType: string | null;
-  entityId: string | null;
-  userId: string;
-  ipAddress?: string | null;
-  createdAt: string;
-};
-
-export type AdminActivityLogsResponse = {
-  data: AdminActivityLog[];
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-    limit: number;
-  };
-};
-
-export type AdminCurrentAffairsResponse = {
-  items: CurrentAffair[];
-  total: number;
-  page: number;
-  limit: number;
-};
-
+// ── Paginated response wrapper ───────────────────────────────────────────────
 type Paginated<T> = {
   data: T[];
   totalPages: number;
 };
 
-// NOTE: For this initial refactor step, we keep endpoint payloads loosely typed.
-// After codegen validators are removed, we can tighten types using Drizzle schema types.
-
-// Quizzes
+// ── Daily Quizzes (public) ───────────────────────────────────────────────────
 export const quizzesApi = {
   list: (params?: { status?: string }) =>
-    apiFetch<any[]>(`/quizzes?${new URLSearchParams(params as any)}`),
+    apiFetch<QuizListItem[]>(
+      `/daily-quizzes?${new URLSearchParams(params as Record<string, string>)}`,
+    ),
 };
 
-// ── Current Affairs ──────────────────────────────────────────────────────
+// ── Current Affairs ──────────────────────────────────────────────────────────
 
 export const currentAffairsApi = {
   list: (params?: { page?: number; limit?: number }) =>
-    apiFetch<Paginated<any>>(
-      `/current-affairs?${new URLSearchParams(params as any)}`,
+    apiFetch<Paginated<CurrentAffair>>(
+      `/current-affairs?${new URLSearchParams(
+        Object.fromEntries(
+          Object.entries(params ?? {}).map(([k, v]) => [k, String(v)]),
+        ),
+      )}`,
     ),
 
-  // Public detail is slug-based for human-readable URLs.
-  getById: (id: string | number) =>
-    apiFetch<any>(`/current-affairs/${encodeURIComponent(String(id))}`),
+  getById: (id: string) =>
+    apiFetch<CurrentAffair>(`/current-affairs/${encodeURIComponent(id)}`),
 };
 
-// ── Admin (auth required) ────────────────────────────────────────────────
+// ── Admin (auth required) ────────────────────────────────────────────────────
 export const adminApi = {
   activityLogs: (
     token: string,
@@ -98,14 +66,11 @@ export const adminApi = {
   analytics: (token: string) =>
     apiFetch<AdminAnalyticsResponse>(`/admin/analytics`, { token }),
 
-  // Current Affairs (auth required)
   listCurrentAffairs: (
     token: string,
     params: { page: number; limit: number; search?: string; category?: string },
   ): Promise<AdminCurrentAffairsResponse> => {
     const sp = new URLSearchParams();
-    // Current API route currently does not support pagination/search.
-    // Keep params for frontend contract; server will be updated next.
     sp.set("page", String(params.page));
     sp.set("limit", String(params.limit));
     if (params.search) sp.set("search", params.search);
@@ -117,11 +82,11 @@ export const adminApi = {
     );
   },
 
-  getCurrentAffairsDetail: (token: string, id: number) =>
+  getCurrentAffairsDetail: (token: string, id: string) =>
     apiFetch<CurrentAffair>(`/admin/current-affairs/${id}`, { token }),
 
   createCurrentAffair: (token: string, body: Record<string, unknown>) =>
-    apiFetch<any>(`/admin/current-affairs`, {
+    apiFetch<CurrentAffair>(`/admin/current-affairs`, {
       method: "POST",
       body: JSON.stringify(body),
       token,
@@ -129,33 +94,29 @@ export const adminApi = {
 
   updateCurrentAffair: (
     token: string,
-    id: number,
+    id: string | number,
     body: Record<string, unknown>,
   ) =>
-    apiFetch<any>(`/admin/current-affairs/${id}`, {
+    apiFetch<CurrentAffair>(`/admin/current-affairs/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
       token,
     }),
 
-  deleteCurrentAffair: (token: string, id: number) =>
-    apiFetch<any>(`/admin/current-affairs/${id}`, {
+  deleteCurrentAffair: (token: string, id: string | number) =>
+    apiFetch<Record<string, unknown>>(`/admin/current-affairs/${id}`, {
       method: "DELETE",
       token,
     }),
 };
 
-// ── Daily quizzes (auth required) ─────────────────────────────────────
-// Kept loosely typed until codegen is removed.
+// ── Daily quizzes (auth required) ─────────────────────────────────────────
 export const dailyQuizzesApi = {
   get: (token: string, id: string) =>
-    apiFetch<any>(`/admin/daily-quizzes/${id}`, { token }),
+    apiFetch<DailyQuiz>(`/admin/daily-quizzes/${id}`, { token }),
   delete: (token: string, id: string) =>
-    apiFetch<any>(`/admin/daily-quizzes/${id}`, { method: "DELETE", token }),
-};
-
-// Streaks (auth required)
-
-export const streaksApi = {
-  get: (token: string) => apiFetch<any>("/streaks", { token }),
+    apiFetch<Record<string, unknown>>(`/admin/daily-quizzes/${id}`, {
+      method: "DELETE",
+      token,
+    }),
 };

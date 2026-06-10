@@ -5,7 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
 import { cacheDel } from "../../lib/cache";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
 
 const router = Router();
@@ -19,7 +19,7 @@ const announcementSchema = z.object({
   linkUrl: z.string().optional(),
 });
 
-router.get("/announcements", async (req, res, next): Promise<any> => {
+router.get("/announcements", async (req, res, next) => {
   try {
     const announcements = await db
       .select()
@@ -36,9 +36,9 @@ router.get("/announcements", async (req, res, next): Promise<any> => {
   }
 });
 
-router.get("/announcements/:id", async (req, res, next): Promise<any> => {
+router.get("/announcements/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [ann] = await db
       .select()
       .from(announcementsTable)
@@ -58,7 +58,7 @@ router.get("/announcements/:id", async (req, res, next): Promise<any> => {
 router.post(
   "/announcements",
   logAdminActivity("create_announcement", "announcement"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
       const parsed = announcementSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -92,9 +92,9 @@ router.post(
 router.patch(
   "/announcements/:id",
   logAdminActivity("update_announcement", "announcement"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = announcementSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${parsed.error.issues.map(i => i.message).join("; ")}`));
@@ -122,9 +122,9 @@ router.patch(
 router.delete(
   "/announcements/:id",
   logAdminActivity("delete_announcement", "announcement"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       await db.delete(announcementsTable).where(eq(announcementsTable.id, id));
       cacheDel("announcements:active");
       return res.json({ success: true });

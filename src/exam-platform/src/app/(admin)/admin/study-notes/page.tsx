@@ -166,9 +166,9 @@ export default function StudyNotesAdminPage() {
   }, [sheetOpen, editingItem, pyqSubjects]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: notesResponse, isLoading } = useQuery<{ data: StudyNote[]; pagination: any }>({
+  const { data: notesResponse, isLoading } = useQuery<{ data: StudyNote[]; pagination: Record<string, unknown> }>({
     queryKey: ["admin", "study-notes"],
-    queryFn: () => customFetch<{ data: StudyNote[]; pagination: any }>("/api/admin/study-notes"),
+    queryFn: () => customFetch<{ data: StudyNote[]; pagination: Record<string, unknown> }>("/api/admin/study-notes"),
   });
   const notes = notesResponse?.data ?? [];
 
@@ -176,7 +176,7 @@ export default function StudyNotesAdminPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "study-notes"] });
 
   const createMutation = useMutation({
-    mutationFn: async (body: any) =>
+    mutationFn: async (body: Record<string, unknown>) =>
       customFetch<StudyNote>("/api/admin/study-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -187,14 +187,14 @@ export default function StudyNotesAdminPage() {
       toast({ title: "Created!", description: "Study note created successfully." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to create");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, body }: { id: number; body: any }) =>
+    mutationFn: async ({ id, body }: { id: number; body: Record<string, unknown> }) =>
       customFetch<StudyNote>(`/api/admin/study-notes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -205,7 +205,7 @@ export default function StudyNotesAdminPage() {
       toast({ title: "Saved!", description: "Study note updated." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to update");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
@@ -213,7 +213,7 @@ export default function StudyNotesAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) =>
-      customFetch<any>(`/api/admin/study-notes/${id}`, { method: "DELETE" }),
+      customFetch<Record<string, unknown>>(`/api/admin/study-notes/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
@@ -255,14 +255,47 @@ export default function StudyNotesAdminPage() {
     }
 
     if (editingItem) {
-      const payload = {
-        title: formTitle.trim(),
-        description: formDescription.trim() || null,
-        subject: formSubject,
-        medium: formMedium,
-        url: formUrl.trim() || null,
-      };
-      updateMutation.mutate({ id: editingItem.id, body: payload });
+      if (uploadMode === "file" && noteFile) {
+        setUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append("title", formTitle.trim());
+          formData.append("description", formDescription.trim() || "");
+          formData.append("subject", formSubject);
+          formData.append("medium", formMedium);
+          formData.append("file", noteFile);
+
+          const token = await getToken();
+          const res = await fetch("/api/admin/study-notes/" + editingItem.id, {
+            method: "PATCH",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Upload failed");
+          }
+
+          invalidate();
+          toast({ title: "Updated!", description: "Study note with PDF uploaded." });
+          setSheetOpen(false);
+        } catch (err) {
+          setFormError(err instanceof Error ? err.message : "Upload failed");
+          toast({ title: "Error", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
+        } finally {
+          setUploading(false);
+        }
+      } else {
+        const payload = {
+          title: formTitle.trim(),
+          description: formDescription.trim() || null,
+          subject: formSubject,
+          medium: formMedium,
+          url: formUrl.trim() || null,
+        };
+        updateMutation.mutate({ id: editingItem.id, body: payload });
+      }
     } else {
       if (uploadMode === "file" && noteFile) {
         setUploading(true);
@@ -289,9 +322,9 @@ export default function StudyNotesAdminPage() {
           invalidate();
           toast({ title: "Created!", description: "Study note with PDF uploaded." });
           setSheetOpen(false);
-        } catch (err: any) {
-          setFormError(err.message || "Upload failed");
-          toast({ title: "Error", description: err.message, variant: "destructive" });
+        } catch (err) {
+          setFormError(err instanceof Error ? err.message : "Upload failed");
+          toast({ title: "Error", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
         } finally {
           setUploading(false);
         }
@@ -323,7 +356,7 @@ export default function StudyNotesAdminPage() {
             <motion.div
               whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
               transition={{ duration: 0.45 }}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-200 shrink-0"
+              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0"
             >
               <BookOpen className="w-6 h-6 text-white" />
             </motion.div>
@@ -349,7 +382,7 @@ export default function StudyNotesAdminPage() {
                     transition={{ repeat: Infinity, duration: 2.2 }}
                     className="w-2 h-2 rounded-full bg-sky-500 inline-block"
                   />
-                  <span className="text-xs font-semibold text-sky-700">{notes.length} shown</span>
+                  <span className="text-xs font-semibold text-indigo-700">{notes.length} shown</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -379,7 +412,7 @@ export default function StudyNotesAdminPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}>
-                <Loader2 className="w-7 h-7 text-sky-500" />
+                <Loader2 className="w-7 h-7 text-indigo-500" />
               </motion.div>
               <p className="text-sm text-muted-foreground">Loading study notes…</p>
             </div>
@@ -392,8 +425,8 @@ export default function StudyNotesAdminPage() {
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
                   className="flex flex-col items-center"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center mb-4">
-                    <BookOpen className="w-7 h-7 text-sky-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+                    <BookOpen className="w-7 h-7 text-indigo-400" />
                   </div>
                   <EmptyTitle>No study notes yet</EmptyTitle>
                   <EmptyDescription>Click &quot;Add Note&quot; above to create your first study note.</EmptyDescription>
@@ -435,8 +468,8 @@ export default function StudyNotesAdminPage() {
                       >
                         <TableCell className="pl-5 py-3.5 max-w-[260px]">
                           <div className="flex items-start gap-2.5">
-                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center shrink-0">
-                              <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+                              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{note.title}</p>
@@ -553,9 +586,9 @@ export default function StudyNotesAdminPage() {
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                  className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center"
                 >
-                  <BookOpen className="w-5 h-5 text-sky-600" />
+                  <BookOpen className="w-5 h-5 text-indigo-600" />
                 </motion.div>
                 <div>
                   <SheetTitle className="text-base font-bold text-gray-900">
@@ -589,7 +622,7 @@ export default function StudyNotesAdminPage() {
                   <select value={formSubject} onChange={(e) => setFormSubject(e.target.value)} required
                     className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
-                    {pyqSubjects.map((s: any) => (
+                    {pyqSubjects.map((s: { id: string | number; name: string }) => (
                       <option key={s.id} value={s.name}>{s.name}</option>
                     ))}
                   </select>
@@ -605,44 +638,36 @@ export default function StudyNotesAdminPage() {
                 </motion.div>
               </div>
 
-              {/* Upload mode toggle */}
-              {!editingItem && (
-                <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible">
-                  <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl mb-3">
-                    <button type="button" onClick={() => setUploadMode("url")}
-                      className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-sky-700 shadow-sm" : "text-gray-500"}`}
-                    >
-                      URL Link
-                    </button>
-                    <button type="button" onClick={() => setUploadMode("file")}
-                      className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-sky-700 shadow-sm" : "text-gray-500"}`}
-                    >
-                      Upload PDF
-                    </button>
+              {/* Upload mode toggle - available for both create and edit */}
+              <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible">
+                <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl mb-3">
+                  <button type="button" onClick={() => setUploadMode("url")}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+                  >
+                    URL Link
+                  </button>
+                  <button type="button" onClick={() => setUploadMode("file")}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+                  >
+                    Upload PDF
+                  </button>
+                </div>
+                {uploadMode === "file" ? (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center cursor-pointer hover:border-sky-500 transition-all hover:bg-sky-50/20">
+                    <input type="file" accept=".pdf" onChange={handleNoteFileChange} className="hidden" id="study-note-file-input" />
+                    <label htmlFor="study-note-file-input" className="cursor-pointer block">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-700">{noteFileName || "Select PDF document"}</p>
+                      <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                    </label>
                   </div>
-                  {uploadMode === "file" ? (
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center cursor-pointer hover:border-sky-500 transition-all hover:bg-sky-50/20">
-                      <input type="file" accept=".pdf" onChange={handleNoteFileChange} className="hidden" id="study-note-file-input" />
-                      <label htmlFor="study-note-file-input" className="cursor-pointer block">
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm font-semibold text-gray-700">{noteFileName || "Select PDF document"}</p>
-                        <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">URL (Optional)</Label>
-                      <Input value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="https://example.com/notes/..." className="rounded-xl h-10" />
-                    </div>
-                  )}
-                </motion.div>
-              )}
-              {editingItem && (
-                <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">URL (Optional)</Label>
-                  <Input value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="https://example.com/notes/..." className="rounded-xl h-10" />
-                </motion.div>
-              )}
+                ) : (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">URL (Optional)</Label>
+                    <Input value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="https://example.com/notes/..." className="rounded-xl h-10" />
+                  </div>
+                )}
+              </motion.div>
             </form>
 
             <div className="px-6 py-4 border-t bg-gray-50/60 flex gap-2.5 shrink-0">

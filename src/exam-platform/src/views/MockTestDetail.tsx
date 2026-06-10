@@ -2,18 +2,21 @@
 
 import React from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useGetMockTest, getGetMockTestQueryKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useRequireAuth } from "@/components/shared/RequireAuthModal";
 import { ArrowLeft, Clock, FileText, Award, AlertCircle, Play } from "lucide-react";
 
 export default function MockTestDetail() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params?.id ?? "";
-  const { data: test, isLoading, isError } = useGetMockTest(Number(id), { query: { enabled: !!id, queryKey: getGetMockTestQueryKey(Number(id)) } });
+  const { requireAuth } = useRequireAuth();
+  const { data: test, isLoading, isError } = useGetMockTest(id, { query: { enabled: !!id, queryKey: getGetMockTestQueryKey(id) } });
 
   if (isLoading) {
     return <div className="p-8"><Skeleton className="h-[400px] max-w-3xl mx-auto rounded-3xl" /></div>;
@@ -50,12 +53,18 @@ export default function MockTestDetail() {
                 <p className="font-bold text-sm">{value}</p>
                 <p className="text-xs text-muted-foreground">{label}</p>
               </div>
-            ))}
-          </div>                  <Link href={`/quiz?mockTestId=${test.id}`}>
-                    <Button size="lg" className="w-full rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2">
-                      <Play className="w-5 h-5" /> Start Mock Test
-                    </Button>
-                  </Link>
+            ))}                  </div>
+                  <Button
+                    size="lg"
+                    className="w-full rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2"
+                    onClick={async () => {
+                      await requireAuth(() => {
+                        router.push(`/mock-test/${test.id}`);
+                      });
+                    }}
+                  >
+                    <Play className="w-5 h-5" /> Start Mock Test
+                  </Button>
         </CardContent>
       </Card>
     </PageTransition>

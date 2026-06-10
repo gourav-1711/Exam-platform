@@ -32,7 +32,6 @@ import Papa from "papaparse";
 interface ParsedQuestion {
   rowIndex: number;
   text: string;
-  type: string;
   optionA: string;
   optionB: string;
   optionC: string;
@@ -41,9 +40,6 @@ interface ParsedQuestion {
   explanation: string;
   subject: string;
   difficulty: string;
-  chapter: string;
-  tags: string;
-  marks: number;
   negativeMarking: number;
 }
 
@@ -61,7 +57,7 @@ interface CsvImportReviewProps {
 // ── Columns CSV should have (multi-format support) ────────────────────────────
 const KNOWN_COLUMNS = [
   { names: ["text", "Question", "question_text", "question"], field: "text" },
-  { names: ["type", "Category", "category", "question_type"], field: "type" },
+
   { names: ["optionA", "option_a", "OptionA", "a"], field: "optionA" },
   { names: ["optionB", "option_b", "OptionB", "b"], field: "optionB" },
   { names: ["optionC", "option_c", "OptionC", "c"], field: "optionC" },
@@ -70,9 +66,7 @@ const KNOWN_COLUMNS = [
   { names: ["explanation", "Explanation", "exp"], field: "explanation" },
   { names: ["subject", "Subject"], field: "subject" },
   { names: ["difficulty", "Difficulty", "level"], field: "difficulty" },
-  { names: ["chapter", "Chapter"], field: "chapter" },
-  { names: ["tags", "Tags"], field: "tags" },
-  { names: ["marks", "Marks"], field: "marks" },
+
   { names: ["negativeMarking", "negative_marking", "negMarks"], field: "negativeMarking" },
 ];
 
@@ -127,9 +121,11 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
     setParsed((prev) => prev.filter((q) => q.rowIndex !== rowIndex));
   };
 
+type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
+
   // ── Upload mutation ────────────────────────────────────────────────────
   const bulkUploadMutation = useMutation({
-    mutationFn: async (questions: any[]) =>
+    mutationFn: async (questions: UploadQuestion[]) =>
       customFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -144,7 +140,7 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
       onSuccess?.(res.count);
       handleClose();
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setImporting(false);
       toast({ title: "Upload failed", description: err.message || "Invalid CSV layout", variant: "destructive" });
     },
@@ -163,13 +159,12 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
       complete: (results) => {
         setImporting(false);
         const mapped: ParsedQuestion[] = results.data
-          .map((row: any, idx: number) => {
+          .map((row: Record<string, string>, idx: number) => {
             const text = detectField(row, "text");
             if (!text) return null;
             return {
               rowIndex: idx,
               text,
-              type: detectField(row, "type") || "quiz",
               optionA: detectField(row, "optionA") || "",
               optionB: detectField(row, "optionB") || "",
               optionC: detectField(row, "optionC") || "",
@@ -178,9 +173,6 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
               explanation: detectField(row, "explanation") || "",
               subject: detectField(row, "subject") || "",
               difficulty: detectField(row, "difficulty") || "medium",
-              chapter: detectField(row, "chapter") || "",
-              tags: detectField(row, "tags") || "",
-              marks: parseInt(detectField(row, "marks") || "1", 10) || 1,
               negativeMarking: parseFloat(detectField(row, "negativeMarking") || "0") || 0,
             };
           })
@@ -233,7 +225,6 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
   const handleSubmitImport = () => {
     const questions = parsed.map(({ rowIndex: _, ...q }) => ({
       ...q,
-      marks: Number(q.marks),
       negativeMarking: Number(q.negativeMarking),
     }));
     setImporting(true);
@@ -244,14 +235,14 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
   const hasIssues = (q: ParsedQuestion) => {
     const issues: string[] = [];
     if (!q.text) issues.push("Missing text");
-    if (!q.optionA && q.type !== "subjective") issues.push("Missing option A");
     if (!q.subject) issues.push("No subject");
+    if (q.subject && !allSubjects.includes(q.subject)) issues.push(`Unknown subject: "${q.subject}"`);
     return issues;
   };
 
   // ── Auto-assign subjects from existing data ──────────────────────────────
   const existingSubjects = [...new Set(parsed.map((q) => q.subject).filter(Boolean))] as string[];
-  const allSubjects = pyqSubjects.map((s: any) => s.name);
+  const allSubjects = pyqSubjects.map((s: { id: string; name: string }) => s.name);
 
   return (
     <>
@@ -289,7 +280,7 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
 
       {/* ── Dialog ──────────────────────────────────────────────────────────── */}
       <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
-        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
           {step === "upload" && (
             <>
               <DialogHeader>
@@ -298,7 +289,7 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
                   Import Questions from CSV
                 </DialogTitle>
                 <DialogDescription>
-                  Upload a CSV file with columns: text, type, optionA-D, correctIndex, subject, difficulty, etc.
+                  Upload a CSV file with columns: text, optionA-D, correctIndex, subject, difficulty, etc.
                 </DialogDescription>
               </DialogHeader>
 
@@ -394,7 +385,7 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
                 )}
 
                 {/* Question rows */}
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar" style={{scrollbarWidth:'thin',scrollbarColor:'hsl(var(--border)) transparent'}}>
                   {pageItems.map((q) => {
                     const issues = hasIssues(q);
                     return (
@@ -424,7 +415,7 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
                         </div>
 
                         {/* Inline edits */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="text-[10px] font-semibold text-gray-400 uppercase">Subject</label>
                             <select
@@ -438,20 +429,6 @@ export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef
                               {allSubjects.map((s: string) => (
                                 <option key={s} value={s}>{s}</option>
                               ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-semibold text-gray-400 uppercase">Type</label>
-                            <select
-                              value={q.type}
-                              onChange={(e) => updateRow(q.rowIndex, { type: e.target.value })}
-                              className="w-full mt-0.5 px-2 py-1 text-xs border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                            >
-                              <option value="quiz">Quiz</option>
-                              <option value="pyq">PYQ</option>
-                              <option value="ncert">NCERT</option>
-                              <option value="mock">Mock Test</option>
                             </select>
                           </div>
 

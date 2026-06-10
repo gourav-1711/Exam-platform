@@ -89,7 +89,7 @@ function PodiumCard({ entry, pos }: { entry: LeaderboardEntry; pos: "first" | "s
 
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState<Tab>("allTime");
-  const { data: entries = [], isLoading } = useGetLeaderboard({ limit: 20 });
+  const { data: entries = [], isLoading } = useGetLeaderboard({ limit: 20, period: activeTab === "allTime" ? undefined : activeTab });
 
   const top3 = entries.slice(0, 3);
   const rest  = entries.slice(3);

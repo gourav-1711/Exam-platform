@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Admin | Manish Ki Pathshala",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminGroupLayout({
   children,
 }: {
@@ -16,7 +18,7 @@ export default async function AdminGroupLayout({
   const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role;
 
   console.log("Admin access attempt by user:", { userId, sessionClaims });
-  
+
   if (role !== "admin") redirect("/");
   return <>{children}</>;
 }

@@ -44,12 +44,12 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Loader2, Upload } from "lucide-react";
 
 interface PypPaper {
-  id: number;
+  id: string;
   examName: string;
   shiftName: string;
   year: number;
   subject: string | null;
-  subjectId: number | null;
+  subjectId: string | null;
   questionPaperUrl: string | null;
   answerKeyUrl: string | null;
   answerKeyPdf: string | null;
@@ -72,7 +72,7 @@ export default function PypAdminPage() {
   // Sheet state
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PypPaper | null>(null);
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
   const { getToken } = useAuth();
 
   // Form state
@@ -150,7 +150,7 @@ export default function PypAdminPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, body }: { id: number; body: Record<string, unknown> }) => {
+    mutationFn: async ({ id, body }: { id: string; body: Record<string, unknown> }) => {
       return customFetch<PypPaper>(`/api/admin/pyp/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -173,7 +173,7 @@ export default function PypAdminPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       return customFetch<{ success: boolean }>(`/api/admin/pyp/${id}`, {
         method: "DELETE",
       });
@@ -240,7 +240,7 @@ export default function PypAdminPage() {
       examName: examName.trim(),
       shiftName,
       year: parseInt(year),
-      subjectId: subjectId ? parseInt(subjectId) : null,
+      subjectId: subjectId || null,
       questionPaperUrl: questionPaperUrl.trim() || null,
       answerKeyUrl: answerKeyUrl.trim() || null,
       answerKeyPdf: answerKeyPdf.trim() || null,
@@ -261,7 +261,7 @@ export default function PypAdminPage() {
         // Upload question paper
         const paperData = new FormData();
         paperData.append("title", examName.trim());
-        paperData.append("subject", subjects.find((s: any) => s.id === parseInt(subjectId))?.name || "");
+        paperData.append("subject",        subjects.find((s: { id: string; name: string }) => String(s.id) === subjectId)?.name || "");
         paperData.append("year", year);
         paperData.append("examType", "Other");
         paperData.append("file", paperFile);
@@ -284,7 +284,7 @@ export default function PypAdminPage() {
         if (answerKeyFile) {
           const keyData = new FormData();
           keyData.append("title", `${examName.trim()} - Answer Key`);
-          keyData.append("subject", subjects.find((s: any) => s.id === parseInt(subjectId))?.name || "");
+          keyData.append("subject",        subjects.find((s: { id: string; name: string }) => String(s.id) === subjectId)?.name || "");
           keyData.append("year", year);
           keyData.append("examType", "Other");
           keyData.append("file", answerKeyFile);
@@ -306,8 +306,8 @@ export default function PypAdminPage() {
           questionPaperUrl: paperResult.cloudinaryUrl || null,
           answerKeyPdf: answerKeyPdfUrl,
         });
-      } catch (err: any) {
-        toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+      } catch (err) {
+        toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
       } finally {
         setUploadingPdf(false);
       }
@@ -325,8 +325,8 @@ export default function PypAdminPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center">
-            <FileText className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center">
+            <FileText className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
             <h1 className="text-2xl font-extrabold text-gray-900">
@@ -342,7 +342,7 @@ export default function PypAdminPage() {
             setEditingItem(null);
             setSheetOpen(true);
           }}
-          className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl gap-1.5 shadow-sm"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-1.5 shadow-sm"
         >
           <Plus className="w-4 h-4" /> Add Paper
         </Button>
@@ -565,7 +565,7 @@ export default function PypAdminPage() {
                 className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
               >
                 <option value="">None</option>
-                {subjects.map((s: { id: number; name: string }) => (
+                {subjects.map((s: { id: string; name: string }) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -647,7 +647,7 @@ export default function PypAdminPage() {
             <Button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending || uploadingPdf || !examName.trim()}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl h-11"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl h-11"
             >
               {uploadingPdf ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Uploading…</> : editingItem ? (updateMutation.isPending ? "Saving..." : "Save Changes") : createMutation.isPending ? "Creating..." : "Add PYP Paper"}
             </Button>

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { useRequireAuth } from "@/components/shared/RequireAuthModal";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
 import { Card } from "@/components/ui/card";
@@ -22,12 +23,11 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface McqQuestion {
-  id: number;
+  id: string;
   text: string;
   options: [string, string, string, string];
   correctIndex: number;
   explanation: string | null;
-  examLabel: string | null;
 }
 
 interface McqResponse {
@@ -39,16 +39,39 @@ interface McqResponse {
 
 export default function NcertMcqPlayer() {
   const params = useParams<{ slug: string }>();
+  const router = useRouter();
+  const { requireAuth } = useRequireAuth();
   const setId = params?.slug ?? "";
   const [page, setPage] = useState(1);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Auth guard on mount
+  useEffect(() => {
+    (async () => {
+      const authed = await requireAuth(() => true);
+      if (!authed) {
+        router.replace("/ncert-mcq");
+        return;
+      }
+      setAuthChecked(true);
+    })();
+  }, []);
+
+  if (!authChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
   const [currentQIndex, setCurrentQIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
 
   // Fetch exam set details
-  const { data: setData } = useQuery({
+  const { data: setData } = useQuery<{ title?: string; classNum?: number }>({
     queryKey: ["exam-set", setId],
-    queryFn: () => apiFetch<any>(`/exam-sets/${setId}`),
+    queryFn: () => apiFetch<{ title?: string; classNum?: number }>(`/exam-sets/${setId}`),
     enabled: !!setId,
   });
 

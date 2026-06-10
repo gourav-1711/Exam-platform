@@ -13,15 +13,12 @@ const PUBLIC_API_ROUTES = [
   "/api/announcements",
   "/api/exam-sets",
   "/api/current-affairs",
+  "/api/daily-quizzes",
 ];
 
+// Only admin pages are protected at the middleware level.
+// All other pages are open; auth-gated actions use the RequireAuthModal.
 const isProtectedRoute = createRouteMatcher([
-  "/quiz(.*)",
-  "/study-notes(.*)",
-  "/pyq(.*)",
-  "/ncert-mcq(.*)",
-  "/mock-tests(.*)",
-  "/profile(.*)",
   "/admin(.*)",
 ]);
 

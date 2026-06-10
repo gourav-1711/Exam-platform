@@ -16,7 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { Trash2, Edit3, Check, X, BookOpen } from "lucide-react";
+import { Trash2, Edit3, Check, X, BookOpen, BadgeCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { motion } from "framer-motion";
@@ -24,12 +24,13 @@ import { motion } from "framer-motion";
 export default function SubjectsAdminPage() {
   const { data: subjects = [], isLoading } = useListSubjects();
   const [name, setName] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [examCategory, setExamCategory] = useState("General");
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
 
   const invalidateSubjects = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.subjects.all() });
@@ -43,11 +44,12 @@ export default function SubjectsAdminPage() {
     try {
       await customFetch(`/api/admin/subjects`, {
         method: "POST",
-        body: JSON.stringify({ name: trimmedName }),
+        body: JSON.stringify({ name: trimmedName, examCategory }),
         headers: { "Content-Type": "application/json" },
       });
       toast({ title: "Created", description: "Subject created successfully" });
       setName("");
+      setExamCategory("General");
       invalidateSubjects();
     } catch (err: unknown) {
       toast({
@@ -68,7 +70,7 @@ export default function SubjectsAdminPage() {
     setEditingName("");
   };
 
-  const saveEdit = async (id: number) => {
+  const saveEdit = async (id: string) => {
     const trimmedName = editingName.trim();
     if (!trimmedName) return;
 
@@ -90,7 +92,7 @@ export default function SubjectsAdminPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       await customFetch(`/api/admin/subjects/${id}`, {
         method: "DELETE",
@@ -123,14 +125,26 @@ export default function SubjectsAdminPage() {
         </p>
       </div>
 
-      <form onSubmit={createSubject} className="flex gap-2 mb-4 max-w-md">
+      <form onSubmit={createSubject} className="flex gap-2 mb-4 max-w-lg">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New subject name..."
-          className="rounded-xl h-11"
+          className="rounded-xl h-11 flex-1"
         />
-        <Button type="submit" disabled={!name.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-11 font-bold">
+        <select
+          value={examCategory}
+          onChange={(e) => setExamCategory(e.target.value)}
+          className="px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 h-11"
+        >
+          <option value="General">General</option>
+          <option value="UPSC">UPSC</option>
+          <option value="SSC">SSC</option>
+          <option value="Banking">Banking</option>
+          <option value="Railway">Railway</option>
+          <option value="State PSC">State PSC</option>
+        </select>
+        <Button type="submit" disabled={!name.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-11 font-bold shrink-0">
           Create
         </Button>
       </form>
@@ -147,12 +161,14 @@ export default function SubjectsAdminPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Linked Questions</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Questions</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {subjects.map((s: Subject) => (
+            {subjects.map((s) => (
               <TableRow key={s.id}>
                 <TableCell className="font-semibold text-gray-900">
                   {editingId === s.id ? (
@@ -163,10 +179,28 @@ export default function SubjectsAdminPage() {
                       autoFocus
                     />
                   ) : (
-                    s.name
+                    <span className="flex items-center gap-2">
+                      {s.name}
+                      <span className="text-[10px] text-gray-400 font-mono">/{s.slug}</span>
+                    </span>
                   )}
                 </TableCell>
-                <TableCell>{(s as any).questionCount ?? 0}</TableCell>
+                <TableCell className="text-sm text-gray-600">
+                  {s.examCategory ?? "General"}
+                </TableCell>
+                <TableCell>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    s.isActive
+                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                      : "bg-gray-50 text-gray-400 border border-gray-200"
+                  }`}>
+                    {s.isActive ? <BadgeCheck className="w-3 h-3" /> : null}
+                    {s.isActive ? "Active" : "Inactive"}
+                  </span>
+                </TableCell>
+                <TableCell className="font-bold text-gray-700">
+                  {s.questionCount ?? 0}
+                </TableCell>
                 <TableCell className="text-right">
                   {editingId === s.id ? (
                     <div className="flex items-center justify-end gap-2">

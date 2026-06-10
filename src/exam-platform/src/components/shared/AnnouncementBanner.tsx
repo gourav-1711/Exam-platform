@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+"use client";
 
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   CheckCircle2,
-  Icon,
   Info,
-  Link,
   Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,7 +59,7 @@ export default function AnnouncementBanner() {
   const { data: announcements } = useListAnnouncements({
     query: { enabled: mounted, queryKey: getListAnnouncementsQueryKey() },
   });
-  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!mounted) return;
@@ -69,7 +69,7 @@ export default function AnnouncementBanner() {
     } catch {}
   }, [mounted]);
 
-  const dismiss = (id: number) => {
+  const dismiss = (id: string) => {
     const next = new Set(dismissed).add(id);
     setDismissed(next);
     try {

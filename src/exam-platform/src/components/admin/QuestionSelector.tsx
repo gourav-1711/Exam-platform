@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { customFetch } from "@/lib/api";
 
 interface Question {
-  id: number;
+  id: string;
   text: string;
   type: string;
   subject: string | null;
@@ -32,8 +32,8 @@ interface QuestionsResponse {
 }
 
 interface QuestionSelectorProps {
-  selectedIds: number[];
-  onChange: (ids: number[]) => void;
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
 }
 
 const SUBJECTS = [
@@ -72,7 +72,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
     staleTime: 10_000,
   });
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
       onChange(selectedIds.filter((x) => x !== id));
     } else {
@@ -80,7 +80,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
     }
   };
 
-  const isSelected = (id: number) => selectedIds.includes(id);
+  const isSelected = (id: string) => selectedIds.includes(id);
 
   return (
     <div className="space-y-4">

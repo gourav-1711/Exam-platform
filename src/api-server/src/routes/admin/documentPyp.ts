@@ -54,7 +54,7 @@ router.get("/document-pyp", async (req, res, next) => {
 // GET /api/admin/document-pyp/:id — get single PYP PDF
 router.get("/document-pyp/:id", async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = String(req.params.id);
     const [record] = await db
       .select()
       .from(pypPdfsTable)
@@ -132,7 +132,7 @@ router.patch(
   logAdminActivity("update_pyp_pdf", "pyp_pdf"),
   async (req, res, next) => {
     try {
-      const id = Number(req.params.id);
+      const id = String(req.params.id);
       const parsed = pypPdfSchema.partial().safeParse(req.body as Record<string, unknown>);
       if (!parsed.success) {
         return next(new AppError(400, `Validation failed — ${formatZodIssues(parsed.error.issues)}`));
@@ -158,8 +158,7 @@ router.delete(
   logAdminActivity("delete_pyp_pdf", "pyp_pdf"),
   async (req, res, next) => {
     try {
-      const id = Number(req.params.id);
-    if (isNaN(id)) return next(new AppError(400, "Invalid ID"));
+      const id = String(req.params.id);
     const [record] = await db
         .select()
         .from(pypPdfsTable)

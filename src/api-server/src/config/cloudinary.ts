@@ -21,6 +21,7 @@ cloudinary.config({
 
 /**
  * Upload a buffer to Cloudinary as a raw file (preserves PDF/doc as-is).
+ * Sets proper filename with extension so downloads have correct file type.
  * Returns the secure_url and public_id for storage in the DB.
  */
 export async function uploadToCloudinary(
@@ -29,10 +30,13 @@ export async function uploadToCloudinary(
   originalName: string,
 ): Promise<{ secureUrl: string; publicId: string }> {
   return new Promise((resolve, reject) => {
+    const ext = originalName.split(".").pop() || "pdf";
+    const baseName = originalName.replace(/\.[^.]+$/, "");
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: "auto",
+        resource_type: "raw",
+        public_id: `${baseName}_${Date.now()}.${ext}`,
         use_filename: true,
         unique_filename: true,
         overwrite: false,
@@ -53,7 +57,7 @@ export async function uploadToCloudinary(
  * Delete a file from Cloudinary by public_id.
  */
 export async function deleteFromCloudinary(publicId: string): Promise<void> {
-  await cloudinary.uploader.destroy(publicId, { resource_type: "auto" });
+  await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
 }
 
 export { cloudinary };

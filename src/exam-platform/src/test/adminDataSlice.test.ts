@@ -10,37 +10,50 @@ import adminDataReducer, {
   removeSubjectFromCache,
 } from "@/store/slices/adminDataSlice";
 
-function mockQuestion(id: number, text?: string): any {
+interface TestQuestion {
+  id: string;
+  subjectId: string | null;
+  classNum: number | null;
+  subject: string | null;
+  medium: string | null;
+  text: string;
+  optionA: string;
+  optionB: string;
+  optionC: string;
+  optionD: string;
+  correctIndex: number;
+  explanation: string | null;
+  difficulty: string | null;
+  negativeMarking: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mockQuestion(id: string | number, text?: string): TestQuestion {
+  const strId = String(id);
   return {
-    id,
-    quizId: null,
+    id: strId,
     subjectId: null,
     classNum: null,
     subject: null,
     medium: null,
-    type: "quiz" as const,
-    questionType: "single" as const,
-    text: text ?? `Question ${id}`,
+    text: text ?? `Question ${strId}`,
     optionA: "A",
     optionB: "B",
     optionC: "C",
     optionD: "D",
     correctIndex: 0,
     explanation: null,
-    examLabel: null,
     difficulty: null,
-    chapter: null,
-    tags: null,
-    marks: null,
     negativeMarking: null,
-    imageUrl: null,
     isActive: true,
     createdAt: "2025-01-01T00:00:00Z",
     updatedAt: "2025-01-01T00:00:00Z",
   };
 }
 
-function mockSubject(id: number, name?: string): any {
+function mockSubject(id: number, name?: string): { id: number; name: string; examCategory: string | null; description: string | null; isActive: boolean; createdAt: string; updatedAt: string } {
   return {
     id,
     name: name ?? `Subject ${id}`,
@@ -115,9 +128,9 @@ describe("adminDataSlice", () => {
     const state2 = adminDataReducer(state1, addQuestionToCache(mockQuestion(2)));
     expect(state2.questions.data).toHaveLength(2);
 
-    const state3 = adminDataReducer(state2, removeQuestionFromCache(1));
+    const state3 = adminDataReducer(state2, removeQuestionFromCache("1"));
     expect(state3.questions.data).toHaveLength(1);
-    expect(state3.questions.data[0].id).toBe(2);
+    expect(state3.questions.data[0].id).toBe("2");
   });
 
   it("should handle addSubjectToCache", () => {

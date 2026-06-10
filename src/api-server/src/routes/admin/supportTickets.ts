@@ -4,15 +4,31 @@ import { supportTicketsTable, supportMessagesTable } from "@workspace/db";
 import { eq, like, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParam, routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { sanitizeHtml } from "../../utils/sanitize";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
+import { clerkClient } from "@clerk/express";
 
 const router = Router();
 
+const VALID_STATUSES = ["open", "pending", "resolved", "closed"] as const;
+type TicketStatus = (typeof VALID_STATUSES)[number];
+
 const ReplySchema = z.object({
   message: z.string().min(1, "Message is required").max(5000),
+});
+
+const StatusSchema = z.object({
+  status: z.enum(VALID_STATUSES, {
+    errorMap: () => ({
+      message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}`,
+    }),
+  }),
+});
+
+const AssignSchema = z.object({
+  assignedTo: z.string().min(1).max(200).nullable(),
 });
 
 // GET /admin/support-tickets — List all tickets (including user-deleted)
@@ -23,14 +39,16 @@ router.get("/support-tickets", async (req, res, next) => {
     const _status = routeParam(req.query.status as string | string[]) || "all";
     const _search = routeParam(req.query.search as string | string[]) || "";
 
-    const pageNum = Math.max(1, parseInt(_page));
-    const limitNum = Math.min(100, parseInt(_limit));
+    const pageNum = Math.max(1, parseInt(_page, 10));
+    const limitNum = Math.min(100, parseInt(_limit, 10));
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (_status !== "all")
+    if (_status !== "all" && VALID_STATUSES.includes(_status as TicketStatus)) {
       conditions.push(eq(supportTicketsTable.status, _status));
-    if (_search) conditions.push(like(supportTicketsTable.title, `%${_search}%`));
+    }
+    if (_search)
+      conditions.push(like(supportTicketsTable.title, `%${_search}%`));
 
     const where = conditions.length ? and(...conditions) : undefined;
 
@@ -45,9 +63,7 @@ router.get("/support-tickets", async (req, res, next) => {
         userId: supportTicketsTable.userId,
         title: supportTicketsTable.title,
         status: supportTicketsTable.status,
-        category: supportTicketsTable.category,
         assignedTo: supportTicketsTable.assignedTo,
-        isActive: supportTicketsTable.isActive,
         isReadByUser: supportTicketsTable.isReadByUser,
         isReadByAdmin: supportTicketsTable.isReadByAdmin,
         userDeletedAt: supportTicketsTable.userDeletedAt,
@@ -63,29 +79,38 @@ router.get("/support-tickets", async (req, res, next) => {
       .where(where)
       .orderBy(
         sql`CASE WHEN ${supportTicketsTable.isReadByAdmin} = false THEN 0 ELSE 1 END`,
-        desc(supportTicketsTable.lastMessageAt ?? supportTicketsTable.createdAt),
+        // FIX: use SQL COALESCE instead of JS ?? which never falls back on column objects
+        desc(
+          sql`COALESCE(${supportTicketsTable.lastMessageAt}, ${supportTicketsTable.createdAt})`,
+        ),
       )
       .limit(limitNum)
       .offset(offset);
 
-    if (tickets.length > 0) {
-      const unreadIds = tickets.filter((t) => !t.isReadByAdmin).map((t) => t.id);
-      if (unreadIds.length > 0) {
-        await db
-          .update(supportTicketsTable)
-          .set({ isReadByAdmin: true })
-          .where(sql`${supportTicketsTable.id} = ANY(${sql.join(unreadIds, sql`,`)})`);
-      }
-    }
+    // Enrich with Clerk user names
+    const enriched = await Promise.all(
+      tickets.map(async (t) => {
+        let userName = t.userId;
+        try {
+          const clerkUser = await clerkClient.users.getUser(t.userId);
+          const name = `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim();
+          if (name) userName = name;
+        } catch {
+          // Clerk user not found, fall back to userId
+        }
+        return {
+          ...t,
+          userName,
+          createdAt: t.createdAt.toISOString(),
+          updatedAt: t.updatedAt.toISOString(),
+          lastMessageAt: t.lastMessageAt ? t.lastMessageAt.toISOString() : null,
+          userDeletedAt: t.userDeletedAt ? t.userDeletedAt.toISOString() : null,
+        };
+      }),
+    );
 
     res.json({
-      data: tickets.map((t) => ({
-        ...t,
-        createdAt: t.createdAt.toISOString(),
-        updatedAt: t.updatedAt.toISOString(),
-        lastMessageAt: t.lastMessageAt ? t.lastMessageAt.toISOString() : null,
-        userDeletedAt: t.userDeletedAt ? t.userDeletedAt.toISOString() : null,
-      })),
+      data: enriched,
       total: Number(countRow?.count ?? 0),
       page: pageNum,
       totalPages: Math.ceil(Number(countRow?.count ?? 0) / limitNum),
@@ -112,7 +137,7 @@ router.get("/support-tickets/unread-count", async (req, res, next) => {
 // GET /admin/support-tickets/:id
 router.get("/support-tickets/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [ticket] = await db
       .select()
       .from(supportTicketsTable)
@@ -128,13 +153,26 @@ router.get("/support-tickets/:id", async (req, res, next) => {
       .where(eq(supportMessagesTable.ticketId, id))
       .orderBy(supportMessagesTable.createdAt);
 
+    // FIX: mark as read when admin actually opens the ticket, not just on list load
+    if (!ticket.isReadByAdmin) {
+      await db
+        .update(supportTicketsTable)
+        .set({ isReadByAdmin: true })
+        .where(eq(supportTicketsTable.id, id));
+    }
+
     res.json({
       ticket: {
         ...ticket,
+        isReadByAdmin: true,
         createdAt: ticket.createdAt.toISOString(),
         updatedAt: ticket.updatedAt.toISOString(),
-        lastMessageAt: ticket.lastMessageAt ? ticket.lastMessageAt.toISOString() : null,
-        userDeletedAt: ticket.userDeletedAt ? ticket.userDeletedAt.toISOString() : null,
+        lastMessageAt: ticket.lastMessageAt
+          ? ticket.lastMessageAt.toISOString()
+          : null,
+        userDeletedAt: ticket.userDeletedAt
+          ? ticket.userDeletedAt.toISOString()
+          : null,
       },
       messages: messages.map((m) => ({
         ...m,
@@ -152,7 +190,7 @@ router.post(
   logAdminActivity("reply_support_ticket", "support_ticket"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = ReplySchema.safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, formatZodIssues(parsed.error.issues)));
@@ -184,7 +222,10 @@ router.post(
           isReadByUser: false,
           isReadByAdmin: true,
           lastMessageAt: now,
-          status: sql`CASE WHEN status = 'closed' THEN 'pending' ELSE status END`,
+          // FIX: reopen both 'closed' and 'resolved' tickets consistently with user router
+          status: sql`CASE WHEN status IN ('closed', 'resolved') THEN 'pending' ELSE status END`,
+          // FIX: restore soft-deleted ticket so user can see the reply
+          userDeletedAt: null,
           updatedAt: now,
         })
         .where(eq(supportTicketsTable.id, id));
@@ -205,23 +246,31 @@ router.patch(
   logAdminActivity("update_support_ticket_status", "support_ticket"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
-      const { status } = req.body;
-      if (!status) {
-        return next(new AppError(400, "Status is required"));
+      const id = routeParam(req.params.id);
+
+      // FIX: validate status against allowed enum values
+      const parsed = StatusSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return next(new AppError(400, formatZodIssues(parsed.error.issues)));
       }
 
       const [updated] = await db
         .update(supportTicketsTable)
-        .set({ status, updatedAt: new Date() })
+        .set({ status: parsed.data.status, updatedAt: new Date() })
         .where(eq(supportTicketsTable.id, id))
         .returning();
+
+      if (!updated) {
+        return next(new AppError(404, "Ticket not found"));
+      }
 
       res.json({
         ...updated,
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
-        lastMessageAt: updated.lastMessageAt ? updated.lastMessageAt.toISOString() : null,
+        lastMessageAt: updated.lastMessageAt
+          ? updated.lastMessageAt.toISOString()
+          : null,
       });
     } catch (err) {
       return next(err);
@@ -235,19 +284,31 @@ router.patch(
   logAdminActivity("assign_support_ticket", "support_ticket"),
   async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
-      const { assignedTo } = req.body;
+      const id = routeParam(req.params.id);
+
+      // FIX: validate assignedTo
+      const parsed = AssignSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return next(new AppError(400, formatZodIssues(parsed.error.issues)));
+      }
 
       const [updated] = await db
         .update(supportTicketsTable)
-        .set({ assignedTo, updatedAt: new Date() })
+        .set({ assignedTo: parsed.data.assignedTo, updatedAt: new Date() })
         .where(eq(supportTicketsTable.id, id))
         .returning();
+
+      if (!updated) {
+        return next(new AppError(404, "Ticket not found"));
+      }
 
       res.json({
         ...updated,
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
+        lastMessageAt: updated.lastMessageAt
+          ? updated.lastMessageAt.toISOString()
+          : null,
       });
     } catch (err) {
       return next(err);

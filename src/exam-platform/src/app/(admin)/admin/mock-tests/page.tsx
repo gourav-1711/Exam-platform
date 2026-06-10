@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -10,6 +10,9 @@ import {
   Award,
   Loader2,
   Star,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -48,13 +51,13 @@ import {
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@/lib/api";
+import { customFetch, useListSubjects } from "@/lib/api";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { QuestionSelector } from "@/components/admin/QuestionSelector";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface MockTest {
-  id: number;
+  id: string;
   title: string;
   description: string;
   durationMins: number;
@@ -62,6 +65,26 @@ interface MockTest {
   maxMarks: number;
   negativeMarking: number;
   isFeatured: boolean;
+  questionIds?: string[];
+  subjectId?: string | null;
+  difficulty?: string | null;
+  class?: number | null;
+  medium?: string | null;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+interface MockTestsResponse {
+  data: MockTest[];
+  pagination: PaginationInfo;
 }
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -106,6 +129,13 @@ export default function MockTestsAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  // Search & filters
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [filterSubject, setFilterSubject] = useState("All");
+
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<MockTest | null>(null);
 
@@ -114,18 +144,20 @@ export default function MockTestsAdminPage() {
   const [editingItem, setEditingItem] = useState<MockTest | null>(null);
 
   // Delete
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
+
+  // Subjects
+  const { data: pyqSubjects = [] } = useListSubjects();
 
   // ── Form state ────────────────────────────────────────────────────────────
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formDuration, setFormDuration] = useState(60);
-  const [formQuestionCount, setFormQuestionCount] = useState(100);
   const [formMaxMarks, setFormMaxMarks] = useState(100);
   const [formNegMarking, setFormNegMarking] = useState(0.25);
   const [formFeatured, setFormFeatured] = useState(false);
   const [formError, setFormError] = useState("");
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
 
   // Sync form when sheet opens
   useEffect(() => {
@@ -134,7 +166,7 @@ export default function MockTestsAdminPage() {
         setFormTitle(editingItem.title);
         setFormDescription(editingItem.description);
         setFormDuration(editingItem.durationMins);
-        setFormQuestionCount(editingItem.questionCount);
+        // questionCount auto-calculated from selectedQuestionIds
         setFormMaxMarks(editingItem.maxMarks);
         setFormNegMarking(editingItem.negativeMarking);
         setFormFeatured(editingItem.isFeatured);
@@ -142,7 +174,7 @@ export default function MockTestsAdminPage() {
         setFormTitle("");
         setFormDescription("");
         setFormDuration(60);
-        setFormQuestionCount(100);
+        // questionCount auto-calculated from selectedQuestionIds
         setFormMaxMarks(100);
         setFormNegMarking(0.25);
         setFormFeatured(false);
@@ -151,18 +183,36 @@ export default function MockTestsAdminPage() {
     }
   }, [sheetOpen, editingItem]);
 
+  // ── Debounced search ──────────────────────────────────────────────────────
+  const handleSearch = (v: string) => {
+    setSearch(v);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setDebouncedSearch(v);
+      setPage(1);
+    }, 400);
+  };
+
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: testsResponse, isLoading } = useQuery<{ data: MockTest[]; pagination: any }>({
-    queryKey: ["admin", "mock-tests"],
-    queryFn: () => customFetch<{ data: MockTest[]; pagination: any }>("/api/admin/mock-tests"),
+  const { data: testsResponse, isLoading } = useQuery<MockTestsResponse>({
+    queryKey: ["admin", "mock-tests", page, debouncedSearch, filterSubject],
+    queryFn: () => {
+      const sp = new URLSearchParams({ page: String(page), limit: "20" });
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
+      if (filterSubject !== "All") sp.set("subjectId", filterSubject);
+      return customFetch<MockTestsResponse>(`/api/admin/mock-tests?${sp.toString()}`);
+    },
+    staleTime: 0,
   });
   const tests = testsResponse?.data ?? [];
+  const totalPages = testsResponse?.pagination?.totalPages ?? 1;
+  const totalItems = testsResponse?.pagination?.total ?? 0;
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "mock-tests"] });
 
   const createMutation = useMutation({
-    mutationFn: async (payload: any) =>
+    mutationFn: async (payload: Record<string, unknown>) =>
       customFetch<MockTest>("/api/admin/mock-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,14 +223,14 @@ export default function MockTestsAdminPage() {
       toast({ title: "Created!", description: "Mock test created successfully." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to create");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: any }) =>
+    mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
       customFetch<MockTest>(`/api/admin/mock-tests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -191,14 +241,14 @@ export default function MockTestsAdminPage() {
       toast({ title: "Saved!", description: "Mock test updated." });
       setSheetOpen(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setFormError(err.message || "Failed to update");
       toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const toggleFeatureMutation = useMutation({
-    mutationFn: async ({ id, isFeatured }: { id: number; isFeatured: boolean }) =>
+    mutationFn: async ({ id, isFeatured }: { id: string; isFeatured: boolean }) =>
       customFetch<MockTest>(`/api/admin/mock-tests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -211,8 +261,8 @@ export default function MockTestsAdminPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) =>
-      customFetch<any>(`/api/admin/mock-tests/${id}`, { method: "DELETE" }),
+    mutationFn: async (id: string) =>
+      customFetch<Record<string, unknown>>(`/api/admin/mock-tests/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
@@ -249,7 +299,7 @@ export default function MockTestsAdminPage() {
       title: formTitle.trim(),
       description: formDescription.trim(),
       durationMins: Number(formDuration),
-      questionCount: Number(formQuestionCount),
+      questionCount: selectedQuestionIds.length,
       maxMarks: Number(formMaxMarks),
       negativeMarking: Number(formNegMarking),
       isFeatured: formFeatured,
@@ -279,37 +329,19 @@ export default function MockTestsAdminPage() {
             <motion.div
               whileHover={{ rotate: [0, -8, 8, 0], scale: 1.05 }}
               transition={{ duration: 0.45 }}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-200 shrink-0"
+              className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0"
             >
               <Award className="w-6 h-6 text-white" />
             </motion.div>
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Mock Tests</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {tests.length} total tests
+                {totalItems} total tests
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <AnimatePresence>
-              {tests.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="hidden sm:flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5"
-                >
-                  <motion.span
-                    animate={{ scale: [1, 1.3, 1] }}
-                    transition={{ repeat: Infinity, duration: 2.2 }}
-                    className="w-2 h-2 rounded-full bg-amber-500 inline-block"
-                  />
-                  <span className="text-xs font-semibold text-amber-700">{tests.length} shown</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             <motion.div
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
@@ -325,6 +357,29 @@ export default function MockTestsAdminPage() {
           </div>
         </div>
 
+        {/* ── Filters ─────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search mock tests..."
+              className="pl-9 rounded-xl h-10"
+            />
+          </div>
+          <select
+            value={filterSubject}
+            onChange={(e) => { setFilterSubject(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          >
+            <option value="All">All Subjects</option>
+            {pyqSubjects.map((s: { id: string; name: string }) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
         {/* ── Table Card ──────────────────────────────────────────────────── */}
         <motion.div
           variants={cardVariants}
@@ -335,7 +390,7 @@ export default function MockTestsAdminPage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}>
-                <Loader2 className="w-7 h-7 text-amber-500" />
+                <Loader2 className="w-7 h-7 text-indigo-500" />
               </motion.div>
               <p className="text-sm text-muted-foreground">Loading mock tests…</p>
             </div>
@@ -348,8 +403,8 @@ export default function MockTestsAdminPage() {
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
                   className="flex flex-col items-center"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4">
-                    <Award className="w-7 h-7 text-amber-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+                    <Award className="w-7 h-7 text-indigo-400" />
                   </div>
                   <EmptyTitle>No mock tests yet</EmptyTitle>
                   <EmptyDescription>Click &quot;Create Test&quot; above to add your first mock test.</EmptyDescription>
@@ -392,8 +447,8 @@ export default function MockTestsAdminPage() {
                       >
                         <TableCell className="pl-5 py-3.5 max-w-[280px]">
                           <div className="flex items-start gap-2.5">
-                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-                              <Award className="w-3.5 h-3.5 text-amber-600" />
+                            <div className="mt-0.5 w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0">
+                              <Award className="w-3.5 h-3.5 text-indigo-600" />
                             </div>
                             <div className="min-w-0">
                               <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{test.title}</p>
@@ -416,7 +471,7 @@ export default function MockTestsAdminPage() {
                             onClick={(e) => { e.stopPropagation(); toggleFeatureMutation.mutate({ id: test.id, isFeatured: !test.isFeatured }); }}
                             className={`text-xs font-bold px-2 py-0.5 rounded-full border cursor-pointer transition-colors ${
                               test.isFeatured
-                                ? "bg-amber-50 border-amber-200 text-amber-700"
+                                ? "bg-amber-50 border-amber-200 text-indigo-700"
                                 : "bg-gray-50 border-gray-200 text-gray-400 hover:border-gray-300"
                             }`}
                           >
@@ -438,7 +493,7 @@ export default function MockTestsAdminPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-amber-50 hover:text-amber-600" onClick={() => openEdit(test)}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-amber-50 hover:text-indigo-600" onClick={() => openEdit(test)}>
                                     <Edit className="h-3.5 w-3.5" />
                                   </Button>
                                 </motion.div>
@@ -465,6 +520,21 @@ export default function MockTestsAdminPage() {
             </div>
           )}
         </motion.div>
+
+        {/* ── Pagination ──────────────────────────────────────────────────── */}
+        {totalItems > 0 && totalPages > 1 && (
+          <motion.div variants={cardVariants} initial="hidden" animate="visible" className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Page {page} of {totalPages} ({totalItems} total)</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="rounded-lg h-9">
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Previous
+              </Button>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="rounded-lg h-9">
+                Next <ChevronRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
 
         {/* ── Detail Dialog ───────────────────────────────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
@@ -502,7 +572,7 @@ export default function MockTestsAdminPage() {
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full border ${
                       viewingItem.isFeatured
-                        ? "bg-amber-50 border-amber-200 text-amber-700"
+                        ? "bg-amber-50 border-amber-200 text-indigo-700"
                         : "bg-gray-50 border-gray-200 text-gray-400"
                     }`}>
                       {viewingItem.isFeatured ? <Star className="w-3 h-3" /> : null}
@@ -524,9 +594,9 @@ export default function MockTestsAdminPage() {
                   initial={{ scale: 0.7, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 18 }}
-                  className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center"
                 >
-                  <Award className="w-5 h-5 text-amber-600" />
+                  <Award className="w-5 h-5 text-indigo-600" />
                 </motion.div>
                 <div>
                   <SheetTitle className="text-base font-bold text-gray-900">
@@ -561,7 +631,9 @@ export default function MockTestsAdminPage() {
                 </motion.div>
                 <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Question Count</Label>
-                  <Input type="number" min={1} value={formQuestionCount} onChange={(e) => setFormQuestionCount(Number(e.target.value))} className="rounded-xl h-10" />
+                  <div className="rounded-xl h-10 px-3 border bg-gray-50 flex items-center text-sm font-semibold text-gray-700">
+                    {selectedQuestionIds.length} selected
+                  </div>
                 </motion.div>
               </div>
 

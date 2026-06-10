@@ -38,8 +38,7 @@ export default function CurrentAffairsListing() {
     staleTime: 60 * 1000,
   });
 
-  return (
-    <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+  return (      <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Current Affairs</h1>
@@ -65,7 +64,7 @@ export default function CurrentAffairsListing() {
             </Empty>
           </div>
         ) : (
-          data?.data?.map((article: any) => (
+          data?.data?.map((article) => (
             <Card
               key={article.id}
               className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden flex flex-col"
@@ -144,7 +143,6 @@ export default function CurrentAffairsListing() {
             </PaginationItem>
           </PaginationContent>
         </Pagination>
-      )}
-    </PageTransition>
+      )}      </PageTransition>
   );
 }

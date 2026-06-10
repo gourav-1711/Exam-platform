@@ -155,7 +155,7 @@ export default function NcertAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return customFetch<any>(`/api/admin/document-ncert/${id}`, { method: "DELETE" });
+      return customFetch<Record<string, unknown>>(`/api/admin/document-ncert/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       invalidate();
@@ -504,7 +504,7 @@ export default function NcertAdminPage() {
                     className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
                     <option value="">Select</option>
-                    {pyqSubjects.map((s: any) => (
+                    {pyqSubjects.map((s: { id: string | number; name: string }) => (
                       <option key={s.id} value={s.name}>{s.name}</option>
                     ))}
                   </select>

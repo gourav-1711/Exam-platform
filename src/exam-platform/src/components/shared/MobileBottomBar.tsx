@@ -15,7 +15,7 @@ import { MobileNavItem } from "../layout/AppLayout";
 
 const BOTTOM_NAV = [
   { href: "/", icon: Home, label: "HOME" },
-  { href: "/quiz", icon: FlaskConical, label: "QUIZZES" },
+  { href: "/daily-quiz", icon: FlaskConical, label: "QUIZZES" },
   { href: "/study-notes", icon: StickyNote, label: "NOTES" },
   { href: "/pyq", icon: RotateCcw, label: "PYQS" },
 ];

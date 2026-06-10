@@ -13,7 +13,7 @@ const required = [
 ] as const;
 
 const missing = required.filter(
-  (k) => !process.env[k] || String(process.env[k]).trim().length === 0,
+  (k) => !process.env[k] || process.env[k]!.trim().length === 0,
 );
 
 const envSchema = z.object({
@@ -28,8 +28,8 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
   ALLOWED_ORIGINS: z.string().default("http://localhost:3000"),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
-  RATE_LIMIT_MAX: z.coerce.number().default(100),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60 * 1000), // 1 minute window
+  RATE_LIMIT_MAX: z.coerce.number().default(500),
 });
 
 if (missing.length) {

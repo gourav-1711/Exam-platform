@@ -4,7 +4,7 @@ import { currentAffairsTable } from "@workspace/db";
 import { desc, sql, and, ilike, eq } from "drizzle-orm";
 import { z } from "zod";
 import { logAdminActivity } from "../../middleware/adminMiddleware";
-import { routeParamInt } from "../../lib/routeParams";
+import { routeParam } from "../../lib/routeParams";
 import { cacheFlushPattern } from "../../lib/cache";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
@@ -29,7 +29,7 @@ const currentAffairSchema = z.object({
 const router = Router();
 
 // GET /admin/current-affairs
-router.get("/current-affairs", async (req, res, next): Promise<any> => {
+router.get("/current-affairs", async (req, res, next) => {
   try {
     const {
       page = "1",
@@ -47,7 +47,7 @@ router.get("/current-affairs", async (req, res, next): Promise<any> => {
       filter !== "all" ? eq(currentAffairsTable.category, filter) : undefined,
     );
 
-    const orderCol: any = (currentAffairsTable as any).publishedAt;
+    const orderCol = currentAffairsTable.publishedAt;
 
     const [items, countRows] = await Promise.all([
       db
@@ -63,10 +63,10 @@ router.get("/current-affairs", async (req, res, next): Promise<any> => {
         .where(where),
     ]);
 
-    const total = Number((countRows?.[0] as any)?.count ?? 0);
+    const total = Number(countRows?.[0]?.count ?? 0);
 
     res.json({
-      items: items.map((a: any) => ({
+      items: items.map((a) => ({
         ...a,
         publishedAt: a.publishedAt ? a.publishedAt.toISOString() : null,
         prevId: null,
@@ -84,7 +84,7 @@ router.get("/current-affairs", async (req, res, next): Promise<any> => {
 // GET /admin/current-affairs/:id
 router.get("/current-affairs/:id", async (req, res, next) => {
   try {
-    const id = routeParamInt(req.params.id);
+    const id = routeParam(req.params.id);
     const [article] = await db
       .select()
       .from(currentAffairsTable)
@@ -94,8 +94,8 @@ router.get("/current-affairs/:id", async (req, res, next) => {
 
     return res.json({
       ...article,
-      publishedAt: (article as any).publishedAt
-        ? (article as any).publishedAt.toISOString()
+      publishedAt: article.publishedAt
+        ? article.publishedAt.toISOString()
         : null,
       prevId: null,
       nextId: null,
@@ -108,7 +108,7 @@ router.get("/current-affairs/:id", async (req, res, next) => {
 router.post(
   "/current-affairs",
   logAdminActivity("create_current_affair", "current_affair"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
       const parsed = currentAffairSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -132,8 +132,8 @@ router.post(
       cacheFlushPattern("current-affairs:");
       return res.status(201).json({
         ...article,
-        publishedAt: (article as any).publishedAt
-          ? (article as any).publishedAt.toISOString()
+        publishedAt: article.publishedAt
+          ? article.publishedAt.toISOString()
           : null,
         prevId: null,
         nextId: null,
@@ -147,9 +147,9 @@ router.post(
 router.patch(
   "/current-affairs/:id",
   logAdminActivity("update_current_affair", "current_affair"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       const parsed = currentAffairSchema.partial().safeParse(req.body);
       if (!parsed.success) {
         return next(new AppError(400, formatZodIssues(parsed.error.issues)));
@@ -170,8 +170,8 @@ router.patch(
       cacheFlushPattern("current-affairs:");
       return res.json({
         ...updated,
-        publishedAt: (updated as any).publishedAt
-          ? (updated as any).publishedAt.toISOString()
+        publishedAt: updated.publishedAt
+          ? updated.publishedAt.toISOString()
           : null,
         prevId: null,
         nextId: null,
@@ -185,9 +185,9 @@ router.patch(
 router.delete(
   "/current-affairs/:id",
   logAdminActivity("delete_current_affair", "current_affair"),
-  async (req, res, next): Promise<any> => {
+  async (req, res, next) => {
     try {
-      const id = routeParamInt(req.params.id);
+      const id = routeParam(req.params.id);
       await db
         .delete(currentAffairsTable)
         .where(eq(currentAffairsTable.id, id));

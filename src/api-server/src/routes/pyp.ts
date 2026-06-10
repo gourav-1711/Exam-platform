@@ -5,8 +5,8 @@ import {
   syllabusTable,
   mockTestsTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { cacheGet, cacheSet, cacheFlushPattern, CacheTTL } from "../lib/cache";
+import { eq, ilike, and, desc } from "drizzle-orm";
+import { cacheGet, cacheSet, CacheTTL } from "../lib/cache";
 
 const router = Router();
 
@@ -14,16 +14,19 @@ import { AppError } from "../middleware/errorHandler";
 
 router.get("/pyp", async (req, res, next) => {
   try {
-    const cacheKey = "pyp:list";
-    const cached = cacheGet<any[]>(cacheKey);
+    const { examName } = req.query as Record<string, string>;
+    const cacheKey = `pyp:list:${examName || "all"}`;
+    const cached = cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const { examName } = req.query as Record<string, string>;
-    let all = await db.select().from(previousYearPapersTable);
-    if (examName)
-      all = all.filter((p) =>
-        p.examName.toLowerCase().includes(examName.toLowerCase()),
-      );
+    const conditions = [eq(previousYearPapersTable.isActive, true)];
+    if (examName) conditions.push(ilike(previousYearPapersTable.examName, `%${examName}%`));
+
+    const all = await db
+      .select()
+      .from(previousYearPapersTable)
+      .where(and(...conditions))
+      .orderBy(desc(previousYearPapersTable.year));
 
     cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
     return res.json(all);
@@ -35,10 +38,13 @@ router.get("/pyp", async (req, res, next) => {
 router.get("/syllabus", async (req, res, next) => {
   try {
     const cacheKey = "syllabus:list";
-    const cached = cacheGet<any[]>(cacheKey);
+    const cached = cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const all = await db.select().from(syllabusTable);
+    const all = await db
+      .select()
+      .from(syllabusTable)
+      .where(eq(syllabusTable.isActive, true));
     cacheSet(cacheKey, all, CacheTTL.QUESTIONS);
     return res.json(all);
   } catch (err) {
@@ -49,7 +55,7 @@ router.get("/syllabus", async (req, res, next) => {
 router.get("/mock-tests", async (req, res, next) => {
   try {
     const cacheKey = "mock-tests:list";
-    const cached = cacheGet<any[]>(cacheKey);
+    const cached = cacheGet<unknown[]>(cacheKey);
     if (cached) { res.json(cached); return; }
 
     const all = await db.select().from(mockTestsTable);
@@ -63,10 +69,10 @@ router.get("/mock-tests", async (req, res, next) => {
 router.get("/mock-tests/:id", async (req, res, next) => {
   try {
     const cacheKey = `mock-tests:${req.params.id}`;
-    const cached = cacheGet<any>(cacheKey);
+    const cached = cacheGet<unknown>(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const [test] = await db
       .select()
       .from(mockTestsTable)
@@ -82,6 +88,5 @@ router.get("/mock-tests/:id", async (req, res, next) => {
     return next(err);
   }
 });
-
 
 export default router;

@@ -30,12 +30,11 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface McqQuestion {
-  id: number;
+  id: string;
   text: string;
   options: [string, string, string, string];
   correctIndex: number;
   explanation: string | null;
-  examLabel: string | null;
 }
 
 interface McqResponse {
@@ -131,7 +130,7 @@ export default function NcertMcq() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 p-4 bg-card border rounded-2xl shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 p-4 bg-card border rounded-2xl shadow-sm">
         <Select
           value={classNum}
           onValueChange={(v) => { setClassNum(v); handleFilterChange(); }}

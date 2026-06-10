@@ -14,7 +14,6 @@ export const dailyQuizzes = pgTable('daily_quizzes', {
   questionIds: uuid('question_ids').array().notNull(),
   isPublished: boolean('is_published').default(false),
   isActive: boolean('is_active').notNull().default(true),
-  createdBy: text('created_by').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

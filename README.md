@@ -109,33 +109,27 @@ pnpm -C src/exam-platform run dev
 
 ## Features
 
-### Public Pages (Authentication Not Required)
+> **Auth Model:** All pages are open to everyone. Auth-gated actions (starting a quiz, mock test, sending a support message, downloading a document) show a sign-in modal via the global `RequireAuthModal` component and `useRequireAuth()` hook. There is no page-level redirect — the modal appears on the action.
+
+### All Pages — Open to Everyone
 
 | Page | Route | Description |
 |------|-------|-------------|
 | Home | `/` | Feature grid, announcements, banners |
 | Current Affairs | `/current-affairs` | Daily news articles with pagination |
-| Study Notes | `/study-notes` | Subject-wise study material (auth required for content) |
+| Study Notes | `/study-notes` | Subject-wise study material |
 | NCERT Books | `/ncert-books` | Browse/download NCERT textbooks by class & subject |
 | Previous Year Papers | `/pyp` | Access/download exam papers & answer keys |
 | Syllabus | `/syllabus` | Exam syllabus guides with download links |
 | Leaderboard | `/leaderboard` | Top aspirants ranking with points & streaks |
 | Support | `/support` | Multi-conversation support tickets & chat |
-| About | `/about` | Platform information |
-| Contact | `/contact` | Contact information & social links |
-| Privacy | `/privacy` | Privacy policy |
-| Terms | `/terms` | Terms & conditions |
-
-### Authenticated Pages
-
-| Page | Route | Description |
-|------|-------|-------------|
-| Daily Quiz | `/quiz` | Daily MCQ quizzes with timer & scoring |
-| Quiz Player | `/quiz/[id]/play` | Full-screen quiz interface with palette |
+| Daily Quiz | `/daily-quiz` | Daily MCQ quizzes with timer & scoring |
+| Quiz Player | `/daily-quiz/[id]/play` | Full-screen quiz interface with palette |
 | PYQ Practice | `/pyq` | Previous year questions by subject |
 | NCERT MCQs | `/ncert-mcq` | NCERT-based MCQ practice |
 | Mock Tests | `/mock-tests` | Full-length mock exams |
 | Profile | `/profile` | User stats, streak, settings |
+| About, Contact, Privacy, Terms | Various | Static information pages |
 
 ### Admin Panel (`/admin`) — Clerk Admin Role Required
 
@@ -305,7 +299,9 @@ All UI components are built using **shadcn/ui** (Radix UI primitives + Tailwind 
 - **CORS** — Restricted to configured origins
 - **Rate Limiting** — Global: 200 req/15min, Auth: 20 req/15min
 - **Zod Validation** — All API inputs validated at runtime
-- **Clerk Auth** — JWT-based session management with middleware guards
+- **Clerk Auth** — JWT-based session management
+- **RequireAuthModal** — Global context provider + `useRequireAuth()` hook. Shows a sign-in modal when unauthenticated users try to perform gated actions (document downloads, quiz starts, support messages). No page-level redirect.
+- **Next.js Middleware** (`proxy.ts`) — Only `/admin(.*)` routes protected at the middleware level. All other pages are open.
 - **Admin Role** — Checked via Clerk public metadata (`role: "admin"`)
 
 ## Troubleshooting

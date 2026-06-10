@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { useQuery } from "@tanstack/react-query";
 import { API_BASE_URL } from "@/lib/api-config";
-import { Download, BookOpen, ChevronLeft, ChevronRight, Library } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent } from "@/components/ui/card";
@@ -165,13 +166,11 @@ export default function NcertBooks() {
                     </p>
                   </div>
 
-                  <Button
-                    onClick={() => window.open(pdf.cloudinaryUrl, "_blank")}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download PDF
-                  </Button>
+                  <DocumentActionButton
+                    url={pdf.cloudinaryUrl}
+                    page="ncert-books"
+                    action="download"
+                  />
                 </CardContent>
               </Card>
             ))}
