@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ALL_NAV_ITEMS } from "@/components/layout/AppLayout";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
@@ -135,6 +135,7 @@ const cardVariants: Variants = {
 export default function AnnouncementsAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] =
@@ -143,12 +144,12 @@ export default function AnnouncementsAdminPage() {
 
   const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
     queryKey: ["admin", "announcements"],
-    queryFn: () => customFetch<Announcement[]>("/api/admin/announcements"),
+    queryFn: () => adminFetch<Announcement[]>("/api/admin/announcements"),
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
-      customFetch<Announcement>(`/api/admin/announcements/${id}`, {
+      adminFetch<Announcement>(`/api/admin/announcements/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive }),
@@ -161,7 +162,7 @@ export default function AnnouncementsAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
-      customFetch<Record<string, unknown>>(`/api/admin/announcements/${id}`, { method: "DELETE" }),
+      adminFetch<Record<string, unknown>>(`/api/admin/announcements/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "announcements"] });
       setDeleteId(null);
@@ -542,6 +543,7 @@ function AnnouncementFormSheet({
   onSuccess,
 }: SheetProps) {
   const { toast } = useToast();
+  const adminFetch = useAdminFetch();
 
   const [title, setTitle] = useState(editing?.title ?? "");
   const [body, setBody] = useState(editing?.body ?? "");
@@ -578,7 +580,7 @@ function AnnouncementFormSheet({
 
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
-      customFetch<Announcement>("/api/admin/announcements", {
+      adminFetch<Announcement>("/api/admin/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -597,7 +599,7 @@ function AnnouncementFormSheet({
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
-      customFetch<Announcement>(`/api/admin/announcements/${id}`, {
+      adminFetch<Announcement>(`/api/admin/announcements/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

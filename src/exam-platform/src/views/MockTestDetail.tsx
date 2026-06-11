@@ -45,7 +45,7 @@ export default function MockTestDetail() {
             {[
               { icon: Clock, label: "Duration", value: `${test.durationMins} min` },
               { icon: FileText, label: "Questions", value: test.questionCount },
-              { icon: Award, label: "Max Marks", value: test.questionCount },
+              { icon: Award, label: "Max Marks", value: test.maxMarks },
               { icon: AlertCircle, label: "Negative", value: `-${test.negativeMarking}` },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="bg-muted/50 p-4 rounded-xl border border-border/50 text-center">

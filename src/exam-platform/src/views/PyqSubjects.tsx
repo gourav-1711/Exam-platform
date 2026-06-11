@@ -19,6 +19,7 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useRouter } from "next/navigation";
 import { useListSubjects } from "@/lib/api";
 import { FileText, Play, ChevronRight, BookOpen } from "lucide-react";
+import PageHeading from "@/components/shared/PageHeading";
 
 interface ExamSet {
   id: string;
@@ -65,8 +66,10 @@ export default function PyqSubjects() {
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Previous Year Questions</h1>
-        <p className="text-muted-foreground">Master the exam pattern with subject-wise PYQ sets.</p>
+        <PageHeading heading="Previous Year Questions" />
+        <p className="text-muted-foreground">
+          Master the exam pattern with subject-wise PYQ sets.
+        </p>
       </div>
 
       {/* Subject Filter */}
@@ -78,7 +81,9 @@ export default function PyqSubjects() {
           <SelectContent>
             <SelectItem value="all">All Subjects</SelectItem>
             {subjects.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -87,18 +92,26 @@ export default function PyqSubjects() {
       {/* Sets Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)
+          Array(6)
+            .fill(0)
+            .map((_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)
         ) : sets.length === 0 ? (
           <div className="col-span-full">
             <Empty>
               <FileText className="w-10 h-10 text-gray-300" />
               <EmptyTitle>No PYQ sets available</EmptyTitle>
-              <EmptyDescription>No PYQ practice sets are available right now. Check back later or adjust your filters.</EmptyDescription>
+              <EmptyDescription>
+                No PYQ practice sets are available right now. Check back later
+                or adjust your filters.
+              </EmptyDescription>
             </Empty>
           </div>
         ) : (
           sets.map((set) => (
-            <Card key={set.id} className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden group">
+            <Card
+              key={set.id}
+              className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden group"
+            >
               <CardContent className="p-5 flex flex-col h-full gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shrink-0">
@@ -113,12 +126,15 @@ export default function PyqSubjects() {
                 <div className="flex-1">
                   <h3 className="font-bold leading-tight">{set.title}</h3>
                   {set.description && (
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{set.description}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {set.description}
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-auto">
                   <span className="text-xs font-semibold text-muted-foreground">
-                    {set.totalQuestions ?? set.questionIds?.length ?? 0} Questions
+                    {set.totalQuestions ?? set.questionIds?.length ?? 0}{" "}
+                    Questions
                   </span>
                   <Button
                     size="sm"

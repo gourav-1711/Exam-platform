@@ -97,30 +97,24 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Resources",
     items: [
       {
+        href: "/mock-tests",
+        icon: GraduationCap,
+        label: "Mock Tests",
+        keywords: "mock test full exam",
+        protected: true,
+      },
+      {
         href: "/pyq",
         icon: RotateCcw,
-        label: "PYQ",
+        label: "PYQ's",
         keywords: "previous year questions pyq",
         protected: true,
       },
       {
         href: "/pyp",
         icon: FileText,
-        label: "Previous Year Papers",
+        label: "PYP's",
         keywords: "previous year papers pyp",
-      },
-      {
-        href: "/ncert-mcq",
-        icon: Cpu,
-        label: "NCERT MCQs",
-        keywords: "ncert mcq class books",
-        protected: true,
-      },
-      {
-        href: "/ncert-books",
-        icon: Library,
-        label: "NCERT Books",
-        keywords: "ncert books class 6 7 8 9 10 11 12",
       },
       {
         href: "/syllabus",
@@ -129,11 +123,17 @@ export const NAV_GROUPS: NavGroup[] = [
         keywords: "syllabus upsc ssc ras rrb",
       },
       {
-        href: "/mock-tests",
-        icon: GraduationCap,
-        label: "Mock Tests",
-        keywords: "mock test full exam",
+        href: "/ncert-mcq",
+        icon: Cpu,
+        label: "NCERT MCQ's",
+        keywords: "ncert mcq class books",
         protected: true,
+      },
+      {
+        href: "/ncert-books",
+        icon: Library,
+        label: "NCERT Books",
+        keywords: "ncert books class 6 7 8 9 10 11 12",
       },
     ],
   },
@@ -184,7 +184,7 @@ export const ALL_NAV_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
 export const BOTTOM_NAV = [
   { href: "/", icon: Home, label: "HOME" },
-  { href: "/daily-quiz", icon: FlaskConical, label: "QUIZZES" },
+  { href: "/daily-quiz", icon: FlaskConical, label: "QUIZ" },
   { href: "/study-notes", icon: StickyNote, label: "NOTES" },
   { href: "/pyq", icon: RotateCcw, label: "PYQS" },
 ];

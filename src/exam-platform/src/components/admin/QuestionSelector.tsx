@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { customFetch } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 
 interface Question {
   id: string;
@@ -57,6 +57,8 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
 
   const queryKey = ["admin", "questions", "selector", page, search, subject];
 
+  const adminFetch = useAdminFetch();
+
   const { data, isLoading } = useQuery<QuestionsResponse>({
     queryKey,
     queryFn: async () => {
@@ -67,7 +69,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
       if (search.trim()) sp.set("search", search.trim());
       if (subject !== "All") sp.set("subject", subject);
 
-      return customFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
+      return adminFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
     },
     staleTime: 10_000,
   });

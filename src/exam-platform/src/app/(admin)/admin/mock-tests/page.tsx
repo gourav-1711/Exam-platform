@@ -51,7 +51,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListSubjects } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { QuestionSelector } from "@/components/admin/QuestionSelector";
 
@@ -128,6 +129,7 @@ const fieldVariants: Variants = {
 export default function MockTestsAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
 
   // Search & filters
   const [page, setPage] = useState(1);
@@ -200,7 +202,7 @@ export default function MockTestsAdminPage() {
       const sp = new URLSearchParams({ page: String(page), limit: "20" });
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       if (filterSubject !== "All") sp.set("subjectId", filterSubject);
-      return customFetch<MockTestsResponse>(`/api/admin/mock-tests?${sp.toString()}`);
+      return adminFetch<MockTestsResponse>(`/api/admin/mock-tests?${sp.toString()}`);
     },
     staleTime: 0,
   });
@@ -213,7 +215,7 @@ export default function MockTestsAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) =>
-      customFetch<MockTest>("/api/admin/mock-tests", {
+      adminFetch<MockTest>("/api/admin/mock-tests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -231,7 +233,7 @@ export default function MockTestsAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
-      customFetch<MockTest>(`/api/admin/mock-tests/${id}`, {
+      adminFetch<MockTest>(`/api/admin/mock-tests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -249,7 +251,7 @@ export default function MockTestsAdminPage() {
 
   const toggleFeatureMutation = useMutation({
     mutationFn: async ({ id, isFeatured }: { id: string; isFeatured: boolean }) =>
-      customFetch<MockTest>(`/api/admin/mock-tests/${id}`, {
+      adminFetch<MockTest>(`/api/admin/mock-tests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isFeatured }),
@@ -262,7 +264,7 @@ export default function MockTestsAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
-      customFetch<Record<string, unknown>>(`/api/admin/mock-tests/${id}`, { method: "DELETE" }),
+      adminFetch<Record<string, unknown>>(`/api/admin/mock-tests/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);

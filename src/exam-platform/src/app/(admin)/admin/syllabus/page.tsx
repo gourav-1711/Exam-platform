@@ -10,6 +10,8 @@ import {
   FileText,
   Loader2,
   Upload,
+  XCircle,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -48,7 +50,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -101,6 +103,7 @@ const fieldVariants: Variants = {
 export default function SyllabusAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
   const { getToken } = useAuth();
 
   // Detail Dialog
@@ -122,6 +125,7 @@ export default function SyllabusAdminPage() {
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [formError, setFormError] = useState("");
+  const [removeExistingPdf, setRemoveExistingPdf] = useState(false);
 
   // Sync form when sheet opens
   useEffect(() => {
@@ -131,6 +135,10 @@ export default function SyllabusAdminPage() {
         setFormExamCategory(editingItem.examCategory ?? "");
         setFormReadUrl(editingItem.readUrl ?? "");
         setFormDownloadUrl(editingItem.downloadUrl ?? "");
+        setFile(null);
+        setFileName("");
+        setUploadMode("url");
+        setRemoveExistingPdf(false);
       } else {
         setFormTitle("");
         setFormExamCategory("");
@@ -139,33 +147,45 @@ export default function SyllabusAdminPage() {
         setFile(null);
         setFileName("");
         setUploadMode("file");
+        setRemoveExistingPdf(false);
       }
       setFormError("");
     }
   }, [sheetOpen, editingItem]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
-  const { data: list = [], isLoading } = useQuery<SyllabusItem[]>({
+  const { data: syllabusResponse, isLoading } = useQuery({
     queryKey: ["admin", "syllabus"],
-    queryFn: () => customFetch<SyllabusItem[]>("/api/admin/syllabus"),
+    queryFn: () => adminFetch<{
+      data: SyllabusItem[];
+      pagination: { page: number; limit: number; total: number; totalPages: number };
+    }>("/api/admin/syllabus"),
   });
+  const list = syllabusResponse?.data ?? [];
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "syllabus"] });
 
   const createMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
+    mutationFn: async (data: FormData | Record<string, unknown>) => {
       const token = await getToken();
-      const res = await fetch("/api/admin/syllabus", {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create syllabus");
+      if (data instanceof FormData) {
+        const res = await fetch("/api/admin/syllabus", {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: data,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to create syllabus");
+        }
+        return res.json();
       }
-      return res.json();
+      return adminFetch<SyllabusItem>("/api/admin/syllabus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       invalidate();
@@ -179,12 +199,26 @@ export default function SyllabusAdminPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: Record<string, unknown> }) =>
-      customFetch<SyllabusItem>(`/api/admin/syllabus/${id}`, {
+    mutationFn: async ({ id, data }: { id: number; data: FormData | Record<string, unknown> }) => {
+      const token = await getToken();
+      if (data instanceof FormData) {
+        const res = await fetch(`/api/admin/syllabus/${id}`, {
+          method: "PATCH",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: data,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Failed to update syllabus");
+        }
+        return res.json();
+      }
+      return adminFetch<SyllabusItem>(`/api/admin/syllabus/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      }),
+        body: JSON.stringify(data),
+      });
+    },
     onSuccess: () => {
       invalidate();
       setSheetOpen(false);
@@ -198,7 +232,7 @@ export default function SyllabusAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) =>
-      customFetch<Record<string, unknown>>(`/api/admin/syllabus/${id}`, { method: "DELETE" }),
+      adminFetch<Record<string, unknown>>(`/api/admin/syllabus/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
@@ -215,7 +249,7 @@ export default function SyllabusAdminPage() {
 
   const openEdit = (item: SyllabusItem) => {
     setEditingItem(item);
-    setUploadMode("url"); // Edit always uses URL mode since files can't be re-uploaded easily
+    setUploadMode("url");
     setSheetOpen(true);
   };
 
@@ -234,43 +268,52 @@ export default function SyllabusAdminPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError("");
-    
+
     if (!formTitle.trim()) {
       setFormError("Title is required.");
       return;
     }
 
     if (editingItem) {
-      // Edit: just PATCH the fields
-      updateMutation.mutate({
-        id: editingItem.id,
-        payload: {
-          title: formTitle.trim(),
-          examCategory: formExamCategory.trim() || null,
-          readUrl: formReadUrl.trim() || null,
-          downloadUrl: formDownloadUrl.trim() || null,
-        },
-      });
+      if (uploadMode === "file" && file) {
+        const formData = new FormData();
+        formData.append("title", formTitle.trim());
+        formData.append("examCategory", formExamCategory.trim() || "");
+        formData.append("file", file);
+        updateMutation.mutate({ id: editingItem.id, data: formData });
+      } else {
+        updateMutation.mutate({
+          id: editingItem.id,
+          data: {
+            title: formTitle.trim(),
+            examCategory: formExamCategory.trim() || null,
+            readUrl: formReadUrl.trim() || null,
+            downloadUrl: formDownloadUrl.trim() || null,
+          },
+        });
+      }
       return;
     }
 
-    // Create: use FormData for file upload or URL
-    const data = new FormData();
-    data.append("title", formTitle.trim());
-    data.append("examCategory", formExamCategory.trim() || "");
-
+    // Create
     if (uploadMode === "file") {
       if (!file) {
         setFormError("Please select a syllabus PDF file.");
         return;
       }
-      data.append("file", file);
+      const formData = new FormData();
+      formData.append("title", formTitle.trim());
+      formData.append("examCategory", formExamCategory.trim() || "");
+      formData.append("file", file);
+      createMutation.mutate(formData);
     } else {
-      if (formReadUrl.trim()) data.append("readUrl", formReadUrl.trim());
-      if (formDownloadUrl.trim()) data.append("downloadUrl", formDownloadUrl.trim());
+      createMutation.mutate({
+        title: formTitle.trim(),
+        examCategory: formExamCategory.trim() || null,
+        readUrl: formReadUrl.trim() || null,
+        downloadUrl: formDownloadUrl.trim() || null,
+      });
     }
-
-    createMutation.mutate(data);
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -527,7 +570,7 @@ export default function SyllabusAdminPage() {
                     {editingItem ? "Edit Syllabus" : "Add Syllabus"}
                   </SheetTitle>
                   <SheetDescription className="text-xs text-muted-foreground">
-                    {editingItem ? "Update the syllabus name and URLs." : "Upload a PDF or link to a syllabus."}
+                    {editingItem ? "Update the syllabus name and file." : "Upload a PDF or link to a syllabus."}
                   </SheetDescription>
                 </div>
               </div>
@@ -537,7 +580,7 @@ export default function SyllabusAdminPage() {
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">{formError}</div>
               )}
-              
+
               <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title *</Label>
                 <Input value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="e.g. UPSC CSE Syllabus" required className="rounded-xl h-10" />
@@ -548,65 +591,90 @@ export default function SyllabusAdminPage() {
                 <Input value={formExamCategory} onChange={(e) => setFormExamCategory(e.target.value)} placeholder="e.g. UPSC CSE" className="rounded-xl h-10" />
               </motion.div>
 
-              {!editingItem && (
-                <>
-                  {/* Upload Mode Toggle */}
-                  <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
-                    <button type="button" onClick={() => setUploadMode("file")}
-                      className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
-                    >
-                      Upload PDF
-                    </button>
-                    <button type="button" onClick={() => setUploadMode("url")}
-                      className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
-                    >
-                      URL Link
-                    </button>
-                  </motion.div>
+              {/* Upload Mode Toggle — available for both create and edit */}
+              <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 bg-gray-50 p-1 rounded-xl">
+                  <button type="button" onClick={() => setUploadMode("file")}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "file" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+                  >
+                    Upload PDF
+                  </button>
+                  <button type="button" onClick={() => setUploadMode("url")}
+                    className={`py-1.5 text-xs font-bold rounded-lg transition-all ${uploadMode === "url" ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500"}`}
+                  >
+                    URL Link
+                  </button>
+                </div>
 
-                  {uploadMode === "file" ? (
-                    <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition-all hover:bg-indigo-50/20">
-                      <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" id="syllabus-file-input" />
-                      <label htmlFor="syllabus-file-input" className="cursor-pointer block">
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm font-semibold text-gray-700">{fileName || "Select PDF document"}</p>
-                        <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
-                      </label>
-                    </motion.div>
-                  ) : (
-                    <>
-                      <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Read URL (Optional)</Label>
-                        <Input value={formReadUrl} onChange={(e) => setFormReadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
-                      </motion.div>
-                      <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Download URL (Optional)</Label>
-                        <Input value={formDownloadUrl} onChange={(e) => setFormDownloadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
-                      </motion.div>
-                    </>
-                  )}
-                </>
-              )}
+                {uploadMode === "file" ? (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500 transition-all hover:bg-indigo-50/20">
+                    <input type="file" accept=".pdf" onChange={handleFileChange} className="hidden" id="syllabus-file-input" />
+                    <label htmlFor="syllabus-file-input" className="cursor-pointer block">
+                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-700">{fileName || "Select PDF document"}</p>
+                      <p className="text-xs text-gray-400 mt-1">PDF max 50MB</p>
+                    </label>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Read URL (Optional)</Label>
+                      <Input value={formReadUrl} onChange={(e) => setFormReadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Download URL (Optional)</Label>
+                      <Input value={formDownloadUrl} onChange={(e) => setFormDownloadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
+                    </div>
 
-              {/* When editing, show URL fields */}
-              {editingItem && (
-                <>
-                  <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Read URL</Label>
-                    <Input value={formReadUrl} onChange={(e) => setFormReadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
-                  </motion.div>
-                  <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Download URL</Label>
-                    <Input value={formDownloadUrl} onChange={(e) => setFormDownloadUrl(e.target.value)} placeholder="https://..." className="rounded-xl h-10" />
-                  </motion.div>
-                </>
-              )}
+                    {/* Show existing uploaded PDF with remove option */}
+                    {editingItem?.downloadUrl && !removeExistingPdf && (
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <ExternalLink className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span className="text-xs font-medium text-emerald-800 flex-1 truncate">
+                          Current PDF uploaded
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRemoveExistingPdf(true);
+                            setFormDownloadUrl("");
+                          }}
+                          className="shrink-0 p-1 rounded-lg hover:bg-emerald-100 text-emerald-600 hover:text-red-600 transition-colors"
+                          title="Remove current PDF"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Show removed state */}
+                    {removeExistingPdf && (
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200">
+                        <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                        <span className="text-xs font-medium text-red-700 flex-1">
+                          PDF will be removed on save
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRemoveExistingPdf(false);
+                            setFormDownloadUrl(editingItem?.downloadUrl ?? "");
+                          }}
+                          className="text-xs font-semibold text-red-600 hover:text-red-800 underline"
+                        >
+                          Undo
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </motion.div>
             </form>
 
             <div className="px-6 py-4 border-t bg-gray-50/60 flex gap-2.5 shrink-0">
               <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="flex-1 rounded-xl font-semibold">Cancel</Button>
               <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 380, damping: 20 }}>
-                <Button type="submit"                disabled={isPending || !formTitle.trim()} onClick={handleSubmit}
+                <Button type="submit" disabled={isPending || !formTitle.trim()} onClick={handleSubmit}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 gap-2"
                 >
                   {isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : editingItem ? "Save Changes" : "Create Syllabus"}

@@ -2,56 +2,25 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { adminApi } from "@/lib/api/endpoints";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
 
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, TrendingUp, Award, BarChart3 } from "lucide-react";
-
-type AnalyticsOverview = {
-  totalQuestions: number;
-  activeStudents: number;
-  avgScore: number;
-  passRate: number;
-};
-
-type AnalyticsDailyAttempt = {
-  date: string;
-  count: number;
-  avgScore: number;
-};
-
-type AnalyticsSubjectStat = {
-  subject: string;
-  count: number;
-  percent: number;
-};
-
-type AnalyticsTopScorer = {
-  userId: string;
-  totalScore: number;
-  attempts: number;
-};
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { BookOpen, Award, TrendingUp, Users, BarChart3 } from "lucide-react";
 
 type AnalyticsResponse = {
-  overview: AnalyticsOverview;
-  dailyAttempts: AnalyticsDailyAttempt[];
-  subjectStats: AnalyticsSubjectStat[];
-  topScorers: AnalyticsTopScorer[];
+  totalAttempts: number;
+  avgScore: number;
+  avgTimeTaken: number;
+  passCount: number;
+  failCount: number;
 };
 
 const COLORS = [
@@ -74,7 +43,7 @@ export default function AnalyticsPage() {
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
-      return adminApi.analytics(token);
+      return apiFetch<AnalyticsResponse>("/admin/analytics", { token });
     },
   });
 
@@ -104,35 +73,38 @@ export default function AnalyticsPage() {
 
   if (!data) return null;
 
-  const { overview } = data;
+  const totalAttempts = data.totalAttempts;
+  const passRate = totalAttempts > 0 ? Math.round((data.passCount / totalAttempts) * 100) : 0;
+  const failRate = totalAttempts > 0 ? Math.round((data.failCount / totalAttempts) * 100) : 0;
+
   const statCards = [
     {
-      label: "Total Questions",
-      value: overview.totalQuestions,
+      label: "Total Attempts",
+      value: totalAttempts,
       icon: BookOpen,
       color: "text-violet-600",
       bg: "bg-violet-100/60",
     },
     {
-      label: "Active Students",
-      value: overview.activeStudents,
-      icon: Users,
-      color: "text-blue-600",
-      bg: "bg-blue-100/60",
+      label: "Passed",
+      value: data.passCount,
+      icon: Award,
+      color: "text-emerald-600",
+      bg: "bg-emerald-100/60",
     },
     {
       label: "Avg Score",
-      value: overview.avgScore,
+      value: Math.round(data.avgScore * 10) / 10,
       icon: TrendingUp,
       color: "text-amber-600",
       bg: "bg-amber-100/60",
     },
     {
       label: "Pass Rate",
-      value: `${overview.passRate}%`,
-      icon: Award,
-      color: "text-green-600",
-      bg: "bg-green-100/60",
+      value: `${passRate}%`,
+      icon: Users,
+      color: "text-blue-600",
+      bg: "bg-blue-100/60",
     },
   ];
 
@@ -174,75 +146,34 @@ export default function AnalyticsPage() {
         <Card className="border-border/50 bg-white shadow-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base text-gray-900 font-bold">
-              Daily Attempts (Last 30 Days)
+              Attempt Breakdown
             </CardTitle>
+            <CardDescription className="text-xs text-gray-500">
+              Pass vs fail distribution across all student submissions
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={data.dailyAttempts}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: "#64748b" }}
-                  tickFormatter={(v) => v.slice(5)}
-                />
-                <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderColor: "#e2e8f0",
-                    color: "#0f172a",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#6366f1"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Attempts"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-white shadow-sm rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-900 font-bold">
-              Questions by Subject
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
-                  data={data.subjectStats}
-                  dataKey="count"
-                  nameKey="subject"
+                  data={[
+                    { name: "Passed", value: data.passCount },
+                    { name: "Failed", value: data.failCount },
+                  ]}
+                  dataKey="value"
+                  nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={80}
-                  label={(entry: import("recharts").PieLabelRenderProps) => {
-                    const subject = entry.name ?? "";
-                    const percent =
-                      typeof entry.percent === "number"
-                        ? (entry.percent * 100).toFixed(0)
-                        : "0";
-                    return `${subject} ${percent}%`;
-                  }}
+                  outerRadius={90}
+                  label={({ name, percent }: { name?: string; percent?: number }) =>
+                    `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
+                  }
                   labelLine={false}
                 >
-                  {data.subjectStats.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
+                  <Cell fill="#10b981" />
+                  <Cell fill="#ef4444" />
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderColor: "#e2e8f0",
-                  }}
-                />
+                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -251,71 +182,36 @@ export default function AnalyticsPage() {
         <Card className="border-border/50 bg-white shadow-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base text-gray-900 font-bold">
-              Avg Score Trend
+              Performance Summary
             </CardTitle>
+            <CardDescription className="text-xs text-gray-500">
+              Key metrics aggregated from all student attempts
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.dailyAttempts.slice(-14)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: "#64748b" }}
-                  tickFormatter={(v) => v.slice(5)}
-                />
-                <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    borderColor: "#e2e8f0",
-                  }}
-                />
-                <Bar
-                  dataKey="avgScore"
-                  fill="#3b82f6"
-                  radius={[4, 4, 0, 0]}
-                  name="Avg Score"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-white shadow-sm rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-900 font-bold">
-              Top Scorers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {data.topScorers.length === 0 ? (
-                <p className="text-gray-500 text-sm text-center py-8">
-                  No attempts yet
-                </p>
-              ) : (
-                data.topScorers.map((s, i) => (
-                  <div
-                    key={s.userId}
-                    className="flex items-center gap-3 py-1.5 border-b border-gray-100 last:border-0"
-                  >
-                    <div
-                      className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${i === 0 ? "bg-amber-500 text-white" : i === 1 ? "bg-gray-300 text-gray-700" : i === 2 ? "bg-amber-700 text-white" : "bg-gray-100 text-gray-600"}`}
-                    >
-                      {i + 1}
-                    </div>
-                    <span className="flex-1 font-mono text-xs text-gray-700 truncate max-w-[120px]">
-                      {s.userId}
-                    </span>
-                    <span className="font-extrabold text-indigo-600">
-                      {s.totalScore}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {s.attempts} att.
-                    </span>
-                  </div>
-                ))
-              )}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-violet-50 border border-violet-100 rounded-xl">
+                  <p className="text-[10px] font-bold text-violet-500 uppercase tracking-wider">Total Attempts</p>
+                  <p className="text-2xl font-black text-violet-900 mt-1">{totalAttempts}</p>
+                </div>
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                  <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Pass Rate</p>
+                  <p className="text-2xl font-black text-emerald-900 mt-1">{passRate}%</p>
+                </div>
+                <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                  <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">Avg Score</p>
+                  <p className="text-2xl font-black text-amber-900 mt-1">{Math.round(data.avgScore * 10) / 10}</p>
+                </div>
+                <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl">
+                  <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Fail Rate</p>
+                  <p className="text-2xl font-black text-rose-900 mt-1">{failRate}%</p>
+                </div>
+              </div>
+              <div className="p-4 bg-sky-50 border border-sky-100 rounded-xl">
+                <p className="text-[10px] font-bold text-sky-500 uppercase tracking-wider">Avg Time Taken</p>
+                <p className="text-2xl font-black text-sky-900 mt-1">{Math.round(data.avgTimeTaken / 60)} min {Math.round(data.avgTimeTaken % 60)} sec</p>
+              </div>
             </div>
           </CardContent>
         </Card>

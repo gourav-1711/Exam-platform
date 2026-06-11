@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useListSubjects, customFetch } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Subject } from "@/lib/api";
-import { queryKeys } from "@/lib/api/query-keys";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,18 +21,24 @@ import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { motion } from "framer-motion";
 
 export default function SubjectsAdminPage() {
-  const { data: subjects = [], isLoading } = useListSubjects();
+  const adminFetch = useAdminFetch();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: subjects = [], isLoading } = useQuery<Subject[]>({
+    queryKey: ["admin", "subjects"],
+    queryFn: () => adminFetch<Subject[]>("/api/admin/subjects"),
+  });
+
   const [name, setName] = useState("");
   const [examCategory, setExamCategory] = useState("General");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const [deleteTargetId, setDeleteId] = useState<string | null>(null);
 
   const invalidateSubjects = () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.subjects.all() });
+    queryClient.invalidateQueries({ queryKey: ["admin", "subjects"] });
   };
 
   const createSubject = async (e: React.FormEvent) => {
@@ -42,7 +47,7 @@ export default function SubjectsAdminPage() {
     if (!trimmedName) return;
 
     try {
-      await customFetch(`/api/admin/subjects`, {
+      await adminFetch(`/api/admin/subjects`, {
         method: "POST",
         body: JSON.stringify({ name: trimmedName, examCategory }),
         headers: { "Content-Type": "application/json" },
@@ -75,7 +80,7 @@ export default function SubjectsAdminPage() {
     if (!trimmedName) return;
 
     try {
-      await customFetch(`/api/admin/subjects/${id}`, {
+      await adminFetch(`/api/admin/subjects/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ name: trimmedName }),
         headers: { "Content-Type": "application/json" },
@@ -94,7 +99,7 @@ export default function SubjectsAdminPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await customFetch(`/api/admin/subjects/${id}`, {
+      await adminFetch(`/api/admin/subjects/${id}`, {
         method: "DELETE",
       });
       toast({ title: "Deleted", description: "Subject deleted successfully" });
@@ -163,7 +168,6 @@ export default function SubjectsAdminPage() {
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Questions</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -197,9 +201,6 @@ export default function SubjectsAdminPage() {
                     {s.isActive ? <BadgeCheck className="w-3 h-3" /> : null}
                     {s.isActive ? "Active" : "Inactive"}
                   </span>
-                </TableCell>
-                <TableCell className="font-bold text-gray-700">
-                  {s.questionCount ?? 0}
                 </TableCell>
                 <TableCell className="text-right">
                   {editingId === s.id ? (

@@ -3,10 +3,27 @@
 import { useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { adminApi } from "@/lib/api/endpoints";
-import type { AdminActivityLogsResponse } from "@/lib/api/endpoints";
+import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
 import { Activity, ChevronLeft, ChevronRight, Search } from "lucide-react";
+
+type ActivityLogsResponse = {
+  data: {
+    id: string;
+    userId: string;
+    action: string;
+    entityType: string | null;
+    entityId: string | null;
+    ipAddress: string | null;
+    createdAt: string;
+  }[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +54,7 @@ export default function ActivityLogsPage() {
 
   const { getToken } = useAuth();
 
-  const { data, isLoading } = useQuery<AdminActivityLogsResponse>({
+  const { data, isLoading } = useQuery<ActivityLogsResponse>({
     queryKey: queryKeys.admin.activityLogs.list({
       page,
       limit: 50,
@@ -47,11 +64,12 @@ export default function ActivityLogsPage() {
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
-      return adminApi.activityLogs(token, {
-        page,
-        limit: 50,
-        action: debouncedAction || undefined,
-      });
+      const sp = new URLSearchParams({ page: String(page), limit: "50" });
+      if (debouncedAction) sp.set("action", debouncedAction);
+      return apiFetch<ActivityLogsResponse>(
+        `/admin/activity-logs?${sp.toString()}`,
+        { token },
+      );
     },
   });
 
@@ -66,7 +84,8 @@ export default function ActivityLogsPage() {
     }, 400);
   };
 
-  const pagination = data?.pagination;
+  const totalItems = data?.pagination?.total ?? 0;
+  const totalPages = data?.pagination?.totalPages ?? 0;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -76,7 +95,7 @@ export default function ActivityLogsPage() {
           Activity Logs
         </h1>
         <p className="text-gray-500 mt-2">
-          {pagination?.total !== undefined ? pagination.total : "–"} total
+          {totalItems} total
           tracked actions and operations
         </p>
       </div>
@@ -150,12 +169,10 @@ export default function ActivityLogsPage() {
                 </div>
               ))}
             </div>
-          </Card>
-
-          {pagination && pagination.totalPages > 1 && (
+          </Card>              {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">
-                Page {pagination.page} of {pagination.totalPages}
+                Page {page} of {totalPages}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -169,7 +186,7 @@ export default function ActivityLogsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={page >= pagination.totalPages}
+                  disabled={page >= totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
                   <ChevronRight className="h-4 w-4" />

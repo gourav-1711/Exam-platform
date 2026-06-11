@@ -8,9 +8,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { Search, Download, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Download,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import PageHeading from "@/components/shared/PageHeading";
 
 export default function StudyNotes() {
   const [search, setSearch] = useState("");
@@ -36,15 +49,17 @@ export default function StudyNotes() {
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Study Notes</h1>
-        <p className="text-muted-foreground">Premium study material for comprehensive preparation.</p>
+        <PageHeading heading="Study Notes" />
+        <p className="text-muted-foreground">
+          Premium study material for comprehensive preparation.
+        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-card border rounded-2xl shadow-sm">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search notes by title..." 
+          <Input
+            placeholder="Search notes by title..."
             className="pl-9 w-full"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -79,18 +94,26 @@ export default function StudyNotes() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
-          Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)
+          Array(6)
+            .fill(0)
+            .map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)
         ) : data?.data.length === 0 ? (
           <div className="col-span-full">
             <Empty>
               <FileText className="w-10 h-10 text-gray-300" />
               <EmptyTitle>No study notes found</EmptyTitle>
-              <EmptyDescription>No study notes match your current search or filter criteria. Try adjusting your filters.</EmptyDescription>
+              <EmptyDescription>
+                No study notes match your current search or filter criteria. Try
+                adjusting your filters.
+              </EmptyDescription>
             </Empty>
           </div>
         ) : (
           data?.data.map((note) => (
-            <Card key={note.id} className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden">
+            <Card
+              key={note.id}
+              className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden"
+            >
               <CardContent className="p-5 flex flex-col h-full gap-4">
                 <div className="flex-1 space-y-2">
                   <div className="flex gap-2">
@@ -101,9 +124,11 @@ export default function StudyNotes() {
                       {note.medium}
                     </span>
                   </div>
-                  <h3 className="font-bold leading-tight line-clamp-2">{note.title}</h3>
+                  <h3 className="font-bold leading-tight line-clamp-2">
+                    {note.title}
+                  </h3>
                 </div>
-                
+
                 <div className="flex gap-2 pt-2 border-t border-border/50 mt-auto">
                   <DocumentActionButton
                     url={note.url || ""}
@@ -114,7 +139,9 @@ export default function StudyNotes() {
                     url={note.url || ""}
                     page="study-notes"
                     action="download"
-                    icon={<Download className="w-4 h-4 text-muted-foreground" />}
+                    icon={
+                      <Download className="w-4 h-4 text-muted-foreground" />
+                    }
                     variant="outline"
                     label=""
                     className="shrink-0 rounded-xl"
@@ -157,7 +184,8 @@ export default function StudyNotes() {
 
       {data?.data && data.data.length > 0 && (
         <div className="text-center text-muted-foreground text-sm">
-          Showing {data.data.length} study note{data.data.length !== 1 ? "s" : ""}
+          Showing {data.data.length} study note
+          {data.data.length !== 1 ? "s" : ""}
         </div>
       )}
     </PageTransition>

@@ -182,9 +182,9 @@ export default function SupportTicketsAdminPage() {
         <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
           <MessageSquare className="w-5 h-5 text-violet-600" />
           Support Tickets
-          {ticketsList?.total != null && (
+          {ticketsList?.pagination?.total != null && (
             <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-medium ml-1">
-              {ticketsList.total}
+              {ticketsList.pagination.total}
             </span>
           )}
         </h1>
@@ -240,7 +240,7 @@ function TicketListPanel({
   setFilterStatus: (s: FilterStatus) => void;
   searchQuery: string;
   setSearchQuery: (s: string) => void;
-  ticketsList: { total?: number } | undefined;
+  ticketsList: { pagination?: { total?: number } } | undefined;
 }) {
   return (
     <div className="flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden min-h-0">

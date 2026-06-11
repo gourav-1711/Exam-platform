@@ -11,7 +11,8 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Clock, FileText, Award, Play, ClipboardCheck } from "lucide-react";
 
 export default function MockTests() {
-  const { data: tests, isLoading } = useListMockTests();
+  const { data: testsRes, isLoading } = useListMockTests();
+  const tests = testsRes?.data ?? [];
 
   return (
     <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
@@ -23,7 +24,7 @@ export default function MockTests() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-64 rounded-3xl" />)
-        ) : tests?.length === 0 ? (
+        ) : tests.length === 0 ? (
           <div className="col-span-full">
             <Empty>
               <ClipboardCheck className="w-10 h-10 text-gray-300" />
@@ -32,7 +33,7 @@ export default function MockTests() {
             </Empty>
           </div>
         ) : (
-          tests?.map((test) => (
+          tests.map((test) => (
             <Card key={test.id} className="card-hover border-border/50 rounded-3xl bg-card overflow-hidden relative border-t-4 border-t-primary">
               {test.isFeatured && (
                 <div className="absolute top-4 right-4 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full shadow-sm shadow-amber-500/20">

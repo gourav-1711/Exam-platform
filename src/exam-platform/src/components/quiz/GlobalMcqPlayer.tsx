@@ -3,10 +3,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import {
   Clock,
   ChevronLeft,
@@ -18,11 +16,17 @@ import {
 import { PageTransition } from "@/components/shared/PageTransition";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import ReportCardModal from "@/components/quiz/ReportCardModal";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useMcqSession } from "./useMcqSession";
 
-import { useRouter } from "next/navigation";
+// ── Types ────────────────────────────────────────────────────────────────
 
-export type GlobalMcqModeTestDaily = "mock" | "daily";
+export type GlobalMcqMode = "mock" | "daily" | "ncert" | "pyq";
 
 export type GlobalMcqQuestion = {
   id: string;
@@ -32,24 +36,38 @@ export type GlobalMcqQuestion = {
   explanation: string | null;
 };
 
+export type ResultData = {
+  title: string;
+  totalQuestions: number;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  score: number;
+  maxScore: number;
+  negativeMarking: number;
+  questions: GlobalMcqQuestion[];
+  userAnswers: Record<number, number>;
+  timeTakenSecs: number;
+};
+
 type Props = {
-  mode: GlobalMcqModeTestDaily;
+  mode: GlobalMcqMode;
   title: string;
   durationMins: number;
   questions: GlobalMcqQuestion[];
+  sessionId?: string;
   isLoading?: boolean;
   error?: string | null;
   onBackHref: string;
-
-  // scoring
-  maxMarks: number;
-  negativeMarking: number;
-
-  // DB save
+  /** For mock/daily — marks-based scoring */
+  maxMarks?: number;
+  /** Negative marking per wrong answer (default 0) */
+  negativeMarking?: number;
+  /** For ncert/pyq — max score (default = questions.length) */
+  maxScore?: number;
   saveAttempt: (payload: {
     examId?: string;
     quizId?: string;
-
     score: number;
     totalMarks: number;
     correctCount: number;
@@ -58,65 +76,109 @@ type Props = {
     timeTakenSecs: number;
     isPassed: boolean;
   }) => void;
+  /** If provided, navigates to a separate results page instead of showing inline report modal */
+  onShowResult?: (data: ResultData) => void;
 };
 
-export default function GlobalMcqPlayerTestDaily({
+// ── Scoring helpers ──────────────────────────────────────────────────────
+
+function computeScore(
+  mode: GlobalMcqMode,
+  answers: Record<number, number>,
+  questions: GlobalMcqQuestion[],
+  maxMarks: number,
+  negativeMarking: number,
+  maxScore: number,
+) {
+  let score = 0;
+  let correctCount = 0;
+  let wrongCount = 0;
+
+  for (let i = 0; i < questions.length; i++) {
+    const chosen = answers[i];
+    if (chosen === undefined) continue;
+
+    const q = questions[i];
+    if (chosen === q.correctIndex) {
+      correctCount++;
+      if (mode === "ncert" || mode === "pyq") {
+        score += 1;
+      } else {
+        score += maxMarks / questions.length;
+      }
+    } else {
+      wrongCount++;
+      score -= negativeMarking;
+    }
+  }
+
+  return { score, correctCount, wrongCount };
+}
+
+// ── Component ────────────────────────────────────────────────────────────
+
+export default function GlobalMcqPlayer({
   mode,
   title,
   durationMins,
   questions,
+  sessionId,
   isLoading,
   error,
   onBackHref,
-  maxMarks,
-  negativeMarking,
+  maxMarks: maxMarksProp,
+  negativeMarking = 0,
+  maxScore: maxScoreProp,
   saveAttempt,
+  onShowResult,
 }: Props) {
-  const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [timeLeft, setTimeLeft] = useState<number>(durationMins * 60);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const resolvedMaxMarks = maxMarksProp ?? questions.length;
+  const resolvedMaxScore = maxScoreProp ?? questions.length;
+
+  const {
+    answers,
+    setAnswers,
+    currentQIndex,
+    setCurrentQIndex,
+    isSubmitted,
+    setIsSubmitted,
+    timeLeft,
+    reset,
+  } = useMcqSession(sessionId, durationMins, questions.length);
 
   const [showExplanation, setShowExplanation] = useState(false);
   const [showReportCard, setShowReportCard] = useState(false);
   const [showMobilePalette, setShowMobilePalette] = useState(false);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const timerStartedRef = useRef(false);
+  const submittedRef = useRef(false);
+  const initializedRef = useRef(false);
 
+  // FIX: keep a ref to the latest handleSubmit so the auto-submit effect never
+  // closes over a stale version of the function (avoids the eslint-disable
+  // hack that was masking the stale-closure bug).
+  const handleSubmitRef = useRef<() => void>(() => {});
+
+  // Reset local UI state when questions change (new session)
   useEffect(() => {
-    setCurrentQIndex(0);
-    setAnswers({});
-    setTimeLeft(durationMins * 60);
-    setIsSubmitted(false);
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      return;
+    }
+    reset();
     setShowExplanation(false);
     setShowReportCard(false);
     setShowMobilePalette(false);
-    timerStartedRef.current = false;
-    if (timerRef.current) clearTimeout(timerRef.current);
+    submittedRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [durationMins, questions]);
 
+  // FIX: use the ref so this effect always calls the current handleSubmit,
+  // even though timeLeft (and therefore the effect) updates every second.
   useEffect(() => {
-    if (!timerStartedRef.current && questions.length > 0) {
-      timerStartedRef.current = true;
+    if (timeLeft <= 0 && !isSubmitted) {
+      handleSubmitRef.current();
     }
-  }, [questions.length]);
-
-  // timer
-  useEffect(() => {
-    if (isSubmitted) return;
-    if (timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft((t) => t - 1), 1000);
-      return () => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-      };
-    }
-
-    if (timeLeft === 0 && timerStartedRef.current) {
-      handleSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, isSubmitted, questions, answers]);
+  }, [timeLeft, isSubmitted]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -128,85 +190,101 @@ export default function GlobalMcqPlayerTestDaily({
   const isLastQ = currentQIndex === questions.length - 1;
   const isFirstQ = currentQIndex === 0;
 
-  const computed = useMemo(() => {
-    if (!isSubmitted) {
-      return { score: 0, correctCount: 0, wrongCount: 0 };
-    }
-
-    let score = 0;
-    let correctCount = 0;
-    let wrongCount = 0;
-
-    for (let i = 0; i < questions.length; i++) {
-      const chosen = answers[i];
-      if (chosen === undefined) continue;
-
-      const q = questions[i];
-      if (chosen === q.correctIndex) {
-        correctCount++;
-        score += maxMarks / questions.length;
-      } else {
-        wrongCount++;
-        score -= negativeMarking;
-      }
-    }
-
-    return { score, correctCount, wrongCount };
-  }, [answers, isSubmitted, maxMarks, negativeMarking, questions]);
+  // Score computation — stable reference via useMemo
+  const computed = useMemo(
+    () =>
+      computeScore(
+        mode,
+        answers,
+        questions,
+        resolvedMaxMarks,
+        negativeMarking,
+        resolvedMaxScore,
+      ),
+    [
+      mode,
+      answers,
+      questions,
+      resolvedMaxMarks,
+      negativeMarking,
+      resolvedMaxScore,
+    ],
+  );
 
   const handleSelectOption = (optIndex: number) => {
     if (isSubmitted) return;
     if (!currentQ) return;
-    if (showExplanation || isSubmitted) return;
     setAnswers((prev) => ({ ...prev, [currentQIndex]: optIndex }));
   };
 
   const handleSubmit = () => {
-    if (isSubmitted) return;
+    if (isSubmitted || submittedRef.current) return;
+    submittedRef.current = true;
 
-    // compute using current answers snapshot (not computed state)
-    let score = 0;
-    let correctCount = 0;
-    let wrongCount = 0;
+    // Compute from current answers (avoids stale closure issues)
+    const { score, correctCount, wrongCount } = computeScore(
+      mode,
+      answers,
+      questions,
+      resolvedMaxMarks,
+      negativeMarking,
+      resolvedMaxScore,
+    );
 
-    for (let i = 0; i < questions.length; i++) {
-      const chosen = answers[i];
-      if (chosen === undefined) continue;
-
-      const q = questions[i];
-      if (chosen === q.correctIndex) {
-        correctCount++;
-        score += maxMarks / questions.length;
-      } else {
-        wrongCount++;
-        score -= negativeMarking;
-      }
-    }
-
-    const skippedCount = questions.length - Object.keys(answers).length;
-
+    const answeredCount = Object.keys(answers).length;
+    const skippedCount = questions.length - answeredCount;
     const timeTakenSecs = durationMins * 60 - timeLeft;
-    const isPassed = score >= maxMarks / 2;
+    const isPassed =
+      score >= (mode === "mock" ? resolvedMaxMarks : resolvedMaxScore) / 2;
 
     setIsSubmitted(true);
     setShowExplanation(true);
-    setShowReportCard(true);
 
-    const attemptPayload = {
-      ...(mode === "mock" ? { examId: undefined } : { quizId: undefined }),
+    // FIX: saveAttempt is called BEFORE onShowResult/navigation so the mutation
+    // fires while the component is still mounted. Previously the order was the
+    // same but the intent wasn't explicit — make it clear with a comment.
+    saveAttempt({
       score,
-      totalMarks: maxMarks,
+      totalMarks:
+        mode === "mock" || mode === "daily"
+          ? resolvedMaxMarks
+          : resolvedMaxScore,
       correctCount,
       wrongCount,
       skippedCount,
       timeTakenSecs,
-       isPassed,
-    };
+      isPassed,
+    });
 
-    saveAttempt(attemptPayload as any);
-
-    if (timerRef.current) clearTimeout(timerRef.current);
+    // Navigate to separate results page if handler provided.
+    // This may unmount the component — saveAttempt must already be fired above.
+    if (onShowResult) {
+      onShowResult({
+        title,
+        totalQuestions: questions.length,
+        correctCount,
+        wrongCount,
+        skippedCount,
+        score,
+        maxScore:
+          mode === "mock" || mode === "daily"
+            ? resolvedMaxMarks
+            : resolvedMaxScore,
+        negativeMarking,
+        questions,
+        userAnswers: { ...answers },
+        timeTakenSecs,
+      });
+    } else {
+      // Fallback: show inline report modal
+      setShowReportCard(true);
+    }
   };
+
+  // FIX: keep the ref pointing at the latest handleSubmit after every render
+  handleSubmitRef.current = handleSubmit;
+
+  // ── Loading / Error / Empty states ──────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -233,7 +311,13 @@ export default function GlobalMcqPlayerTestDaily({
           <Empty>
             <EmptyTitle>No questions available</EmptyTitle>
             <EmptyDescription>
-              This {mode} has no questions yet.
+              This{" "}
+              {mode === "mock"
+                ? "mock test"
+                : mode === "daily"
+                  ? "quiz"
+                  : mode.toUpperCase()}{" "}
+              has no questions yet.
             </EmptyDescription>
           </Empty>
         </div>
@@ -241,12 +325,32 @@ export default function GlobalMcqPlayerTestDaily({
     );
   }
 
+  // ── Main render ────────────────────────────────────────────────────────
+
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
+      {/* ── Question area ─────────────────────────────────────────────── */}
+
       <div className="flex-1 flex flex-col h-full bg-muted/20 min-h-0">
+        {/* Header */}
         <header className="h-14 md:h-16 px-3 md:px-8 border-b bg-background flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="font-bold text-lg hidden md:inline-block truncate max-w-sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                window.location.href = onBackHref;
+              }}
+              className="hidden md:inline-flex"
+            >
+              Exit
+            </Button>
+            <span
+              className="font-bold text-lg hidden md:inline-block truncate max-w-sm cursor-pointer"
+              onClick={() => {
+                window.location.href = onBackHref;
+              }}
+            >
               {title}
             </span>
             <span className="md:hidden font-bold">
@@ -254,7 +358,8 @@ export default function GlobalMcqPlayerTestDaily({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Timer */}
             {!isSubmitted && (
               <div
                 className={cn(
@@ -269,17 +374,24 @@ export default function GlobalMcqPlayerTestDaily({
               </div>
             )}
 
+            {/* Question palette button (mobile) */}
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => routerBack(onBackHref)}
-              className="hidden md:inline-flex"
+              onClick={() => setShowMobilePalette(true)}
+              className="md:hidden"
             >
-              Exit
+              {Object.keys(answers).length}/{questions.length}
             </Button>
 
+            {/* Submit or Exit button */}
             {isSubmitted ? (
-              <Button onClick={() => routerBack(onBackHref)} variant="default">
+              <Button
+                onClick={() => {
+                  window.location.href = onBackHref;
+                }}
+                variant="default"
+              >
                 Exit
               </Button>
             ) : (
@@ -294,15 +406,22 @@ export default function GlobalMcqPlayerTestDaily({
           </div>
         </header>
 
+        {/* Main content */}
         <div className="flex-1 overflow-y-auto p-3 md:p-8 min-h-0">
           <div className="max-w-3xl mx-auto pb-safe">
+            {/* Completed banner */}
             {isSubmitted && (
               <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-lg">Completed</h3>
                   <p className="text-sm text-muted-foreground">
-                    Score: {computed.score.toFixed(2)} | Correct:{" "}
-                    {computed.correctCount} | Wrong: {computed.wrongCount}
+                    Score:{" "}
+                    {computed.score.toFixed(
+                      mode === "ncert" || mode === "pyq" ? 0 : 2,
+                    )}{" "}
+                    | Correct: {computed.correctCount} | Wrong:{" "}
+                    {computed.wrongCount} | Skipped:{" "}
+                    {questions.length - Object.keys(answers).length}
                   </p>
                 </div>
                 <Button
@@ -314,6 +433,7 @@ export default function GlobalMcqPlayerTestDaily({
               </div>
             )}
 
+            {/* Question card */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentQIndex}
@@ -359,6 +479,8 @@ export default function GlobalMcqPlayerTestDaily({
                           "p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3",
                           bgClass,
                           isSubmitted && "cursor-default",
+                          !isSubmitted &&
+                            "hover:border-primary/40 hover:bg-primary/5",
                         )}
                       >
                         <div
@@ -404,6 +526,7 @@ export default function GlobalMcqPlayerTestDaily({
               </motion.div>
             </AnimatePresence>
 
+            {/* Navigation */}
             <div className="flex items-center justify-between mt-6">
               <Button
                 variant="outline"
@@ -416,16 +539,19 @@ export default function GlobalMcqPlayerTestDaily({
 
               <Button
                 onClick={() => {
-                  if (!isLastQ)
+                  if (isLastQ && !isSubmitted) {
+                    handleSubmit();
+                  } else if (!isLastQ) {
                     setCurrentQIndex((p) =>
                       Math.min(questions.length - 1, p + 1),
                     );
+                  }
                 }}
                 disabled={isLastQ && isSubmitted}
                 className="rounded-xl h-12 px-6 bg-foreground text-background hover:bg-foreground/90"
               >
                 {isLastQ && !isSubmitted ? (
-                  "Finish"
+                  "Finish & Submit"
                 ) : (
                   <>
                     Next <ChevronRight className="w-5 h-5 ml-1" />
@@ -437,6 +563,7 @@ export default function GlobalMcqPlayerTestDaily({
         </div>
       </div>
 
+      {/* ── Report card modal (fallback if no onShowResult) ───────────── */}
       <ReportCardModal
         open={showReportCard}
         onOpenChange={setShowReportCard}
@@ -446,19 +573,30 @@ export default function GlobalMcqPlayerTestDaily({
         wrongCount={computed.wrongCount}
         unansweredCount={questions.length - Object.keys(answers).length}
         score={computed.score}
-        maxScore={maxMarks}
+        maxScore={
+          mode === "mock" || mode === "daily"
+            ? resolvedMaxMarks
+            : resolvedMaxScore
+        }
         negativeMarking={negativeMarking}
+        questions={questions}
+        userAnswers={answers}
         onViewExplanations={() => setShowExplanation(true)}
       />
 
+      {/* ── Mobile question palette ──────────────────────────────────── */}
       <Sheet open={showMobilePalette} onOpenChange={setShowMobilePalette}>
         <SheetContent side="right" className="w-72 p-0">
-          <div className="p-4 border-b font-semibold flex items-center justify-between">
-            Question Palette
-            <span className="text-xs font-normal text-muted-foreground">
-              {Object.keys(answers).length}/{questions.length} Answered
-            </span>
-          </div>
+          {/* FIX: SheetTitle is required by shadcn — omitting it throws an
+              accessibility error in strict mode and breaks some versions. */}
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle className="flex items-center justify-between text-sm font-semibold">
+              Question Palette
+              <span className="text-xs font-normal text-muted-foreground">
+                {Object.keys(answers).length}/{questions.length} Answered
+              </span>
+            </SheetTitle>
+          </SheetHeader>
           <div className="flex-1 overflow-y-auto p-4">
             <div className="grid grid-cols-4 gap-2">
               {questions.map((_, i) => {
@@ -503,9 +641,4 @@ export default function GlobalMcqPlayerTestDaily({
       </Sheet>
     </div>
   );
-}
-
-function routerBack(href: string) {
-  if (typeof window === "undefined") return;
-  window.location.href = href;
 }

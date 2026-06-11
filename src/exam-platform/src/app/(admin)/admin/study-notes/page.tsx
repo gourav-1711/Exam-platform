@@ -50,7 +50,8 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListSubjects } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ export default function StudyNotesAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { getToken } = useAuth();
+  const adminFetch = useAdminFetch();
   const { data: pyqSubjects = [] } = useListSubjects();
 
   // Detail Dialog
@@ -168,7 +170,7 @@ export default function StudyNotesAdminPage() {
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: notesResponse, isLoading } = useQuery<{ data: StudyNote[]; pagination: Record<string, unknown> }>({
     queryKey: ["admin", "study-notes"],
-    queryFn: () => customFetch<{ data: StudyNote[]; pagination: Record<string, unknown> }>("/api/admin/study-notes"),
+    queryFn: () => adminFetch<{ data: StudyNote[]; pagination: Record<string, unknown> }>("/api/admin/study-notes"),
   });
   const notes = notesResponse?.data ?? [];
 
@@ -177,7 +179,7 @@ export default function StudyNotesAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) =>
-      customFetch<StudyNote>("/api/admin/study-notes", {
+      adminFetch<StudyNote>("/api/admin/study-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -195,7 +197,7 @@ export default function StudyNotesAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, body }: { id: number; body: Record<string, unknown> }) =>
-      customFetch<StudyNote>(`/api/admin/study-notes/${id}`, {
+      adminFetch<StudyNote>(`/api/admin/study-notes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -213,7 +215,7 @@ export default function StudyNotesAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) =>
-      customFetch<Record<string, unknown>>(`/api/admin/study-notes/${id}`, { method: "DELETE" }),
+      adminFetch<Record<string, unknown>>(`/api/admin/study-notes/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);

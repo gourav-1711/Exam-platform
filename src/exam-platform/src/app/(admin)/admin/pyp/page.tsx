@@ -13,7 +13,8 @@ import {
   XCircle,
   Edit,
 } from "lucide-react";
-import { useListSubjects, customFetch } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
@@ -39,7 +40,6 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { YEARS } from "@/lib/data";
-import { API_BASE_URL } from "@/lib/api-config";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Loader2, Upload } from "lucide-react";
 
@@ -74,6 +74,7 @@ export default function PypAdminPage() {
   const [editingItem, setEditingItem] = useState<PypPaper | null>(null);
   const [deleteTargetId, setDeleteId] = useState<string | null>(null);
   const { getToken } = useAuth();
+  const adminFetch = useAdminFetch();
 
   // Form state
   const [examName, setExamName] = useState("");
@@ -99,8 +100,8 @@ export default function PypAdminPage() {
         setYear(String(editingItem.year));
         setSubjectId(editingItem.subjectId ? String(editingItem.subjectId) : "");
         setQuestionPaperUrl(editingItem.questionPaperUrl || "");
-        setAnswerKeyUrl(editingItem.answerKeyUrl || "");
-        setAnswerKeyPdf(editingItem.answerKeyPdf || "");
+        // Use answerKeyUrl if set, otherwise fall back to answerKeyPdf
+        setAnswerKeyUrl(editingItem.answerKeyUrl || editingItem.answerKeyPdf || "");
         setUploadMode("url");
       } else {
         resetForm();
@@ -114,21 +115,22 @@ export default function PypAdminPage() {
   // Dynamic Subjects
   const { data: subjects = [] } = useListSubjects();
 
-  const { data: papers = [], isLoading } = useQuery({
+  const { data: pypResponse, isLoading } = useQuery({
     queryKey: ["admin", "pyp", search],
     queryFn: () => {
       const sp = new URLSearchParams();
       if (search.trim()) sp.set("search", search.trim());
       const query = sp.toString();
-      return customFetch<PypPaper[]>(
+      return adminFetch<{ data: PypPaper[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
         `/api/admin/pyp${query ? `?${query}` : ""}`,
       );
     },
   });
+  const papers = pypResponse?.data ?? [];
 
   const createMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
-      return customFetch<PypPaper>("/api/admin/pyp", {
+      return adminFetch<PypPaper>("/api/admin/pyp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -151,7 +153,7 @@ export default function PypAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, body }: { id: string; body: Record<string, unknown> }) => {
-      return customFetch<PypPaper>(`/api/admin/pyp/${id}`, {
+      return adminFetch<PypPaper>(`/api/admin/pyp/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -174,7 +176,7 @@ export default function PypAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return customFetch<{ success: boolean }>(`/api/admin/pyp/${id}`, {
+      return adminFetch<{ success: boolean }>(`/api/admin/pyp/${id}`, {
         method: "DELETE",
       });
     },
@@ -243,7 +245,7 @@ export default function PypAdminPage() {
       subjectId: subjectId || null,
       questionPaperUrl: questionPaperUrl.trim() || null,
       answerKeyUrl: answerKeyUrl.trim() || null,
-      answerKeyPdf: answerKeyPdf.trim() || null,
+      answerKeyPdf: editingItem?.answerKeyPdf || null,
     };
 
     if (editingItem) {
@@ -266,9 +268,9 @@ export default function PypAdminPage() {
         paperData.append("examType", "Other");
         paperData.append("file", paperFile);
 
-        const paperRes = await fetch("/api/admin/document-pyp/upload", {
+        const paperRes = await fetch("/api/admin/document-pyp", {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: paperData,
         });
 
@@ -278,9 +280,7 @@ export default function PypAdminPage() {
         }
 
         const paperResult = await paperRes.json();
-        let answerKeyPdfUrl = answerKeyPdf.trim() || null;
-
-        // Upload answer key if provided
+        let answerKeyPdfUrl = answerKeyPdf.trim() || null;          // Upload answer key if provided
         if (answerKeyFile) {
           const keyData = new FormData();
           keyData.append("title", `${examName.trim()} - Answer Key`);
@@ -289,7 +289,7 @@ export default function PypAdminPage() {
           keyData.append("examType", "Other");
           keyData.append("file", answerKeyFile);
 
-          const keyRes = await fetch("/api/admin/document-pyp/upload", {
+          const keyRes = await fetch("/api/admin/document-pyp", {
             method: "POST",
             headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             body: keyData,
@@ -629,17 +629,9 @@ export default function PypAdminPage() {
                     placeholder="https://..."
                     className="rounded-xl h-10"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Answer Key PDF URL
-                  </Label>
-                  <Input
-                    value={answerKeyPdf}
-                    onChange={(e) => setAnswerKeyPdf(e.target.value)}
-                    placeholder="https://..."
-                    className="rounded-xl h-10"
-                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Link to answer key PDF or external answer key page
+                  </p>
                 </div>
               </div>
             )}

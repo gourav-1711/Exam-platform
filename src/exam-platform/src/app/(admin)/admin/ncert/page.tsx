@@ -9,6 +9,7 @@ import {
   BookOpen,
   Loader2,
   Upload,
+  Edit,
 } from "lucide-react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 
@@ -46,7 +47,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { useListSubjects, customFetch } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { useAuth } from "@clerk/nextjs";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
@@ -105,14 +107,16 @@ const fieldVariants: Variants = {
 export default function NcertAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
   const { getToken } = useAuth();
   const { data: pyqSubjects = [] } = useListSubjects();
 
   // Detail Dialog
   const [viewingItem, setViewingItem] = useState<NcertPdf | null>(null);
 
-  // Sheet (create)
+  // Sheet (create/edit)
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<NcertPdf | null>(null);
 
   // Delete
   const [deleteTargetId, setDeleteId] = useState<number | null>(null);
@@ -131,31 +135,108 @@ export default function NcertAdminPage() {
   // Reset form when sheet opens
   useEffect(() => {
     if (sheetOpen) {
-      setFormTitle("");
-      setFormSubject("");
-      setFormClassNumber("1");
-      setFile(null);
-      setFileName("");
-      setExternalUrl("");
-      setUploadMode("file");
-      setFormError("");
+      if (editingItem) {
+        setFormTitle(editingItem.title);
+        setFormSubject(editingItem.subject);
+        setFormClassNumber(String(editingItem.classNumber));
+        setExternalUrl(editingItem.cloudinaryUrl || "");
+        setUploadMode("url");
+        setFile(null);
+        setFileName("");
+        setFormError("");
+      } else {
+        setFormTitle("");
+        setFormSubject("");
+        setFormClassNumber("1");
+        setFile(null);
+        setFileName("");
+        setExternalUrl("");
+        setUploadMode("file");
+        setFormError("");
+      }
     }
-  }, [sheetOpen]);
+  }, [sheetOpen, editingItem]);
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: response, isLoading } = useQuery({
-    queryKey: ["ncert-pdfs"],
+    queryKey: ["admin", "ncert-pdfs"],
     queryFn: () =>
-      customFetch<{ data: NcertPdf[]; total: number; page: number; totalPages: number }>("/document-ncert"),
+      adminFetch<{ data: NcertPdf[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>("/api/admin/document-ncert"),
   });
-  const pdfs = Array.isArray(response?.data) ? response.data : [];
+  const pdfs = response?.data ?? [];
 
-  // ── Mutations ──────────────────────────────────────────────────────────────
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["ncert-pdfs"] });
+  // ── Create/update mutations ──────────────────────────────────────────────
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "ncert-pdfs"] });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: FormData | Record<string, unknown>) => {
+      if (data instanceof FormData) {
+        const token = await getToken();
+        const res = await fetch("/api/admin/document-ncert", {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: data,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Upload failed");
+        }
+        return res.json();
+      }
+      return adminFetch<NcertPdf>("/api/admin/document-ncert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      invalidate();
+      setSheetOpen(false);
+      setEditingItem(null);
+      toast({ title: "Success!", description: "NCERT Book created successfully." });
+    },
+    onError: (err: Error) => {
+      setFormError(err.message);
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: FormData | Record<string, unknown> }) => {
+      if (data instanceof FormData) {
+        const token = await getToken();
+        const res = await fetch(`/api/admin/document-ncert/${id}`, {
+          method: "PATCH",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: data,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Update failed");
+        }
+        return res.json();
+      }
+      return adminFetch<NcertPdf>(`/api/admin/document-ncert/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      invalidate();
+      setSheetOpen(false);
+      setEditingItem(null);
+      toast({ title: "Updated", description: "NCERT Book updated successfully." });
+    },
+    onError: (err: Error) => {
+      setFormError(err.message);
+      toast({ title: "Failed", description: err.message, variant: "destructive" });
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return customFetch<Record<string, unknown>>(`/api/admin/document-ncert/${id}`, { method: "DELETE" });
+      return adminFetch<Record<string, unknown>>(`/api/admin/document-ncert/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       invalidate();
@@ -167,6 +248,12 @@ export default function NcertAdminPage() {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const openCreate = () => {
+    setEditingItem(null);
+    setSheetOpen(true);
+  };
+
+  const openEdit = (pdf: NcertPdf) => {
+    setEditingItem(pdf);
     setSheetOpen(true);
   };
 
@@ -195,39 +282,45 @@ export default function NcertAdminPage() {
       setFormError("Please select a file to upload.");
       return;
     }
-    if (uploadMode === "url" && !externalUrl.trim()) {
+    if (uploadMode === "url" && !externalUrl.trim() && !editingItem) {
       setFormError("Please supply a valid URL.");
       return;
     }
 
     setUploading(true);
     try {
-      const token = await getToken();
-      const data = new FormData();
-      data.append("title", formTitle.trim());
-      data.append("subject", formSubject);
-      data.append("classNumber", formClassNumber);
-
       if (uploadMode === "file" && file) {
-        data.append("file", file);
-      } else if (uploadMode === "url") {
-        data.append("externalUrl", externalUrl.trim());
+        // File mode -> FormData through multer
+        const formData = new FormData();
+        formData.append("title", formTitle.trim());
+        formData.append("subject", formSubject);
+        formData.append("classNumber", formClassNumber);
+        formData.append("file", file);
+
+        if (editingItem) {
+          updateMutation.mutate({ id: editingItem.id, data: formData });
+        } else {
+          createMutation.mutate(formData);
+        }
+      } else {
+        // URL mode -> JSON
+        const url = externalUrl.trim();
+        const payload: Record<string, unknown> = {
+          title: formTitle.trim(),
+          subject: formSubject,
+          classNumber: parseInt(formClassNumber),
+          cloudinaryUrl: url,
+          cloudinaryPublicId: url,
+          originalName: url,
+          fileSize: 0,
+        };
+
+        if (editingItem) {
+          updateMutation.mutate({ id: editingItem.id, data: payload });
+        } else {
+          createMutation.mutate(payload);
+        }
       }
-
-      const res = await fetch("/api/admin/document-ncert/upload", {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        body: data,
-      });
-
-      if (!res.ok) {
-        const errObj = await res.json().catch(() => ({}));
-        throw new Error(errObj.error || "Upload failed");
-      }
-
-      invalidate();
-      setSheetOpen(false);
-      toast({ title: "Success!", description: "NCERT Book created successfully." });
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -402,6 +495,16 @@ export default function NcertAdminPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:text-amber-600 hover:bg-amber-50" onClick={() => openEdit(pdf)}>
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </Button>
+                                </motion.div>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600" onClick={() => setDeleteId(pdf.id)}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
@@ -467,8 +570,8 @@ export default function NcertAdminPage() {
           </DialogContent>
         </Dialog>
 
-        {/* ── Create Sheet ────────────────────────────────────────────── */}
-        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        {/* ── Create/Edit Sheet ────────────────────────────────────────── */}
+        <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) { setEditingItem(null); setSheetOpen(false); } }}>
           <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-0 p-0 overflow-hidden">
             <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
               <div className="flex items-center gap-3">
@@ -481,7 +584,7 @@ export default function NcertAdminPage() {
                   <BookOpen className="w-5 h-5 text-green-600" />
                 </motion.div>
                 <div>
-                  <SheetTitle className="text-base font-bold text-gray-900">Add NCERT Book</SheetTitle>
+                  <SheetTitle className="text-base font-bold text-gray-900">{editingItem ? "Edit NCERT Book" : "Add NCERT Book"}</SheetTitle>
                   <SheetDescription className="text-xs text-muted-foreground">Upload a PDF or link to an external resource.</SheetDescription>
                 </div>
               </div>
@@ -548,19 +651,26 @@ export default function NcertAdminPage() {
                 </motion.div>
               ) : (
                 <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">External Link URL *</Label>
-                  <Input type="url" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://..." required className="rounded-xl h-10" />
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    {editingItem ? "PDF / External URL" : "External Link URL *"}
+                  </Label>
+                  <Input type="url" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://..." required={!editingItem} className="rounded-xl h-10" />
+                  {editingItem && editingItem.cloudinaryUrl && (
+                    <p className="text-[11px] text-muted-foreground">Current URL: {editingItem.cloudinaryUrl}</p>
+                  )}
                 </motion.div>
               )}
             </form>
 
             <div className="px-6 py-4 border-t bg-gray-50/60 flex gap-2.5 shrink-0">
-              <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="flex-1 rounded-xl font-semibold">Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => { setEditingItem(null); setSheetOpen(false); }} className="flex-1 rounded-xl font-semibold">Cancel</Button>
               <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 380, damping: 20 }}>
-                <Button type="submit" disabled={uploading || !formTitle.trim() || !formSubject} onClick={handleSubmit}
+                <Button type="submit" disabled={uploading || createMutation.isPending || updateMutation.isPending || !formTitle.trim() || !formSubject} onClick={handleSubmit}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-200 gap-2"
                 >
-                  {uploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading…</> : "Add Book"}
+                  {uploading || createMutation.isPending || updateMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> {editingItem ? "Saving…" : "Uploading…"}</>
+                  ) : editingItem ? "Save Changes" : "Add Book"}
                 </Button>
               </motion.div>
             </div>

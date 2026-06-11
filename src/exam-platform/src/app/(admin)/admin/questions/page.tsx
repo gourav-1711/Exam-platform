@@ -52,7 +52,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListSubjects } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { CsvImportReview } from "@/components/admin/CsvImportReview";
 
@@ -123,6 +124,7 @@ const fieldVariants: Variants = {
 export default function QuestionsAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -212,7 +214,7 @@ export default function QuestionsAdminPage() {
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       if (filterSubject !== "All") sp.set("subject", filterSubject);
       if (filterDifficulty !== "All") sp.set("difficulty", filterDifficulty);
-      return customFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
+      return adminFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
     },
     staleTime: 30000,
   });
@@ -226,7 +228,7 @@ export default function QuestionsAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) =>
-      customFetch<Question>("/api/admin/questions", {
+      adminFetch<Question>("/api/admin/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -244,7 +246,7 @@ export default function QuestionsAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
-      customFetch<Question>(`/api/admin/questions/${id}`, {
+      adminFetch<Question>(`/api/admin/questions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -262,7 +264,7 @@ export default function QuestionsAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
-      customFetch<{ success?: boolean }>(`/api/admin/questions/${id}`, { method: "DELETE" }),
+      adminFetch<{ success?: boolean }>(`/api/admin/questions/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
@@ -273,7 +275,7 @@ export default function QuestionsAdminPage() {
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) =>
-      customFetch<{ success?: boolean }>("/api/admin/questions/bulk-delete", {
+      adminFetch<{ success?: boolean }>("/api/admin/questions/bulk-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
@@ -289,7 +291,7 @@ export default function QuestionsAdminPage() {
 
   const bulkUploadMutation = useMutation({
     mutationFn: async (questions: Record<string, unknown>[]) =>
-      customFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
+      adminFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questions }),

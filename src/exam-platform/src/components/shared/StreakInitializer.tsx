@@ -12,7 +12,7 @@ import { apiFetch } from "@/lib/api/client";
  * This runs silently once per auth state change and does not affect points.
  */
 export function StreakInitializer() {
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn, userId, getToken } = useAuth();
   const { user } = useUser();
   const queryClient = useQueryClient();
   const initialized = useRef(false);
@@ -31,12 +31,14 @@ export function StreakInitializer() {
 
     const recordLogin = async () => {
       try {
+        const token = (await getToken()) ?? undefined;
         await apiFetch("/streaks/activity", {
           method: "POST",
           body: JSON.stringify({
             activityType: "login",
             displayName,
           }),
+          token,
         });
         // Invalidate streak cache so UI updates
         queryClient.invalidateQueries({ queryKey: ["streaks", "current"] });

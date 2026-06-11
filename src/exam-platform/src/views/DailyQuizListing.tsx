@@ -11,8 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { Clock, Play, FileText, CheckCircle2, ClipboardList } from "lucide-react";
+import {
+  Clock,
+  Play,
+  FileText,
+  CheckCircle2,
+  ClipboardList,
+  Heading,
+} from "lucide-react";
 import type { QuizListItem } from "@/lib/types/api";
+import PageHeading from "@/components/shared/PageHeading";
 
 export default function QuizListing() {
   const [activeTab, setActiveTab] = useState<"ongoing" | "history">("ongoing");
@@ -23,14 +31,14 @@ export default function QuizListing() {
     staleTime: 0,
   });
 
-  return (      <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+  return (
+    <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Daily Quizzes</h1>
+        <PageHeading heading="Daily Quiz" />
         <p className="text-muted-foreground">
           Test your knowledge with our daily curated quizzes.
         </p>
       </div>
-
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as "ongoing" | "history")}
@@ -54,7 +62,10 @@ export default function QuizListing() {
                 <Empty>
                   <ClipboardList className="w-10 h-10 text-gray-300" />
                   <EmptyTitle>No ongoing quizzes</EmptyTitle>
-                  <EmptyDescription>There are no ongoing quizzes right now. Check back tomorrow for new quizzes!</EmptyDescription>
+                  <EmptyDescription>
+                    There are no ongoing quizzes right now. Check back tomorrow
+                    for new quizzes!
+                  </EmptyDescription>
                 </Empty>
               </div>
             ) : (
@@ -78,7 +89,9 @@ export default function QuizListing() {
                 <Empty>
                   <ClipboardList className="w-10 h-10 text-gray-300" />
                   <EmptyTitle>No quiz history</EmptyTitle>
-                  <EmptyDescription>You haven't attempted any quizzes yet. Start one now!</EmptyDescription>
+                  <EmptyDescription>
+                    You haven't attempted any quizzes yet. Start one now!
+                  </EmptyDescription>
                 </Empty>
               </div>
             ) : (
@@ -88,11 +101,18 @@ export default function QuizListing() {
             )}
           </div>
         </TabsContent>
-      </Tabs>      </PageTransition>
+      </Tabs>{" "}
+    </PageTransition>
   );
 }
 
-function QuizCard({ quiz, type }: { quiz: QuizListItem; type: "ongoing" | "history" }) {
+function QuizCard({
+  quiz,
+  type,
+}: {
+  quiz: QuizListItem;
+  type: "ongoing" | "history";
+}) {
   return (
     <Card className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden flex flex-col">
       <CardContent className="p-5 flex flex-col flex-1 space-y-4">

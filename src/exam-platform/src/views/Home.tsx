@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 
 import Whatsapp from "@/components/shared/Whatsapp";
 import AnnouncementBanner from "@/components/shared/AnnouncementBanner";
+import SearchBar from "@/components/shared/SearchBar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Feature = {
@@ -49,7 +50,6 @@ const FEATURES: Feature[] = [
     iconBg: "bg-teal-100",
     iconColor: "text-teal-600",
     href: "/daily-quiz",
-    isNew: true,
   },
   {
     label: "Daily Current Affairs",
@@ -82,7 +82,6 @@ const FEATURES: Feature[] = [
     iconBg: "bg-pink-100",
     iconColor: "text-pink-600",
     href: "/pyq",
-    isNew: true,
   },
   {
     label: "PYP's",
@@ -107,7 +106,6 @@ const FEATURES: Feature[] = [
     iconBg: "bg-indigo-100",
     iconColor: "text-indigo-600",
     href: "/ncert-mcq",
-    isNew: true,
   },
   {
     label: "NCERT Books",
@@ -203,8 +201,8 @@ const FEATURES_LIST_HINDI = [
 
 // "किसके लिए उपयोगी है?" targets
 const EXAM_TARGETS = [
-  "RAS, SI, EO/RO & PSC EXAMS",
-  "CTET, REET & ALL Teaching Exams",
+  "RAS, SI, EO/RO & PSC Exams",
+  "CTET, REET & All Teaching Exams",
   "Patwar, VDO, Police & Other Exams",
   "SSC, Banking & Railway Preparation",
   "School Students (NCERT Foundation)",
@@ -238,10 +236,7 @@ const WHY_US = [
   },
 ];
 
-
-
 // ─── AnnouncementBanner ────────────────────────────────────────────────────────
-
 
 // ─── FeatureCard ───────────────────────────────────────────────────────────────
 function FeatureCard({
@@ -285,6 +280,11 @@ function FeatureCard({
 export default function Home() {
   return (
     <PageTransition className="min-h-screen bg-gray-50 pb-8">
+      {/* SEARCH BAR - added on client request */}
+      <div className="md:hidden block px-4 pt-4">
+        <SearchBar />
+      </div>
+
       {/* ── Announcement Banner ── */}
       <AnnouncementBanner />
 
@@ -452,7 +452,6 @@ export default function Home() {
       </div>
 
       {/* ── Footer ── */}
-     
 
       {/* ── WhatsApp FAB ── */}
       <Whatsapp />

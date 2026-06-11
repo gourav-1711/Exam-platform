@@ -12,7 +12,7 @@ export function requireAdmin(
   next: NextFunction,
 ): void {
   const auth = getAuth(req);
-  if (!auth.userId) return next(new AppError(401, "Unauthorized"));
+  if (!auth.userId) return next(new AppError(401, "You Are Not Logged In"));
 
   const role = (auth.sessionClaims?.metadata as { role?: string } | undefined)
     ?.role;

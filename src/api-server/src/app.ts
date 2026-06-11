@@ -1,7 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import { clerkMiddleware } from "@clerk/express";
+import { clerkMiddleware, createClerkClient } from "@clerk/express";
 import { env } from "./config/env";
 import { globalRateLimiter } from "./middleware/rateLimiter";
 import { errorHandler } from "./middleware/errorHandler";
@@ -23,9 +23,15 @@ export function createApp() {
     webhooksRouter,
   );
 
-  // 3. clerk middleware (mount selectively so public routes stay public)
-  // NOTE: keep Clerk auth for only admin /api routes, but explicitly bypass known public endpoints
-  app.use(clerkMiddleware());
+  // 3. Clerk auth middleware — applied globally with explicit configuration
+  // This must be before routes so the auth state (req.auth) is available to all route
+  // handlers. It only verifies tokens when an Authorization header is present;
+  // public routes without auth headers pass through unauthenticated.
+  const clerkClient = createClerkClient({
+    secretKey: env.CLERK_SECRET_KEY,
+    publishableKey: env.CLERK_PUBLISHABLE_KEY,
+  });
+  app.use(clerkMiddleware({ clerkClient }));
 
   // 4. CORS — whitelist only
   app.use(

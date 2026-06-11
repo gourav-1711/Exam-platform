@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { customFetch } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 
 interface StudentStat {
   userId: string;
@@ -35,6 +35,7 @@ interface StudentAttempt {
 }
 
 export default function StudentsPage() {
+  const adminFetch = useAdminFetch();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function StudentsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "students", page, searchQuery],
     queryFn: () =>
-      customFetch<{
+      adminFetch<{
         data: StudentStat[];
         pagination: {
           page: number;
@@ -56,7 +57,7 @@ export default function StudentsPage() {
 
   const { data: attempts = [], isLoading: loadingAttempts } = useQuery({
     queryKey: ["admin", "students", "attempts", selectedUserId],
-    queryFn: () => customFetch<StudentAttempt[]>(`/api/admin/students/${selectedUserId}/attempts`),
+    queryFn: () => adminFetch<StudentAttempt[]>(`/api/admin/students/${selectedUserId}/attempts`),
     enabled: !!selectedUserId,
     staleTime: 30 * 1000,
   });

@@ -53,7 +53,7 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { QuestionSelector } from "@/components/admin/QuestionSelector";
 
@@ -175,6 +175,7 @@ const fieldVariants: Variants = {
 export default function DailyQuizzesAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
   const [page, setPage] = useState(1);
 
   // Sheet (create/edit)
@@ -237,7 +238,7 @@ export default function DailyQuizzesAdminPage() {
   const { data, isLoading, error } = useQuery<DailyQuizzesResponse>({
     queryKey: ["admin", "daily-quizzes", page],
     queryFn: () =>
-      customFetch<DailyQuizzesResponse>(
+      adminFetch<DailyQuizzesResponse>(
         `/api/admin/daily-quizzes?page=${page}&limit=20`,
       ),
     staleTime: 0,
@@ -251,7 +252,7 @@ export default function DailyQuizzesAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) =>
-      customFetch<DailyQuiz>("/api/admin/daily-quizzes", {
+      adminFetch<DailyQuiz>("/api/admin/daily-quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -283,7 +284,7 @@ export default function DailyQuizzesAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Record<string, unknown> }) =>
-      customFetch<DailyQuiz>(`/api/admin/daily-quizzes/${id}`, {
+      adminFetch<DailyQuiz>(`/api/admin/daily-quizzes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -301,7 +302,7 @@ export default function DailyQuizzesAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) =>
-      customFetch<Record<string, unknown>>(`/api/admin/daily-quizzes/${id}`, { method: "DELETE" }),
+      adminFetch<Record<string, unknown>>(`/api/admin/daily-quizzes/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       invalidate();
       setDeleteId(null);
@@ -911,6 +912,7 @@ export default function DailyQuizzesAdminPage() {
 
 // ── Question Preview Component ────────────────────────────────────────────
 function QuestionPreview({ questionIds }: { questionIds: string[] }) {
+  const adminFetch = useAdminFetch();
   if (!questionIds.length) {
     return (
       <p className="text-xs text-gray-400 italic py-3 text-center">No questions selected for this quiz.</p>
@@ -922,7 +924,7 @@ function QuestionPreview({ questionIds }: { questionIds: string[] }) {
     queryFn: () => {
       const params = new URLSearchParams();
       questionIds.forEach((id) => params.append("ids", id));
-      return customFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
+      return adminFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
     },
     staleTime: 60000,
   });

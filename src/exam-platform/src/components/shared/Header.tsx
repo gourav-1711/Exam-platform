@@ -68,7 +68,16 @@ export default function Header() {
       initial={{ y: -56, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-      className={`sticky top-0 z-40 border-b border-border/60 px-3  flex items-center gap-2.5 backdrop-blur-sm duration-300 ${scrolled ? "h-14" : "h-[70px]"} `}
+      className={`
+  sticky top-0 z-40
+  border-b border-border/60
+  px-3
+  flex items-center justify-between md:justify-start
+  gap-2.5
+  backdrop-blur-sm
+  duration-300
+  ${scrolled ? "h-14" : "h-[65x] md:h-[70px]"}
+`}
     >
       {/* ── SIDEBAR TRIGGER ──────────────────────────────────────────────────── */}
       <Sheet open={open} onOpenChange={setOpen}>
@@ -111,12 +120,12 @@ export default function Header() {
             <motion.div
               whileHover={{ scale: 1.1, rotate: [0, -6, 6, 0] }}
               transition={{ duration: 0.4 }}
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-violet-600 flex items-center justify-center shadow text-white font-bold text-sm cursor-pointer"
+              className="w-9 h-9 rounded-xl bg-linear-to-br from-primary to-violet-600 flex items-center justify-center shadow text-white font-bold text-sm cursor-pointer"
             >
               MK
             </motion.div>
             <div>
-              <span className="font-bold text-sm block leading-none">
+              <span className="font-bold text-[16px] block leading-none">
                 Manish Ki Pathshala
               </span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider">

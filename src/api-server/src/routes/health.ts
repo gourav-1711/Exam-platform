@@ -1,13 +1,8 @@
 import { Router } from "express";
-import { z } from "zod";
-
-const HealthCheckResponse = z.object({ status: z.enum(["ok"]) });
+import { getHealth } from "../controllers/web/healthController";
 
 const router = Router();
 
-router.get("/healthz", (_req, res) => {
-  const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json(data);
-});
+router.get("/healthz", getHealth);
 
 export default router;

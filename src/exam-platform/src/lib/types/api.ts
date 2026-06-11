@@ -68,36 +68,17 @@ export interface AdminActivityLog {
 
 export interface AdminActivityLogsResponse {
   data: AdminActivityLog[];
-  pagination: {
-    page: number;
-    total: number;
-    totalPages: number;
-    limit: number;
-  };
+  total: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface AdminAnalyticsResponse {
-  overview: {
-    totalQuestions: number;
-    activeStudents: number;
-    avgScore: number;
-    passRate: number;
-  };
-  dailyAttempts: Array<{
-    date: string;
-    count: number;
-    avgScore: number;
-  }>;
-  subjectStats: Array<{
-    subject: string;
-    count: number;
-    percent: number;
-  }>;
-  topScorers: Array<{
-    userId: string;
-    totalScore: number;
-    attempts: number;
-  }>;
+  totalAttempts: number;
+  avgScore: number;
+  avgTimeTaken: number;
+  passCount: number;
+  failCount: number;
 }
 
 export interface AdminCurrentAffairsResponse {

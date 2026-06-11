@@ -6,110 +6,225 @@ import { useParams, useRouter } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useRequireAuth } from "@/components/shared/RequireAuthModal";
 import { useGetQuiz, getGetQuizQueryKey } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Clock, FileText, Settings, ArrowLeft } from "lucide-react";
+import { AlertCircle, Share2, Timer } from "lucide-react";
 
+/* ─────────────────────────────────────────
+   Stat Box — TIME LIMIT / QUESTIONS / MARKING
+───────────────────────────────────────── */
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center py-4 px-3 border border-border/60 rounded-xl bg-background text-center">
+      <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-1">
+        {label}
+      </p>
+      <p className="text-xl font-extrabold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Important Rules box — warm yellow
+───────────────────────────────────────── */
+function RulesBox({
+  instructions,
+  durationMins,
+}: {
+  instructions?: string | null;
+  durationMins: number;
+}) {
+  const rules = [
+    `Ensure you have ${durationMins} minutes of uninterrupted time.`,
+    "Do not refresh the page during the quiz.",
+    "Quiz will auto-submit when the timer hits zero.",
+  ];
+
+  return (
+    <div
+      className="rounded-2xl p-5"
+      style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-amber-500">
+          {/* Shield icon */}
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-4 h-4"
+          >
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+        </span>
+        <span className="text-sm font-bold text-amber-800">
+          Important Rules:
+        </span>
+      </div>
+
+      {/* Numbered rules */}
+      <ol className="space-y-2">
+        {rules.map((rule, i) => (
+          <li key={i} className="flex items-start gap-3">
+            <span
+              className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+              style={{ background: "#F59E0B" }}
+            >
+              {i + 1}
+            </span>
+            <span className="text-sm font-semibold text-amber-900 leading-snug">
+              {rule}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   Main Page
+───────────────────────────────────────── */
 export default function QuizInstructions() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
   const router = useRouter();
   const { requireAuth } = useRequireAuth();
-  const { data: quiz, isLoading, isError } = useGetQuiz(id, { query: { enabled: !!id, queryKey: getGetQuizQueryKey(id) } });
+  const {
+    data: quiz,
+    isLoading,
+    isError,
+  } = useGetQuiz(id, {
+    query: { enabled: !!id, queryKey: getGetQuizQueryKey(id) },
+  });
 
+  /* ── Loading ── */
   if (isLoading) {
     return (
-      <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
+      <PageTransition className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
+        <Skeleton className="h-7 w-44" />
+        <Skeleton className="h-7 w-28" />
+        <Skeleton className="h-[460px] w-full rounded-2xl" />
       </PageTransition>
     );
   }
 
+  /* ── Error ── */
   if (isError || !quiz) {
     return (
-      <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto space-y-6 text-center">
+      <PageTransition className="p-4 md:p-8 max-w-2xl mx-auto text-center">
         <div className="py-12">
           <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-2xl font-bold">Quiz Not Found</h2>
-          <p className="text-muted-foreground mt-2 mb-6">The quiz you&apos;re looking for doesn&apos;t exist or has been removed.</p>
-          <Button onClick={() => router.push("/daily-quiz")}>Back to Quizzes</Button>
+          <p className="text-muted-foreground mt-2 mb-6">
+            The quiz you&apos;re looking for doesn&apos;t exist or has been
+            removed.
+          </p>
+          <Button onClick={() => router.push("/daily-quiz")}>
+            Back to Quizzes
+          </Button>
         </div>
       </PageTransition>
     );
   }
 
-  return (
-    <PageTransition className="p-4 md:p-8 max-w-3xl mx-auto space-y-6">
-      <Link href="/daily-quiz">
-        <Button variant="ghost" className="mb-2 -ml-4 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Quizzes
-        </Button>
-      </Link>
+  const markingLabel = `Based On Answers `;
 
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary bg-primary/10 px-2 py-1 rounded-md">
-            {quiz.subject}
-          </span>
+  const handleShare = () => {
+    navigator.share?.({ title: quiz.title, url: window.location.href });
+  };
+
+  /* ── Render ── */
+  return (
+    <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto min-h-screen">
+      {/* Page heading */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-foreground">
+          Daily Free Quiz
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Test your knowledge with daily quizzes
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-border/40 mb-8" />
+
+      {/* Center content */}
+      <div className="flex flex-col items-center gap-6">
+        {/* Timer icon box */}
+        <div
+          className="w-20 h-20 rounded-2xl flex items-center justify-center"
+          style={{ background: "#EDE9FE" }}
+        >
+          <Timer className="w-10 h-10 text-violet-600" strokeWidth={1.8} />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{quiz.title}</h1>
-        <p className="text-muted-foreground">Read the instructions carefully before starting.</p>
-      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox icon={Clock} label="Duration" value={`${quiz.durationMins} Minutes`} />
-        <StatBox icon={FileText} label="Questions" value={quiz.questionCount.toString()} />
-        <StatBox icon={Settings} label="Max Marks" value={(quiz.questionCount * 1).toString()} />
-        <StatBox icon={AlertCircle} label="Negative" value={`-${quiz.negativeMarking} per wrong`} />
-      </div>
+        {/* Quiz title */}
+        <h2 className="text-2xl md:text-3xl font-extrabold tracking-wide text-foreground text-center uppercase">
+          {quiz.title}
+        </h2>
 
-      <Card className="border-border/50 rounded-2xl shadow-sm bg-card">
-        <CardContent className="p-6 md:p-8 space-y-6">
-          <h3 className="font-bold text-lg border-b pb-2">Instructions</h3>
-          <div className="prose prose-sm md:prose-base text-muted-foreground max-w-none">
-            <p>{quiz.instructions}</p>
-            <ul className="list-disc pl-5 space-y-2 mt-4">
-              <li>The timer will start immediately when you click the Start button.</li>
-              <li>Do not refresh the page or press the back button during the quiz.</li>
-              <li>You can navigate between questions using the palette or next/prev buttons.</li>
-              <li>The quiz will be auto-submitted when the time is up.</li>
-            </ul>
-          </div>
+        {/* Stat row */}
+        <div className="w-full flex gap-0 border border-border/60 rounded-xl overflow-hidden">
+          <StatBox label="Time Limit" value={`${quiz.durationMins} Mins`} />
+          <div className="w-px bg-border/60" />
+          <StatBox label="Questions" value={quiz.questionCount.toString()} />
+          <div className="w-px bg-border/60" />
+          <StatBox label="Marking" value={markingLabel} />
+        </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t">
+        {/* Rules */}
+        <div className="w-full">
+          <RulesBox
+            instructions={quiz.instructions}
+            durationMins={quiz.durationMins}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="w-full flex items-center gap-3 mt-2">
+          {/* Cancel */}
+          <Link href="/daily-quiz" className="flex-1">
             <Button
+              variant="outline"
               size="lg"
-              className="w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-lg h-14"
-              onClick={async () => {
-                await requireAuth(() => {
-                  router.push(`/daily-quiz/${id}/play`);
-                });
-              }}
+              className="w-full h-14 rounded-xl text-sm font-semibold tracking-widest uppercase border-border"
             >
-              Start Test Now
+              Cancel
             </Button>
-            <Link href="/daily-quiz" className="flex-1">
-              <Button size="lg" variant="outline" className="w-full rounded-xl h-14 text-lg">
-                Cancel
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </PageTransition>
-  );
-}
+          </Link>
 
-function StatBox({ icon: Icon, label, value }: { icon: React.ElementType, label: string, value: string }) {
-  return (
-    <div className="bg-muted/50 p-4 rounded-xl border border-border/50 flex flex-col items-center justify-center text-center gap-2">
-      <Icon className="w-5 h-5 text-primary" />
-      <div>
-        <p className="font-bold text-sm">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
+          {/* Share */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-14 w-14 rounded-xl border-border flex-shrink-0"
+            onClick={handleShare}
+            aria-label="Share quiz"
+          >
+            <Share2 className="w-5 h-5" />
+          </Button>
+
+          {/* Start */}
+          <Button
+            size="lg"
+            className="flex-[2] h-14 rounded-xl text-sm font-bold tracking-widest uppercase"
+            style={{ background: "#4F46E5", color: "#fff" }}
+            onClick={async () => {
+              await requireAuth(() => {
+                router.push(`/daily-quiz/${id}/play`);
+              });
+            }}
+          >
+            Start Test Now
+          </Button>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

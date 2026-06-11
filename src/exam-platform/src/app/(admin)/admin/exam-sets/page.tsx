@@ -45,7 +45,8 @@ import {
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListSubjects, type Subject } from "@/lib/api";
+import { useListSubjects, type Subject } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { QuestionSelector } from "@/components/admin/QuestionSelector";
 import { CLASSES, MEDIUMS, EXAM_SET_TYPES } from "@/lib/data";
@@ -73,6 +74,7 @@ interface ExamSetsResponse {
 export default function ExamSetsAdminPage() {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
 
   // Sheet state
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -108,7 +110,7 @@ export default function ExamSetsAdminPage() {
       if (typeFilter) sp.set("type", typeFilter);
       if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       const query = sp.toString();
-      return customFetch<ExamSetsResponse>(
+      return adminFetch<ExamSetsResponse>(
         `/api/admin/exam-sets${query ? `?${query}` : ""}`,
       );
     },
@@ -116,7 +118,7 @@ export default function ExamSetsAdminPage() {
 
   const createMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {
-      return customFetch<ExamSet>("/api/admin/exam-sets", {
+      return adminFetch<ExamSet>("/api/admin/exam-sets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -135,7 +137,7 @@ export default function ExamSetsAdminPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, body }: { id: string; body: Record<string, unknown> }) => {
-      return customFetch<ExamSet>(`/api/admin/exam-sets/${id}`, {
+      return adminFetch<ExamSet>(`/api/admin/exam-sets/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -153,7 +155,7 @@ export default function ExamSetsAdminPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return customFetch<{ success: boolean }>(`/api/admin/exam-sets/${id}`, {
+      return adminFetch<{ success: boolean }>(`/api/admin/exam-sets/${id}`, {
         method: "DELETE",
       });
     },
@@ -650,6 +652,7 @@ export default function ExamSetsAdminPage() {
 
 // ── Question Preview Component ────────────────────────────────────────────
 function QuestionPreview({ questionIds }: { questionIds: string[] }) {
+  const adminFetch = useAdminFetch();
   if (!questionIds.length) {
     return (
       <p className="text-xs text-gray-400 italic py-3 text-center">No questions selected for this set.</p>
@@ -661,7 +664,7 @@ function QuestionPreview({ questionIds }: { questionIds: string[] }) {
     queryFn: () => {
       const params = new URLSearchParams();
       questionIds.forEach((id) => params.append("ids", id));
-      return customFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
+      return adminFetch<{ data: BatchQuestion[] }>(`/api/questions/batch?${params.toString()}`);
     },
     staleTime: 60000,
   });

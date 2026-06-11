@@ -25,9 +25,14 @@ type FetchOptions = Omit<RequestInit, "headers"> & {
   headers?: HeadersInit;
 };
 
-function buildHeaders(options: FetchOptions, token?: string) {
+function buildHeaders(options: FetchOptions) {
   const headers = new Headers();
-  headers.set("Content-Type", "application/json");
+
+  // Don't force JSON Content-Type for FormData — the browser needs to set
+  // multipart/form-data with the correct boundary for file uploads.
+  if (!(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (options.headers) {
     const provided =
@@ -37,36 +42,13 @@ function buildHeaders(options: FetchOptions, token?: string) {
     provided.forEach((value, key) => headers.set(key, value));
   }
 
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+  // Only attach Bearer token when explicitly provided via options.token.
+  // Public API routes do NOT need auth — only admin/auth-required routes pass a token.
+  if (options.token) {
+    headers.set("Authorization", `Bearer ${options.token}`);
   }
 
   return headers;
-}
-
-async function resolveToken(explicitToken?: string) {
-  if (explicitToken) return explicitToken;
-
-  if (typeof window !== "undefined") {
-    const clerk = (window as Window & {
-      Clerk?: {
-        session?: {
-          getToken?: () => Promise<string | null>;
-        };
-      };
-    }).Clerk;
-
-    try {
-      const token = await clerk?.session?.getToken?.();
-      if (typeof token === "string" && token.length > 0) {
-        return token;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  return undefined;
 }
 
 function normalizePath(path: string) {
@@ -79,8 +61,7 @@ export async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const token = await resolveToken(options.token);
-  const headers = buildHeaders(options, token);
+  const headers = buildHeaders(options);
 
   const url = `${BASE_URL}${normalizePath(path)}`;
   const res = await fetch(url, {

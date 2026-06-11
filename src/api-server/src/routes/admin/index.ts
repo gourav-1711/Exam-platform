@@ -4,11 +4,9 @@ import { requireAdmin } from "../../middleware/adminMiddleware";
 
 import dashboardRouter from "./dashboard";
 import questionsRouter from "./questions";
-
 import studentsRouter from "./students";
 import analyticsRouter from "./analytics";
 import activityLogsRouter from "./activityLogs";
-
 import supportTicketsRouter from "./supportTickets";
 import announcementsRouter from "./announcements";
 import currentAffairsRouter from "./currentAffairs";
@@ -25,6 +23,8 @@ import documentPypRouter from "./documentPyp";
 
 const router = Router();
 
+// All admin routes require Clerk auth + admin role
+// clerkMiddleware is applied globally in app.ts
 router.use(requireAuth);
 router.use(requireAdmin);
 
@@ -33,7 +33,6 @@ router.use(questionsRouter);
 router.use(studentsRouter);
 router.use(analyticsRouter);
 router.use(activityLogsRouter);
-
 router.use(supportTicketsRouter);
 router.use(announcementsRouter);
 router.use(currentAffairsRouter);

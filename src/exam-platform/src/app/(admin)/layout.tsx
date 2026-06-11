@@ -17,8 +17,6 @@ export default async function AdminGroupLayout({
   if (!userId) redirect("/sign-in");
   const role = (sessionClaims?.metadata as { role?: string } | undefined)?.role;
 
-  console.log("Admin access attempt by user:", { userId, sessionClaims });
-
   if (role !== "admin") redirect("/");
   return <>{children}</>;
 }
