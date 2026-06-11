@@ -170,24 +170,24 @@ export default function PypPage() {
                     </div>
 
                     <div className="min-w-0">
-                      <h3 className="font-bold text-xl text-gray-900 truncate">
+                      <h3 className="font-bold text-lg text-gray-900 truncate">
                         {pdf.title}
                       </h3>
 
                       <div className="flex flex-wrap gap-2 mt-2 text-sm">
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-medium text-gray-700">
                           {pdf.subject}
                         </span>
 
                         <span className="text-gray-400">•</span>
 
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-medium text-gray-700">
                           {pdf.examType}
                         </span>
 
                         <span className="text-gray-400">•</span>
 
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-medium text-gray-700">
                           {pdf.year}
                         </span>
                       </div>

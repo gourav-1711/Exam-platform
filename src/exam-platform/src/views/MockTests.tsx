@@ -11,7 +11,9 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Clock, FileText, Award, Play, ClipboardCheck } from "lucide-react";
 
 export default function MockTests() {
-  const { data: testsRes, isLoading } = useListMockTests();
+  const { data: testsRes, isLoading } = useListMockTests({
+    query: { staleTime: 0 },
+  });
   const tests = testsRes?.data ?? [];
 
   return (

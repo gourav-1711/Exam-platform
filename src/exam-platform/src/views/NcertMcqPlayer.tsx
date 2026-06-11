@@ -146,8 +146,8 @@ export default function NcertMcqPlayer() {
       onBackHref="/ncert-mcq"
       negativeMarking={0}
       onShowResult={handleShowResult}
-      saveAttempt={(payload) => {
-        saveAttempt.mutate({
+      saveAttempt={async (payload) => {
+        return saveAttempt.mutateAsync({
           quizId: setId,
           ...payload,
         });

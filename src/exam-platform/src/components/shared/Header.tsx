@@ -76,7 +76,7 @@ export default function Header() {
   gap-2.5
   backdrop-blur-sm
   duration-300
-  ${scrolled ? "h-14" : "h-[65x] md:h-[70px]"}
+  ${scrolled ? "h-14" : "h-[65px]"}
 `}
     >
       {/* ── SIDEBAR TRIGGER ──────────────────────────────────────────────────── */}

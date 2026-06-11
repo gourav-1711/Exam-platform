@@ -7,7 +7,12 @@ import type { ReactNode } from "react";
 
 type ActionType = "read" | "download";
 
-type PageVariant = "ncert-books" | "pyp" | "study-notes" | "syllabus" | "default";
+type PageVariant =
+  | "ncert-books"
+  | "pyp"
+  | "study-notes"
+  | "syllabus"
+  | "default";
 
 interface DocumentActionButtonProps {
   /** The document URL to open */
@@ -26,28 +31,35 @@ interface DocumentActionButtonProps {
   variant?: "default" | "outline" | "ghost";
 }
 
-const pageStyles: Record<PageVariant, {
-  defaultClass: string;
-  icon: ReactNode;
-  labels: Record<ActionType, string>;
-}> = {
+const pageStyles: Record<
+  PageVariant,
+  {
+    defaultClass: string;
+    icon: ReactNode;
+    labels: Record<ActionType, string>;
+  }
+> = {
   "ncert-books": {
-    defaultClass: "w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl",
+    defaultClass:
+      "w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl",
     icon: <Download className="w-4 h-4 mr-2" />,
     labels: { read: "Read Online", download: "Download PDF" },
   },
   pyp: {
-    defaultClass: "w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl",
+    defaultClass:
+      "w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl",
     icon: <Download className="w-4 h-4" />,
     labels: { read: "Read Online", download: "Download PDF" },
   },
   "study-notes": {
-    defaultClass: "flex-1 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 border-none",
+    defaultClass:
+      "flex-1 rounded-xl bg-primary/5 text-primary hover:bg-primary/10 border-none",
     icon: <BookOpen className="w-4 h-4 mr-2" />,
     labels: { read: "Read", download: "Download" },
   },
   syllabus: {
-    defaultClass: "text-[10px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer",
+    defaultClass:
+      "text-[10px] font-semibold px-2 py-0.5 rounded-full border cursor-pointer",
     icon: <ExternalLink className="w-3 h-3 mr-1" />,
     labels: { read: "Read online", download: "Download PDF" },
   },
@@ -80,10 +92,15 @@ export function DocumentActionButton({
 
   const style = pageStyles[page];
   const resolvedLabel = label ?? style.labels[action];
-  const resolvedIcon = icon ?? (action === "read"
-    ? <BookOpen className="w-4 h-4 mr-2" />
-    : <Download className="w-4 h-4 mr-2" />);
-  const resolvedVariant = variant ?? (page === "syllabus" ? "outline" : "default");
+  const resolvedIcon =
+    icon ??
+    (action === "read" ? (
+      <BookOpen className="w-4 h-4 mr-2" />
+    ) : (
+      <Download className="w-4 h-4 mr-2" />
+    ));
+  const resolvedVariant =
+    variant ?? (page === "syllabus" ? "outline" : "default");
 
   const handleClick = async () => {
     await requireAuth(() => {
@@ -94,14 +111,14 @@ export function DocumentActionButton({
   // For syllabus page — render as a small badge-like button
   if (page === "syllabus") {
     return (
-      <button
+      <Button
         type="button"
         onClick={handleClick}
         className={className ?? style.defaultClass}
       >
         {style.icon}
         {resolvedLabel}
-      </button>
+      </Button>
     );
   }
 

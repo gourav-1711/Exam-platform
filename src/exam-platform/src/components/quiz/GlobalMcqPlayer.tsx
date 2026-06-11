@@ -12,6 +12,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
+  Loader2,
+  LogOut,
+  List,
 } from "lucide-react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
@@ -22,6 +25,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useMcqSession } from "./useMcqSession";
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -75,7 +88,7 @@ type Props = {
     skippedCount: number;
     timeTakenSecs: number;
     isPassed: boolean;
-  }) => void;
+  }) => Promise<unknown>;
   /** If provided, navigates to a separate results page instead of showing inline report modal */
   onShowResult?: (data: ResultData) => void;
 };
@@ -88,7 +101,6 @@ function computeScore(
   questions: GlobalMcqQuestion[],
   maxMarks: number,
   negativeMarking: number,
-  maxScore: number,
 ) {
   let score = 0;
   let correctCount = 0;
@@ -149,6 +161,9 @@ export default function GlobalMcqPlayer({
   const [showExplanation, setShowExplanation] = useState(false);
   const [showReportCard, setShowReportCard] = useState(false);
   const [showMobilePalette, setShowMobilePalette] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [isNavigatingToResult, setIsNavigatingToResult] = useState(false);
 
   const submittedRef = useRef(false);
   const initializedRef = useRef(false);
@@ -199,7 +214,6 @@ export default function GlobalMcqPlayer({
         questions,
         resolvedMaxMarks,
         negativeMarking,
-        resolvedMaxScore,
       ),
     [
       mode,
@@ -228,7 +242,6 @@ export default function GlobalMcqPlayer({
       questions,
       resolvedMaxMarks,
       negativeMarking,
-      resolvedMaxScore,
     );
 
     const answeredCount = Object.keys(answers).length;
@@ -240,41 +253,52 @@ export default function GlobalMcqPlayer({
     setIsSubmitted(true);
     setShowExplanation(true);
 
-    // FIX: saveAttempt is called BEFORE onShowResult/navigation so the mutation
-    // fires while the component is still mounted. Previously the order was the
-    // same but the intent wasn't explicit — make it clear with a comment.
-    saveAttempt({
-      score,
-      totalMarks:
-        mode === "mock" || mode === "daily"
-          ? resolvedMaxMarks
-          : resolvedMaxScore,
+    // Build result data immediately (synchronous — no race condition risk)
+    const resultData = {
+      title,
+      totalQuestions: questions.length,
       correctCount,
       wrongCount,
       skippedCount,
+      score,
+      maxScore:
+        mode === "mock" || mode === "daily"
+          ? resolvedMaxMarks
+          : resolvedMaxScore,
+      negativeMarking,
+      questions,
+      userAnswers: { ...answers },
       timeTakenSecs,
-      isPassed,
-    });
+    };
 
-    // Navigate to separate results page if handler provided.
-    // This may unmount the component — saveAttempt must already be fired above.
     if (onShowResult) {
-      onShowResult({
-        title,
-        totalQuestions: questions.length,
-        correctCount,
-        wrongCount,
-        skippedCount,
+      // Show the full-screen loading overlay IMMEDIATELY — blocks all clicks
+      setIsNavigatingToResult(true);
+
+      // Fire save attempt in background
+      const savePromise = saveAttempt({
         score,
-        maxScore:
+        totalMarks:
           mode === "mock" || mode === "daily"
             ? resolvedMaxMarks
             : resolvedMaxScore,
-        negativeMarking,
-        questions,
-        userAnswers: { ...answers },
+        correctCount,
+        wrongCount,
+        skippedCount,
         timeTakenSecs,
+        isPassed,
       });
+
+      // Navigate after save completes (even if save fails, still show results)
+      Promise.resolve(savePromise)
+        .catch((err) => {
+          console.error("Failed to save attempt:", err);
+        })
+        .finally(() => {
+          onShowResult(resultData);
+          // Note: onShowResult calls router.push() which unmounts this component,
+          // so the overlay naturally disappears with the component.
+        });
     } else {
       // Fallback: show inline report modal
       setShowReportCard(true);
@@ -325,51 +349,207 @@ export default function GlobalMcqPlayer({
     );
   }
 
+  // ── Question palette sidebar rendering ──────────────────────────────
+  // Shared rendering function used by both the desktop sidebar and mobile sheet.
+  // Each context provides its own header — this only renders the grid + legend.
+  const answeredCount = Object.keys(answers).length;
+
+  const renderQuestionGrid = (onQuestionClick?: () => void) => (
+    <div className="grid grid-cols-4 gap-1.5">
+      {questions.map((_, i) => {
+        const isAnswered = answers[i] !== undefined;
+        const isCurrent = currentQIndex === i;
+
+        let bgClass =
+          "bg-muted/60 text-muted-foreground hover:bg-muted border-transparent";
+        let ringClass = "";
+        let label = String(i + 1);
+
+        if (isSubmitted) {
+          const isCorrect = answers[i] === questions[i].correctIndex;
+          if (!isAnswered) {
+            bgClass = "bg-muted/40 text-muted-foreground/50";
+          } else if (isCorrect) {
+            bgClass = "bg-emerald-500/15 text-emerald-600 font-semibold";
+            label = "✓";
+          } else {
+            bgClass = "bg-destructive/15 text-destructive font-semibold";
+            label = "✗";
+          }
+        } else if (isAnswered) {
+          bgClass =
+            "bg-primary/20 text-primary font-semibold border-primary/30";
+          label = "✓";
+        }
+
+        if (isCurrent && !isSubmitted) {
+          ringClass = "ring-2 ring-primary ring-offset-1 ring-offset-background";
+        }
+
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => {
+              setCurrentQIndex(i);
+              onQuestionClick?.();
+            }}
+            className={cn(
+              "h-9 rounded-lg text-xs font-medium transition-all border",
+              bgClass,
+              ringClass,
+              !onQuestionClick && "hover:scale-105",
+            )}
+            title={`Question ${i + 1}${isAnswered ? " (Answered)" : ""}`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   // ── Main render ────────────────────────────────────────────────────────
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
+      {/* ── Sidebar ──────────────────────────────────────────────────── */}
+      {/* Desktop: always visible when showSidebar is true */}
+      {/* Mobile: overlay panel that slides in from the left */}
+      <>
+        {/* Desktop sidebar */}
+        <aside
+          className={cn(
+            "hidden md:flex md:flex-col w-56 lg:w-64 shrink-0 border-r bg-card overflow-hidden transition-all duration-200",
+            !showSidebar && "md:hidden",
+          )}
+        >
+          <div className="flex items-center justify-between px-3 py-2.5 border-b shrink-0">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Questions
+            </span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {answeredCount}/{questions.length}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            {renderQuestionGrid()}
+          </div>
+          {!isSubmitted && (
+            <div className="px-3 py-2.5 border-t shrink-0 space-y-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/30" />
+                <span>Answered</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
+                <span>Unanswered</span>
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* Mobile sidebar overlay */}
+        {showSidebar && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-[150] bg-black/40 md:hidden"
+              onClick={() => setShowSidebar(false)}
+            />
+            {/* Panel */}
+            <aside className="fixed left-0 top-0 bottom-0 z-[160] w-64 bg-card border-r shadow-2xl md:hidden flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2.5 border-b shrink-0">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Questions
+                </span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {answeredCount}/{questions.length}
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                {renderQuestionGrid(() => setShowSidebar(false))}
+              </div>
+              {!isSubmitted && (
+                <div className="px-3 py-2.5 border-t shrink-0">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/30" />
+                    <span>Answered</span>
+                    <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
+                    <span>Unanswered</span>
+                  </div>
+                </div>
+              )}
+            </aside>
+          </>
+        )}
+      </>
+
       {/* ── Question area ─────────────────────────────────────────────── */}
 
       <div className="flex-1 flex flex-col h-full bg-muted/20 min-h-0">
         {/* Header */}
-        <header className="h-14 md:h-16 px-3 md:px-8 border-b bg-background flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
+        <header className="h-14 md:h-16 px-2 md:px-4 border-b bg-background flex items-center justify-between shrink-0 gap-1">
+          <div className="flex items-center gap-1 md:gap-2 min-w-0">
+            {/* Sidebar toggle (mobile) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSidebar((v) => !v)}
+              className="md:hidden shrink-0 gap-1.5 px-2"
+              aria-label="Toggle question navigator"
+            >
+              <List className="w-4 h-4" />
+              <span className="text-xs font-medium text-muted-foreground">
+                All Questions
+              </span>
+            </Button>
+
+            {/* Exit button (mobile) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                window.location.href = onBackHref;
+              }}
+              className="md:hidden shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              aria-label="Exit test"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+
+            {/* Exit button (desktop) */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 window.location.href = onBackHref;
               }}
-              className="hidden md:inline-flex"
+              className="hidden md:inline-flex text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
             >
+              <LogOut className="w-4 h-4" />
               Exit
             </Button>
             <span
-              className="font-bold text-lg hidden md:inline-block truncate max-w-sm cursor-pointer"
+              className="font-bold text-sm md:text-lg truncate max-w-[120px] sm:max-w-sm cursor-pointer"
               onClick={() => {
                 window.location.href = onBackHref;
               }}
             >
               {title}
             </span>
-            <span className="md:hidden font-bold">
-              Q {currentQIndex + 1}/{questions.length}
-            </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 md:gap-3 shrink-0">
             {/* Timer */}
             {!isSubmitted && (
               <div
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono font-bold border",
+                  "flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-lg font-mono font-bold border text-xs md:text-sm",
                   timeLeft < 60
                     ? "text-destructive border-destructive bg-destructive/10 animate-pulse"
                     : "border-border bg-card text-foreground",
                 )}
               >
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
                 {formatTime(timeLeft)}
               </div>
             )}
@@ -379,9 +559,9 @@ export default function GlobalMcqPlayer({
               variant="outline"
               size="sm"
               onClick={() => setShowMobilePalette(true)}
-              className="md:hidden"
+              className="md:hidden text-xs"
             >
-              {Object.keys(answers).length}/{questions.length}
+              {answeredCount}/{questions.length}
             </Button>
 
             {/* Submit or Exit button */}
@@ -390,15 +570,17 @@ export default function GlobalMcqPlayer({
                 onClick={() => {
                   window.location.href = onBackHref;
                 }}
-                variant="default"
+                variant="outline"
+                className="gap-1.5 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
-                Exit
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Exit</span>
               </Button>
             ) : (
               <Button
                 variant="default"
-                className="bg-primary text-white"
-                onClick={handleSubmit}
+                className="bg-primary text-white text-xs md:text-sm h-9 md:h-10 px-3 md:px-5"
+                onClick={() => setShowSubmitConfirm(true)}
               >
                 Submit Test
               </Button>
@@ -447,7 +629,7 @@ export default function GlobalMcqPlayer({
                   <div className="shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                     {currentQIndex + 1}
                   </div>
-                  <h2 className="text-lg md:text-xl font-medium leading-relaxed">
+                  <h2 className="text-base md:text-lg font-medium leading-relaxed">
                     {currentQ.text}
                   </h2>
                 </div>
@@ -540,7 +722,7 @@ export default function GlobalMcqPlayer({
               <Button
                 onClick={() => {
                   if (isLastQ && !isSubmitted) {
-                    handleSubmit();
+                    setShowSubmitConfirm(true);
                   } else if (!isLastQ) {
                     setCurrentQIndex((p) =>
                       Math.min(questions.length - 1, p + 1),
@@ -586,59 +768,83 @@ export default function GlobalMcqPlayer({
 
       {/* ── Mobile question palette ──────────────────────────────────── */}
       <Sheet open={showMobilePalette} onOpenChange={setShowMobilePalette}>
-        <SheetContent side="right" className="w-72 p-0">
-          {/* FIX: SheetTitle is required by shadcn — omitting it throws an
-              accessibility error in strict mode and breaks some versions. */}
-          <SheetHeader className="p-4 border-b">
+        <SheetContent side="right" className="w-72 p-0 flex flex-col">
+          <SheetHeader className="px-3 py-2.5 border-b shrink-0">
             <SheetTitle className="flex items-center justify-between text-sm font-semibold">
               Question Palette
               <span className="text-xs font-normal text-muted-foreground">
-                {Object.keys(answers).length}/{questions.length} Answered
+                {answeredCount}/{questions.length} Answered
               </span>
             </SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-4 gap-2">
-              {questions.map((_, i) => {
-                const isAnswered = answers[i] !== undefined;
-                const isCurrent = currentQIndex === i;
-
-                let bgClass =
-                  "bg-muted text-muted-foreground hover:bg-muted/80";
-                if (isAnswered && !isSubmitted)
-                  bgClass = "bg-primary/20 text-primary border-primary/30";
-                if (isCurrent && !isSubmitted)
-                  bgClass = "ring-2 ring-primary bg-background";
-
-                if (isSubmitted) {
-                  const isCorrect = answers[i] === questions[i].correctIndex;
-                  if (!isAnswered) bgClass = "bg-muted";
-                  else if (isCorrect) bgClass = "bg-emerald-500 text-white";
-                  else bgClass = "bg-destructive text-white";
-                }
-
-                return (
-                  <Button
-                    key={i}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setCurrentQIndex(i);
-                      setShowMobilePalette(false);
-                    }}
-                    className={cn(
-                      "h-10 rounded-lg text-sm transition-all border border-transparent",
-                      bgClass,
-                    )}
-                  >
-                    {i + 1}
-                  </Button>
-                );
-              })}
-            </div>
+          <div className="flex-1 overflow-y-auto p-3">
+            {renderQuestionGrid(() => setShowMobilePalette(false))}
           </div>
+          {!isSubmitted && (
+            <div className="px-3 py-2.5 border-t shrink-0">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/30" />
+                <span>Answered</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
+                <span>Unanswered</span>
+              </div>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
+
+      {/* ── Submit confirmation dialog ──────────────────────────────── */}
+      <AlertDialog open={showSubmitConfirm} onOpenChange={setShowSubmitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Test</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have answered {answeredCount} of {questions.length} questions.
+              {answeredCount < questions.length && (
+                <>
+                  {" "}
+                  <span className="text-amber-600 font-medium">
+                    {questions.length - answeredCount} question
+                    {questions.length - answeredCount !== 1 ? "s" : ""}{" "}
+                    are still unanswered.
+                  </span>
+                </>
+              )}
+              {" "}Once submitted, you cannot change your answers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Solving</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSubmitConfirm(false);
+                handleSubmit();
+              }}
+              className="bg-primary text-white hover:bg-primary/90"
+            >
+              Submit Now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Full-screen loading overlay during submit → result navigation ── */}
+      {isNavigatingToResult && (
+        <div className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="rounded-2xl bg-card border shadow-2xl p-8 flex flex-col items-center gap-5 max-w-sm w-full mx-4">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            <div className="text-center space-y-1">
+              <p className="font-bold text-lg text-foreground">
+                Calculating Results
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please wait while we save your attempt and prepare your score
+                report…
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

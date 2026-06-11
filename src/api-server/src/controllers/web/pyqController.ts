@@ -59,7 +59,19 @@ export async function getPyqSets(req: Request, res: Response, next: NextFunction
     const { subjectId } = req.query as Record<string, string>;
     const conditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];
     if (subjectId) {
-      conditions.push(eq(examSetsTable.subjectId, subjectId));
+      // subjectId could be a UUID or a slug — resolve to a UUID before filtering
+      const subjIdIsUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subjectId);
+      if (subjIdIsUuid) {
+        conditions.push(eq(examSetsTable.subjectId, subjectId));
+      } else {
+        const [subjBySlug] = await db
+          .select({ id: subjects.id })
+          .from(subjects)
+          .where(eq(subjects.slug, subjectId));
+        if (subjBySlug) {
+          conditions.push(eq(examSetsTable.subjectId, subjBySlug.id));
+        }
+      }
     }
     const sets = await db
       .select()
@@ -86,10 +98,20 @@ export async function getPyqQuestions(req: Request, res: Response, next: NextFun
 
     const setConditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];
     if (subjectId) {
-      const [subj] = await db
-        .select({ id: subjects.id })
-        .from(subjects)
-        .where(eq(subjects.id, subjectId));
+      // Resolve subjectId — could be a UUID or a slug; never compare a non-UUID against a UUID column
+      const subjIdIsUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subjectId);
+      let subj: { id: string } | undefined;
+      if (subjIdIsUuid) {
+        [subj] = await db
+          .select({ id: subjects.id })
+          .from(subjects)
+          .where(eq(subjects.id, subjectId));
+      } else {
+        [subj] = await db
+          .select({ id: subjects.id })
+          .from(subjects)
+          .where(eq(subjects.slug, subjectId));
+      }
       if (subj) {
         setConditions.push(eq(examSetsTable.subjectId, subj.id));
       } else {
@@ -103,14 +125,21 @@ export async function getPyqQuestions(req: Request, res: Response, next: NextFun
       }
     }
     if (setId) {
-      // Try matching by ID first, then by slug
-      const [setById] = await db
-        .select({ id: examSetsTable.id })
-        .from(examSetsTable)
-        .where(and(eq(examSetsTable.id, setId), eq(examSetsTable.type, "pyq")));
-      if (setById) {
-        setConditions.push(eq(examSetsTable.id, setById.id));
-      } else {
+      // If setId looks like a UUID, try matching by ID first (avoids PG uuid parse error on slugs)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(setId);
+      let foundSet = false;
+      if (isUuid) {
+        const [setById] = await db
+          .select({ id: examSetsTable.id })
+          .from(examSetsTable)
+          .where(and(eq(examSetsTable.id, setId), eq(examSetsTable.type, "pyq")));
+        if (setById) {
+          setConditions.push(eq(examSetsTable.id, setById.id));
+          foundSet = true;
+        }
+      }
+      // Not found by UUID (or wasn't a UUID) — try matching by slug
+      if (!foundSet) {
         const [setBySlug] = await db
           .select({ id: examSetsTable.id })
           .from(examSetsTable)

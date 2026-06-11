@@ -158,11 +158,18 @@ export default function ResultPage() {
       }
       const data = JSON.parse(raw) as ResultData;
       setResult(data);
-      // Clear after reading — refresh should not show stale data
-      sessionStorage.removeItem(getResultStorageKey(id));
     } catch {
       setNotFound(true);
     }
+    // FIX: never remove from sessionStorage here.
+    // Doing so causes "Result Not Found" errors because React Strict Mode
+    // double-mounts in dev, and Next.js can re-render components.
+    //
+    // sessionStorage is per-tab and auto-clears when the tab closes.
+    // The parent components already overwrite the key with fresh data on
+    // each new submission (sessionStorage.setItem), so there's no stale
+    // data accumulation concern. The user can safely refresh the page
+    // without losing their result.
   }, [id]);
 
   if (notFound) {

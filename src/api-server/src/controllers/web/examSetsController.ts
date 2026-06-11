@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
-import { examSetsTable } from "@workspace/db";
+import { examSetsTable, subjects } from "@workspace/db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -25,7 +25,19 @@ export async function listExamSets(req: Request, res: Response, next: NextFuncti
       conditions.push(eq(examSetsTable.type, type));
     }
     if (subjectId) {
-      conditions.push(eq(examSetsTable.subjectId, subjectId));
+      // subjectId could be a UUID or a slug — resolve to UUID before filtering
+      const subjIdIsUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subjectId);
+      if (subjIdIsUuid) {
+        conditions.push(eq(examSetsTable.subjectId, subjectId));
+      } else {
+        const [subjBySlug] = await db
+          .select({ id: subjects.id })
+          .from(subjects)
+          .where(eq(subjects.slug, subjectId));
+        if (subjBySlug) {
+          conditions.push(eq(examSetsTable.subjectId, subjBySlug.id));
+        }
+      }
     }
     if (classNum) {
       conditions.push(eq(examSetsTable.classNum, parseInt(classNum, 10)));

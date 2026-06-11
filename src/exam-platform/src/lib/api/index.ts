@@ -105,10 +105,14 @@ function useTokenizedQuery<TData>(
   const { getToken } = useAuth();
   const overrideOptions = options?.query ?? {};
 
+  // Extract known options explicitly, spread the rest (e.g. staleTime, gcTime)
+  const { queryKey: overrideQueryKey, enabled: overrideEnabled, ...restOptions } = overrideOptions;
+
   return useQuery({
-    queryKey: (overrideOptions.queryKey as readonly unknown[]) ?? queryKey,
+    queryKey: (overrideQueryKey as readonly unknown[]) ?? queryKey,
     queryFn: async () => fetcher((await getToken()) ?? undefined),
-    enabled: (overrideOptions.enabled as boolean | undefined) ?? true,
+    enabled: (overrideEnabled as boolean | undefined) ?? true,
+    ...restOptions,
   } as UseQueryOptions<TData, Error>);
 }
 
@@ -134,10 +138,14 @@ function usePublicQuery<TData>(
 ) {
   const overrideOptions = options?.query ?? {};
 
+  // Extract known options explicitly, spread the rest (e.g. staleTime, gcTime)
+  const { queryKey: overrideQueryKey, enabled: overrideEnabled, ...restOptions } = overrideOptions;
+
   return useQuery({
-    queryKey: (overrideOptions.queryKey as readonly unknown[]) ?? queryKey,
+    queryKey: (overrideQueryKey as readonly unknown[] | undefined) ?? queryKey,
     queryFn: fetcher,
-    enabled: (overrideOptions.enabled as boolean | undefined) ?? true,
+    enabled: (overrideEnabled as boolean | undefined) ?? true,
+    ...restOptions,
   } as UseQueryOptions<TData, Error>);
 }
 

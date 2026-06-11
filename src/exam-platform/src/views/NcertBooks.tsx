@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { useQuery } from "@tanstack/react-query";
-import { API_BASE_URL } from "@/lib/api-config";
+import { apiFetch } from "@/lib/api/client";
 import { BookOpen, ChevronLeft, ChevronRight, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -50,14 +50,12 @@ export default function NcertBooks() {
       if (selectedSubject && selectedSubject !== "All")
         params.set("subject", selectedSubject);
 
-      const res = await fetch(`${API_BASE_URL}/api/document-ncert?${params}`);
-      if (!res.ok) throw new Error("Failed to fetch");
-      return res.json() as Promise<{
+      return apiFetch<{
         data: NcertPdf[];
         total: number;
         page: number;
         totalPages: number;
-      }>;
+      }>(`/document-ncert?${params.toString()}`);
     },
   });
 

@@ -93,8 +93,8 @@ export default function QuizPlayer() {
       maxMarks={questions.length}
       negativeMarking={quiz.negativeMarking}
       onShowResult={handleShowResult}
-      saveAttempt={(payload) => {
-        saveAttempt.mutate({
+      saveAttempt={async (payload) => {
+        return saveAttempt.mutateAsync({
           quizId: id,
           ...payload,
         });

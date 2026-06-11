@@ -104,8 +104,8 @@ export default function PyqQuestions() {
       onBackHref="/pyq"
       negativeMarking={0}
       onShowResult={handleShowResult}
-      saveAttempt={(payload) => {
-        saveAttempt.mutate({
+      saveAttempt={async (payload) => {
+        return saveAttempt.mutateAsync({
           quizId: subjectSlug,
           ...payload,
         });
