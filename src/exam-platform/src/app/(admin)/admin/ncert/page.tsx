@@ -53,15 +53,17 @@ import { useAuth } from "@clerk/nextjs";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface NcertPdf {
-  id: number;
+interface NcertBook {
+  id: string;
   title: string;
+  classNum: number;
   subject: string;
-  classNumber: number;
-  originalName: string;
-  cloudinaryUrl: string;
-  fileSize: number;
-  uploadedAt: string;
+  medium: string;
+  readUrl: string | null;
+  downloadUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const CLASSES = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -112,20 +114,20 @@ export default function NcertAdminPage() {
   const { data: pyqSubjects = [] } = useListSubjects();
 
   // Detail Dialog
-  const [viewingItem, setViewingItem] = useState<NcertPdf | null>(null);
+  const [viewingItem, setViewingItem] = useState<NcertBook | null>(null);
 
   // Sheet (create/edit)
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<NcertPdf | null>(null);
+  const [editingItem, setEditingItem] = useState<NcertBook | null>(null);
 
   // Delete
-  const [deleteTargetId, setDeleteId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteId] = useState<string | null>(null);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [uploadMode, setUploadMode] = useState<"file" | "url">("file");
   const [formTitle, setFormTitle] = useState("");
   const [formSubject, setFormSubject] = useState("");
-  const [formClassNumber, setFormClassNumber] = useState("1");
+  const [formClassNum, setFormClassNum] = useState("1");
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
@@ -138,8 +140,8 @@ export default function NcertAdminPage() {
       if (editingItem) {
         setFormTitle(editingItem.title);
         setFormSubject(editingItem.subject);
-        setFormClassNumber(String(editingItem.classNumber));
-        setExternalUrl(editingItem.cloudinaryUrl || "");
+        setFormClassNum(String(editingItem.classNum));
+        setExternalUrl(editingItem.downloadUrl || "");
         setUploadMode("url");
         setFile(null);
         setFileName("");
@@ -147,7 +149,7 @@ export default function NcertAdminPage() {
       } else {
         setFormTitle("");
         setFormSubject("");
-        setFormClassNumber("1");
+        setFormClassNum("1");
         setFile(null);
         setFileName("");
         setExternalUrl("");
@@ -159,20 +161,20 @@ export default function NcertAdminPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data: response, isLoading } = useQuery({
-    queryKey: ["admin", "ncert-pdfs"],
+    queryKey: ["admin", "ncert-books"],
     queryFn: () =>
-      adminFetch<{ data: NcertPdf[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>("/api/admin/document-ncert"),
+      adminFetch<{ data: NcertBook[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>("/api/admin/ncert-books"),
   });
-  const pdfs = response?.data ?? [];
+  const books = response?.data ?? [];
 
   // ── Create/update mutations ──────────────────────────────────────────────
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "ncert-pdfs"] });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "ncert-books"] });
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData | Record<string, unknown>) => {
       if (data instanceof FormData) {
         const token = await getToken();
-        const res = await fetch("/api/admin/document-ncert", {
+        const res = await fetch("/api/admin/ncert-books", {
           method: "POST",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: data,
@@ -183,7 +185,7 @@ export default function NcertAdminPage() {
         }
         return res.json();
       }
-      return adminFetch<NcertPdf>("/api/admin/document-ncert", {
+      return adminFetch<NcertBook>("/api/admin/ncert-books", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -202,10 +204,10 @@ export default function NcertAdminPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: FormData | Record<string, unknown> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: FormData | Record<string, unknown> }) => {
       if (data instanceof FormData) {
         const token = await getToken();
-        const res = await fetch(`/api/admin/document-ncert/${id}`, {
+        const res = await fetch(`/api/admin/ncert-books/${id}`, {
           method: "PATCH",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: data,
@@ -216,7 +218,7 @@ export default function NcertAdminPage() {
         }
         return res.json();
       }
-      return adminFetch<NcertPdf>(`/api/admin/document-ncert/${id}`, {
+      return adminFetch<NcertBook>(`/api/admin/ncert-books/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -235,8 +237,8 @@ export default function NcertAdminPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return adminFetch<Record<string, unknown>>(`/api/admin/document-ncert/${id}`, { method: "DELETE" });
+    mutationFn: async (id: string) => {
+      return adminFetch<Record<string, unknown>>(`/api/admin/ncert-books/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       invalidate();
@@ -252,13 +254,13 @@ export default function NcertAdminPage() {
     setSheetOpen(true);
   };
 
-  const openEdit = (pdf: NcertPdf) => {
-    setEditingItem(pdf);
+  const openEdit = (book: NcertBook) => {
+    setEditingItem(book);
     setSheetOpen(true);
   };
 
-  const openView = (pdf: NcertPdf) => {
-    setViewingItem(pdf);
+  const openView = (book: NcertBook) => {
+    setViewingItem(book);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -294,7 +296,8 @@ export default function NcertAdminPage() {
         const formData = new FormData();
         formData.append("title", formTitle.trim());
         formData.append("subject", formSubject);
-        formData.append("classNumber", formClassNumber);
+        formData.append("classNum", formClassNum);
+        formData.append("medium", "English");
         formData.append("file", file);
 
         if (editingItem) {
@@ -308,11 +311,10 @@ export default function NcertAdminPage() {
         const payload: Record<string, unknown> = {
           title: formTitle.trim(),
           subject: formSubject,
-          classNumber: parseInt(formClassNumber),
-          cloudinaryUrl: url,
-          cloudinaryPublicId: url,
-          originalName: url,
-          fileSize: 0,
+          classNum: parseInt(formClassNum),
+          medium: "English",
+          downloadUrl: url || null,
+          readUrl: url || null,
         };
 
         if (editingItem) {
@@ -326,12 +328,6 @@ export default function NcertAdminPage() {
     } finally {
       setUploading(false);
     }
-  };
-
-  const formatSize = (bytes: number) => {
-    if (bytes <= 0) return "External Link";
-    const mb = bytes / 1024 / 1024;
-    return `${mb.toFixed(2)} MB`;
   };
 
   return (
@@ -355,14 +351,14 @@ export default function NcertAdminPage() {
             <div>
               <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">NCERT Books</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {pdfs.length} total books
+                {books.length} total books
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             <AnimatePresence>
-              {pdfs.length > 0 && (
+              {books.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -374,7 +370,7 @@ export default function NcertAdminPage() {
                     transition={{ repeat: Infinity, duration: 2.2 }}
                     className="w-2 h-2 rounded-full bg-green-500 inline-block"
                   />
-                  <span className="text-xs font-semibold text-green-700">{pdfs.length} shown</span>
+                  <span className="text-xs font-semibold text-green-700">{books.length} shown</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -408,7 +404,7 @@ export default function NcertAdminPage() {
               </motion.div>
               <p className="text-sm text-muted-foreground">Loading NCERT books…</p>
             </div>
-          ) : pdfs.length === 0 ? (
+          ) : books.length === 0 ? (
             <div className="py-16 px-6">
               <Empty>
                 <motion.div
@@ -446,9 +442,9 @@ export default function NcertAdminPage() {
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence>
-                    {pdfs.map((pdf, i) => (
+                    {books.map((book, i) => (
                       <motion.tr
-                        key={pdf.id}
+                        key={book.id}
                         custom={i}
                         variants={tableRowVariants}
                         initial="hidden"
@@ -456,7 +452,7 @@ export default function NcertAdminPage() {
                         exit="exit"
                         layout
                         className="group border-b border-border/40 hover:bg-gray-50/60 transition-colors cursor-pointer"
-                        onClick={() => openView(pdf)}
+                        onClick={() => openView(book)}
                       >
                         <TableCell className="pl-5 py-3.5 max-w-[260px]">
                           <div className="flex items-start gap-2.5">
@@ -464,38 +460,37 @@ export default function NcertAdminPage() {
                               <BookOpen className="w-3.5 h-3.5 text-green-600" />
                             </div>
                             <div className="min-w-0">
-                              <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{pdf.title}</p>
-                              {pdf.originalName && (
-                                <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{pdf.originalName}</p>
-                              )}
+                              <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-1">{book.title}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[10px] font-bold">{pdf.subject}</Badge>
+                          <Badge variant="outline" className="text-[10px] font-bold">{book.subject}</Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs font-bold text-gray-700">Class {pdf.classNumber}</span>
+                          <span className="text-xs font-bold text-gray-700">Class {book.classNum}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs text-gray-500">{formatSize(pdf.fileSize)}</span>
+                          <span className="text-xs text-gray-500">{book.downloadUrl ? "PDF" : "External Link"}</span>
                         </TableCell>
                         <TableCell className="text-right pr-5" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {book.downloadUrl && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-indigo-50 hover:text-indigo-600" onClick={() => window.open(book.downloadUrl!, "_blank")}>
+                                      <Eye className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </motion.div>
+                                </TooltipTrigger>
+                                <TooltipContent>View PDF</TooltipContent>
+                              </Tooltip>
+                            )}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-indigo-50 hover:text-indigo-600" onClick={() => window.open(pdf.cloudinaryUrl, "_blank")}>
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </Button>
-                                </motion.div>
-                              </TooltipTrigger>
-                              <TooltipContent>View PDF</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:text-amber-600 hover:bg-amber-50" onClick={() => openEdit(pdf)}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:text-amber-600 hover:bg-amber-50" onClick={() => openEdit(book)}>
                                     <Edit className="h-3.5 w-3.5" />
                                   </Button>
                                 </motion.div>
@@ -505,7 +500,7 @@ export default function NcertAdminPage() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600" onClick={() => setDeleteId(pdf.id)}>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 text-red-400 hover:text-red-600" onClick={() => setDeleteId(book.id)}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 </motion.div>
@@ -540,30 +535,26 @@ export default function NcertAdminPage() {
                     </div>
                     <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
                       <p className="text-gray-400 font-semibold uppercase tracking-wide">Class</p>
-                      <p className="text-sm font-bold text-gray-900 mt-0.5">Class {viewingItem.classNumber}</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">Class {viewingItem.classNum}</p>
                     </div>
                     <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                      <p className="text-gray-400 font-semibold uppercase tracking-wide">File Size</p>
-                      <p className="text-sm font-bold text-gray-900 mt-0.5">{formatSize(viewingItem.fileSize)}</p>
+                      <p className="text-gray-400 font-semibold uppercase tracking-wide">Medium</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{viewingItem.medium}</p>
                     </div>
                     <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                      <p className="text-gray-400 font-semibold uppercase tracking-wide">Uploaded</p>
-                      <p className="text-sm font-bold text-gray-900 mt-0.5">{viewingItem.uploadedAt ? new Date(viewingItem.uploadedAt).toLocaleDateString() : "—"}</p>
+                      <p className="text-gray-400 font-semibold uppercase tracking-wide">Created</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{viewingItem.createdAt ? new Date(viewingItem.createdAt).toLocaleDateString() : "—"}</p>
                     </div>
                   </div>
-                  {viewingItem.originalName && (
-                    <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Original File</p>
-                      <p className="text-xs text-gray-600">{viewingItem.originalName}</p>
-                    </div>
+                  {viewingItem.downloadUrl && (
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-xl gap-2"
+                      onClick={() => window.open(viewingItem.downloadUrl!, "_blank")}
+                    >
+                      Open PDF
+                    </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    className="w-full rounded-xl gap-2"
-                    onClick={() => window.open(viewingItem.cloudinaryUrl, "_blank")}
-                  >
-                    Open PDF
-                  </Button>
                 </div>
               </>
             )}
@@ -614,7 +605,7 @@ export default function NcertAdminPage() {
                 </motion.div>
                 <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Class *</Label>
-                  <select value={formClassNumber} onChange={(e) => setFormClassNumber(e.target.value)} required
+                  <select value={formClassNum} onChange={(e) => setFormClassNum(e.target.value)} required
                     className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
                     {CLASSES.map((c) => (
@@ -655,8 +646,8 @@ export default function NcertAdminPage() {
                     {editingItem ? "PDF / External URL" : "External Link URL *"}
                   </Label>
                   <Input type="url" value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://..." required={!editingItem} className="rounded-xl h-10" />
-                  {editingItem && editingItem.cloudinaryUrl && (
-                    <p className="text-[11px] text-muted-foreground">Current URL: {editingItem.cloudinaryUrl}</p>
+                  {editingItem && editingItem.downloadUrl && (
+                    <p className="text-[11px] text-muted-foreground">Current URL: {editingItem.downloadUrl}</p>
                   )}
                 </motion.div>
               )}

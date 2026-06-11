@@ -18,8 +18,6 @@ import syllabusRouter from "./syllabus";
 import dailyQuizRouter from "./dailyQuiz";
 import examSetsRouter from "./examSets";
 import pypRouter from "./pyp";
-import documentNcertRouter from "./documentNcert";
-import documentPypRouter from "./documentPyp";
 
 const router = Router();
 
@@ -44,7 +42,5 @@ router.use(syllabusRouter);
 router.use(dailyQuizRouter);
 router.use(examSetsRouter);
 router.use(pypRouter);
-router.use(documentNcertRouter);
-router.use(documentPypRouter);
 
 export default router;

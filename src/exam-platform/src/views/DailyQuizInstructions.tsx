@@ -19,7 +19,7 @@ function StatBox({ label, value }: { label: string; value: string }) {
       <p className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-1">
         {label}
       </p>
-      <p className="text-xl font-extrabold text-foreground">{value}</p>
+      <p className="text-lg font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -187,13 +187,13 @@ export default function QuizInstructions() {
         </div>
 
         {/* Actions */}
-        <div className="w-full flex items-center gap-3 mt-2">
+        <div className="w-full flex flex-wrap items-center gap-3 mt-2">
           {/* Cancel */}
           <Link href="/daily-quiz" className="flex-1">
             <Button
               variant="outline"
               size="lg"
-              className="w-full h-14 rounded-xl text-sm font-semibold tracking-widest uppercase border-border"
+              className="w-full h-9 md:h-12 rounded-xl text-sm font-semibold tracking-widest uppercase border-border"
             >
               Cancel
             </Button>
@@ -203,7 +203,7 @@ export default function QuizInstructions() {
           <Button
             variant="outline"
             size="icon"
-            className="h-14 w-14 rounded-xl border-border flex-shrink-0"
+            className="h-9 md:h-12 w-14 rounded-xl border-border flex-shrink-0"
             onClick={handleShare}
             aria-label="Share quiz"
           >
@@ -213,7 +213,7 @@ export default function QuizInstructions() {
           {/* Start */}
           <Button
             size="lg"
-            className="flex-[2] h-14 rounded-xl text-sm font-bold tracking-widest uppercase"
+            className="flex-2 h-9 md:h-12 rounded-xl text-sm font-bold tracking-widest uppercase"
             style={{ background: "#4F46E5", color: "#fff" }}
             onClick={async () => {
               await requireAuth(() => {

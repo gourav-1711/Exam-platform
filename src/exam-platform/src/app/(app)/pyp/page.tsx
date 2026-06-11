@@ -5,13 +5,7 @@ import { PageTransition } from "@/components/shared/PageTransition";
 
 import { DocumentActionButton } from "@/components/shared/DocumentActionButton";
 import { apiFetch } from "@/lib/api/client";
-import {
-  FileText,
-  Calendar,
-  BookOpen,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,16 +18,21 @@ import {
 } from "@/components/ui/select";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import PageHeading from "@/components/shared/PageHeading";
+import { useListSubjects } from "@/lib/api";
 
-interface PypPdf {
-  id: number;
-  title: string;
-  subject: string;
+interface PreviousYearPaper {
+  id: string;
+  examName: string;
+  shiftName: string;
   year: number;
-  examType: string;
-  cloudinaryUrl: string;
-  fileSize: number;
-  uploadedAt: string;
+  subject: string | null;
+  subjectId: string | null;
+  questionPaperUrl: string | null;
+  answerKeyUrl: string | null;
+  answerKeyPdf: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const YEARS = Array.from(
@@ -44,39 +43,41 @@ const YEARS = Array.from(
 export default function PypPage() {
   const [page, setPage] = useState(1);
   const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [selectedExamType, setSelectedExamType] = useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+
+  const { data: subjectsData } = useListSubjects();
+  const subjects = subjectsData ?? [];
 
   // Reset to first page when filters change
-  const prevFilterKey = useRef(`${selectedYear}:${selectedExamType}`);
+  const prevFilterKey = useRef(`${selectedYear}:${selectedSubject}`);
   useEffect(() => {
-    const key = `${selectedYear}:${selectedExamType}`;
+    const key = `${selectedYear}:${selectedSubject}`;
     if (key !== prevFilterKey.current) {
       setPage(1);
       prevFilterKey.current = key;
     }
-  }, [selectedYear, selectedExamType]);
+  }, [selectedYear, selectedSubject]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["pyp-pdfs", page, selectedYear, selectedExamType],
+    queryKey: ["pyp", page, selectedYear, selectedSubject],
     queryFn: () => {
       const params = new URLSearchParams();
       if (selectedYear !== "all") params.set("year", selectedYear);
-      if (selectedExamType !== "all") params.set("examType", selectedExamType);
+      if (selectedSubject !== "all") params.set("subject", selectedSubject);
       params.set("page", String(page));
       params.set("limit", "12");
       const query = params.toString();
       return apiFetch<{
-        data: PypPdf[];
+        data: PreviousYearPaper[];
         total: number;
         page: number;
         totalPages: number;
-      }>(`/document-pyp${query ? `?${query}` : ""}`);
+      }>(`/pyp${query ? `?${query}` : ""}`);
     },
   });
 
-  const pdfs = data?.data ?? [];
+  const papers = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
-
   return (
     <PageTransition
       className="
@@ -113,18 +114,17 @@ export default function PypPage() {
           </SelectContent>
         </Select>
 
-        <Select value={selectedExamType} onValueChange={setSelectedExamType}>
+        <Select value={selectedSubject} onValueChange={setSelectedSubject}>
           <SelectTrigger className=" bg-white border-gray-300">
-            <SelectValue placeholder="Exam Type" />
+            <SelectValue placeholder="Subject" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Exam Types</SelectItem>
-            <SelectItem value="JEE Main">JEE Main</SelectItem>
-            <SelectItem value="JEE Advanced">JEE Advanced</SelectItem>
-            <SelectItem value="NEET">NEET</SelectItem>
-            <SelectItem value="CBSE Board">CBSE Board</SelectItem>
-            <SelectItem value="State Board">State Board</SelectItem>
-            <SelectItem value="Other">Other</SelectItem>
+            <SelectItem value="all">All Subjects</SelectItem>
+            {subjects.map((s) => (
+              <SelectItem key={s.id} value={s.name}>
+                {s.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -140,7 +140,7 @@ export default function PypPage() {
           <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-red-700">
             Failed to load papers. Please try again later.
           </div>
-        ) : pdfs.length === 0 ? (
+        ) : papers.length === 0 ? (
           <Empty>
             <FileText className="w-10 h-10 text-gray-300" />
             <EmptyTitle>No papers found</EmptyTitle>
@@ -149,9 +149,9 @@ export default function PypPage() {
             </EmptyDescription>
           </Empty>
         ) : (
-          pdfs.map((pdf) => (
+          papers.map((paper) => (
             <Card
-              key={pdf.id}
+              key={paper.id}
               className="
           border-2
           border-gray-200
@@ -165,52 +165,68 @@ export default function PypPage() {
               <CardContent className="p-5">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="h-16 w-16 rounded-2xl bg-cyan-500 flex items-center justify-center shrink-0">
-                      <FileText className="h-8 w-8 text-white" />
+                    <div className="size-14 rounded-xl bg-cyan-500 flex items-center justify-center shrink-0">
+                      <FileText className="size-8 text-white" />
                     </div>
 
                     <div className="min-w-0">
                       <h3 className="font-bold text-lg text-gray-900 truncate">
-                        {pdf.title}
+                        {paper.examName}
                       </h3>
 
                       <div className="flex flex-wrap gap-2 mt-2 text-sm">
+                        {paper.subject && (
+                          <>
+                            <span className="font-medium text-gray-700">
+                              {paper.subject}
+                            </span>
+                            <span className="text-gray-400">•</span>
+                          </>
+                        )}
                         <span className="font-medium text-gray-700">
-                          {pdf.subject}
+                          {paper.shiftName}
                         </span>
-
                         <span className="text-gray-400">•</span>
-
                         <span className="font-medium text-gray-700">
-                          {pdf.examType}
-                        </span>
-
-                        <span className="text-gray-400">•</span>
-
-                        <span className="font-medium text-gray-700">
-                          {pdf.year}
+                          {paper.year}
                         </span>
                       </div>
-
-                      <p className="mt-2 text-xs text-gray-400">
-                        {(pdf.fileSize / 1024 / 1024).toFixed(2)} MB • Uploaded{" "}
-                        {new Date(pdf.uploadedAt).toLocaleDateString()}
-                      </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-3">
-                    <DocumentActionButton
-                      url={pdf.cloudinaryUrl}
-                      page="pyp"
-                      action="read"
-                    />
+                  <div className="flex flex-wrap gap-1">
+                    {paper.questionPaperUrl && (
+                      <>
+                        {/* <DocumentActionButton
+                          url={paper.questionPaperUrl}
+                          page="pyp"
+                          action="read"
+                        /> */}
+                        <DocumentActionButton
+                          url={paper.questionPaperUrl}
+                          page="pyp"
+                          action="download"
+                        />
+                      </>
+                    )}
 
-                    <DocumentActionButton
-                      url={pdf.cloudinaryUrl}
-                      page="pyp"
-                      action="download"
-                    />
+                    {(paper.answerKeyPdf || paper.answerKeyUrl) && (
+                      <>
+                        <div className="w-px bg-gray-200" />
+                        {/* <DocumentActionButton
+                          url={paper.answerKeyPdf || paper.answerKeyUrl!}
+                          page="pyp"
+                          action="read"
+                          label="Answer Key"
+                        /> */}
+                        <DocumentActionButton
+                          url={paper.answerKeyPdf || paper.answerKeyUrl!}
+                          page="pyp"
+                          action="download"
+                          label="Answer Key"
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -245,9 +261,9 @@ export default function PypPage() {
         </div>
       )}
 
-      {pdfs.length > 0 && (
+      {papers.length > 0 && (
         <div className="text-center text-gray-400 text-sm">
-          Showing {pdfs.length} paper{pdfs.length !== 1 ? "s" : ""}
+          Showing {papers.length} paper{papers.length !== 1 ? "s" : ""}
         </div>
       )}
     </PageTransition>

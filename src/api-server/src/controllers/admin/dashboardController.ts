@@ -9,8 +9,6 @@ import {
   mockTestsTable,
   currentAffairsTable,
   supportTicketsTable,
-  ncertPdfsTable,
-  pypPdfsTable,
 } from "@workspace/db";
 import { sql, desc, and, eq, gte, ne } from "drizzle-orm";
 import { cacheGet, cacheSet, CacheTTL } from "../../lib/cache";
@@ -62,14 +60,6 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
       .from(supportTicketsTable)
       .where(ne(supportTicketsTable.status, "closed"));
 
-    const [ncertStorageRow] = await db
-      .select({ total: sql<number>`COALESCE(SUM(file_size), 0)` })
-      .from(ncertPdfsTable);
-    const [pypStorageRow] = await db
-      .select({ total: sql<number>`COALESCE(SUM(file_size), 0)` })
-      .from(pypPdfsTable);
-    const totalStorageBytes = Number(ncertStorageRow.total) + Number(pypStorageRow.total);
-    const storageUsedMb = Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
 
     const recentActivity = await db
       .select()
@@ -99,7 +89,7 @@ export async function getDashboardStats(_req: Request, res: Response, next: Next
         totalMockTests: Number(mockTestsRow.count),
         totalCurrentAffairs: Number(currentAffairsRow.count),
         openSupportTickets: Number(openTicketsRow.count),
-        storageUsedMb,
+        storageUsedMb: 0,
       },
     };
 

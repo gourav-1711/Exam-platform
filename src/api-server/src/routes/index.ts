@@ -10,8 +10,6 @@ import supportRouter from "./support";
 import announcementsRouter from "./announcements";
 import streaksRouter from "./streaks";
 import adminRouter from "./admin/index";
-import documentNcertRouter from "./documentNcert";
-import documentPypRouter from "./documentPyp";
 import examSetsRouter from "./examSets";
 import dailyQuizzesRouter from "./dailyQuizzes";
 import questionsBatchRouter from "./questions";
@@ -38,7 +36,5 @@ router.use(questionsBatchRouter);
 router.use(mockTestsRouter);
 router.use(attemptsRouter);
 router.use("/admin", adminRouter);
-router.use("/document-ncert", documentNcertRouter);
-router.use("/document-pyp", documentPypRouter);
 
 export default router;

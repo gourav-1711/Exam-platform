@@ -5,6 +5,7 @@ import { eq, like, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
+import { uploadToCloudinary } from "../../config/cloudinary";
 
 const ncertBookSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -15,6 +16,17 @@ const ncertBookSchema = z.object({
   downloadUrl: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
 });
+
+/**
+ * If the request has an uploaded file, upload to Cloudinary and set downloadUrl.
+ */
+async function handleFileUpload(req: Request, data: Record<string, unknown>): Promise<Record<string, unknown>> {
+  if (req.file) {
+    const result = await uploadToCloudinary(req.file.buffer, "ncert", req.file.originalname);
+    return { ...data, downloadUrl: result.secureUrl, readUrl: result.secureUrl };
+  }
+  return data;
+}
 
 export async function listAllNcertBooks(req: Request, res: Response, next: NextFunction) {
   try {
@@ -83,7 +95,8 @@ export async function getNcertBookById(req: Request, res: Response, next: NextFu
 
 export async function createNcertBook(req: Request, res: Response, next: NextFunction) {
   try {
-    const parsed = ncertBookSchema.safeParse(req.body);
+    const data = await handleFileUpload(req, { ...req.body });
+    const parsed = ncertBookSchema.safeParse(data);
     if (!parsed.success) {
       return next(new AppError(400, `Validation error: ${parsed.error.issues.map(i => i.message).join("; ")}`));
     }
@@ -100,7 +113,8 @@ export async function createNcertBook(req: Request, res: Response, next: NextFun
 export async function updateNcertBook(req: Request, res: Response, next: NextFunction) {
   try {
     const id = routeParam(req.params.id);
-    const parsed = ncertBookSchema.partial().safeParse(req.body);
+    const data = await handleFileUpload(req, { ...req.body });
+    const parsed = ncertBookSchema.partial().safeParse(data);
     if (!parsed.success) {
       return next(new AppError(400, `Validation error: ${parsed.error.issues.map(i => i.message).join("; ")}`));
     }

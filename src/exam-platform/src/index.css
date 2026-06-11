@@ -131,3 +131,7 @@
     @apply bg-gradient-to-br from-primary to-violet-500 bg-clip-text text-transparent;
   }
 }
+
+button{
+  cursor: pointer;
+}

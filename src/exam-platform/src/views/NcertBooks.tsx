@@ -20,15 +20,17 @@ import {
 } from "@/components/ui/select";
 import { useListSubjects } from "@/lib/api";
 
-interface NcertPdf {
-  id: number;
+interface NcertBook {
+  id: string;
   title: string;
+  classNum: number;
   subject: string;
-  classNumber: number;
-  originalName: string;
-  cloudinaryUrl: string;
-  fileSize: number;
-  uploadedAt: string;
+  medium: string;
+  readUrl: string | null;
+  downloadUrl: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function NcertBooks() {
@@ -40,26 +42,26 @@ export default function NcertBooks() {
   const { data: pyqSubjects = [] } = useListSubjects();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["ncert-pdfs", page, selectedClass, selectedSubject],
+    queryKey: ["ncert-books", page, selectedClass, selectedSubject],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
         limit: "12",
       });
-      if (selectedClass) params.set("classNumber", String(selectedClass));
+      if (selectedClass) params.set("classNum", String(selectedClass));
       if (selectedSubject && selectedSubject !== "All")
         params.set("subject", selectedSubject);
 
       return apiFetch<{
-        data: NcertPdf[];
+        data: NcertBook[];
         total: number;
         page: number;
         totalPages: number;
-      }>(`/document-ncert?${params.toString()}`);
+      }>(`/ncert-books?${params.toString()}`);
     },
   });
 
-  const pdfs = data?.data ?? [];
+  const books = data?.data ?? [];
   const totalPages = data?.totalPages ?? 1;
 
   return (
@@ -82,12 +84,13 @@ export default function NcertBooks() {
               type="single"
               value={selectedClass ? String(selectedClass) : ""}
               onValueChange={(v) => setSelectedClass(v && v !== "" ? Number(v) : null)}
-            >
+              className="flex flex-wrap gap-2 bg-secondary/10 p-1 rounded-lg"
+           >
               <ToggleGroupItem value="" className="text-sm px-3 py-1.5 rounded-lg">
                 All
               </ToggleGroupItem>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((cls) => (
-                <ToggleGroupItem key={cls} value={String(cls)} className="text-sm px-3 py-1.5 rounded-lg">
+                <ToggleGroupItem key={cls} value={String(cls)} className="text-sm px-3 py-1.5 rounded-lg bg-secondary/50 data-[state=on]:bg-secondary text-secondary-foreground">
                   {cls}
                 </ToggleGroupItem>
               ))}
@@ -127,7 +130,7 @@ export default function NcertBooks() {
           <div className="p-6 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
             Failed to load NCERT books. Please try again later.
           </div>
-        ) : pdfs.length === 0 ? (
+        ) : books.length === 0 ? (
           <div className="p-12 text-center bg-card border rounded-2xl">
             <Empty>
               <Library className="w-10 h-10 text-gray-300 mx-auto" />
@@ -137,38 +140,28 @@ export default function NcertBooks() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pdfs.map((pdf) => (
+            {books.map((book) => (
               <Card
-                key={pdf.id}
+                key={book.id}
                 className="card-hover border-border/50 rounded-2xl bg-card overflow-hidden flex flex-col"
               >
                 <CardContent className="p-5 flex flex-col flex-1">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-foreground mb-2">
-                      {pdf.title}
+                      {book.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Class {pdf.classNumber} • {pdf.subject}
+                    <p className="text-sm text-muted-foreground mb-4 ">
+                      Class {book.classNum}   • {book.subject}
                     </p>
                   </div>
 
-                  <div className="space-y-2 mb-4 text-sm text-muted-foreground">
-                    <p>
-                      Size:{" "}
-                      {pdf.fileSize
-                        ? (pdf.fileSize / 1024 / 1024).toFixed(2) + " MB"
-                        : "External Link"}
-                    </p>
-                    <p>
-                      Uploaded: {new Date(pdf.uploadedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <DocumentActionButton
-                    url={pdf.cloudinaryUrl}
-                    page="ncert-books"
-                    action="download"
-                  />
+                  {book.downloadUrl && (
+                    <DocumentActionButton
+                      url={book.downloadUrl}
+                      page="ncert-books"
+                      action="download"
+                    />
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -205,9 +198,9 @@ export default function NcertBooks() {
         </div>
       )}
 
-      {pdfs.length > 0 && (
+      {books.length > 0 && (
         <div className="text-center text-muted-foreground text-sm">
-          Showing {pdfs.length} NCERT book{pdfs.length !== 1 ? "s" : ""}
+          Showing {books.length} NCERT book{books.length !== 1 ? "s" : ""}
         </div>
       )}
     </PageTransition>

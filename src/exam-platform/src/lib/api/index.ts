@@ -352,12 +352,23 @@ export function useListNcertBooks(
 // ── PYPs ─────────────────────────────────────────────────────────────────
 
 export function useListPyp(
-  params?: { examName?: string },
+  params?: { examName?: string; year?: string; subject?: string; page?: number; limit?: number },
   options?: QueryHookOptions,
 ) {
-  return usePublicQuery<PreviousYearPaper[]>(
+  return usePublicQuery<{
+    data: PreviousYearPaper[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(
     ["pyp", "list", params ?? {}] as const,
-    () => apiFetch<PreviousYearPaper[]>("/pyp" + toSearchParams(params ?? {})),
+    () =>
+      apiFetch<{
+        data: PreviousYearPaper[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>("/pyp" + toSearchParams(params ?? {})),
     options,
   );
 }

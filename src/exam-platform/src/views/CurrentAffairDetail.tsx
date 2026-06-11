@@ -37,14 +37,13 @@ function DateBadge({ date }: { date: Date | string }) {
   const day = d.getDate();
   const month = d.toLocaleString("en-IN", { month: "short" }).toUpperCase();
   const year = d.getFullYear();
-
   return (
-    <div className="inline-flex flex-col items-center bg-white rounded-xl shadow-sm border border-gray-100 px-4 pt-2 pb-2 min-w-[64px]">
-      <span className="text-[11px] font-semibold tracking-widest text-violet-500 leading-none mb-1">
-        {month}
-      </span>
+    <div className="inline-flex flex-col items-center bg-white rounded-xl shadow-sm border border-gray-100 px-4 pt-2 mt-4 pb-2 min-w-[64px]">
       <span className="text-3xl font-extrabold text-gray-900 leading-none">
         {day}
+      </span>
+      <span className="text-[11px] font-semibold tracking-widest text-violet-500 leading-none mb-1">
+        {month}
       </span>
       <span className="text-[11px] text-gray-400 leading-none mt-1">
         {year}

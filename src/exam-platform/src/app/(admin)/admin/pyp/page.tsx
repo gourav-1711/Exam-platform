@@ -238,6 +238,53 @@ export default function PypAdminPage() {
       return;
     }
 
+    // ── File mode: send FormData directly to /api/admin/pyp ──────────────
+    if (uploadMode === "file" && (paperFile || answerKeyFile)) {
+      setUploadingPdf(true);
+      try {
+        const formData = new FormData();
+        formData.append("examName", examName.trim());
+        formData.append("shiftName", shiftName);
+        formData.append("year", year);
+        if (subjectId) formData.append("subjectId", subjectId);
+        // Preserve any existing URL values (for editing)
+        if (questionPaperUrl.trim()) formData.append("questionPaperUrl", questionPaperUrl.trim());
+        if (answerKeyUrl.trim()) formData.append("answerKeyUrl", answerKeyUrl.trim());
+        if (answerKeyPdf.trim()) formData.append("answerKeyPdf", answerKeyPdf.trim());
+        // Add files — the backend uploads them to Cloudinary
+        if (paperFile) formData.append("paperFile", paperFile);
+        if (answerKeyFile) formData.append("answerKeyFile", answerKeyFile);
+
+        const token = await getToken();
+        const endpoint = editingItem
+          ? `/api/admin/pyp/${editingItem.id}`
+          : "/api/admin/pyp";
+        const method = editingItem ? "PATCH" : "POST";
+
+        const res = await fetch(endpoint, {
+          method,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || "Upload failed");
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["admin", "pyp"] });
+        setSheetOpen(false);
+        resetForm();
+        toast({ title: "Success!", description: `PYP paper ${editingItem ? "updated" : "added"} successfully` });
+      } catch (err) {
+        toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
+      } finally {
+        setUploadingPdf(false);
+      }
+      return;
+    }
+
+    // ── URL mode: send JSON ─────────────────────────────────────────────
     const payload = {
       examName: examName.trim(),
       shiftName,
@@ -245,72 +292,11 @@ export default function PypAdminPage() {
       subjectId: subjectId || null,
       questionPaperUrl: questionPaperUrl.trim() || null,
       answerKeyUrl: answerKeyUrl.trim() || null,
-      answerKeyPdf: editingItem?.answerKeyPdf || null,
+      answerKeyPdf: editingItem?.answerKeyPdf || answerKeyPdf.trim() || null,
     };
 
     if (editingItem) {
-      // Edit mode - PATCH existing
       updateMutation.mutate({ id: editingItem.id, body: payload });
-      return;
-    }
-
-    if (uploadMode === "file" && paperFile) {
-      // Upload via document-pyp route with files
-      setUploadingPdf(true);
-      try {
-        const token = await getToken();
-
-        // Upload question paper
-        const paperData = new FormData();
-        paperData.append("title", examName.trim());
-        paperData.append("subject",        subjects.find((s: { id: string; name: string }) => String(s.id) === subjectId)?.name || "");
-        paperData.append("year", year);
-        paperData.append("examType", "Other");
-        paperData.append("file", paperFile);
-
-        const paperRes = await fetch("/api/admin/document-pyp", {
-          method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: paperData,
-        });
-
-        if (!paperRes.ok) {
-          const err = await paperRes.json().catch(() => ({}));
-          throw new Error(err.error || "Paper upload failed");
-        }
-
-        const paperResult = await paperRes.json();
-        let answerKeyPdfUrl = answerKeyPdf.trim() || null;          // Upload answer key if provided
-        if (answerKeyFile) {
-          const keyData = new FormData();
-          keyData.append("title", `${examName.trim()} - Answer Key`);
-          keyData.append("subject",        subjects.find((s: { id: string; name: string }) => String(s.id) === subjectId)?.name || "");
-          keyData.append("year", year);
-          keyData.append("examType", "Other");
-          keyData.append("file", answerKeyFile);
-
-          const keyRes = await fetch("/api/admin/document-pyp", {
-            method: "POST",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-            body: keyData,
-          });
-
-          if (keyRes.ok) {
-            const keyResult = await keyRes.json();
-            answerKeyPdfUrl = keyResult.cloudinaryUrl || null;
-          }
-        }
-
-        createMutation.mutate({
-          ...payload,
-          questionPaperUrl: paperResult.cloudinaryUrl || null,
-          answerKeyPdf: answerKeyPdfUrl,
-        });
-      } catch (err) {
-        toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Upload failed", variant: "destructive" });
-      } finally {
-        setUploadingPdf(false);
-      }
     } else {
       createMutation.mutate(payload);
     }

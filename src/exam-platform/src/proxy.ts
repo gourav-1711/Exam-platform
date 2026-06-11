@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 
 // Public API routes that don't need Clerk auth
 const PUBLIC_API_ROUTES = [
-  "/api/document-ncert",
-  "/api/document-pyp",
   "/api/health",
   "/api/pyp",
   "/api/pyq",
@@ -14,6 +12,8 @@ const PUBLIC_API_ROUTES = [
   "/api/exam-sets",
   "/api/current-affairs",
   "/api/daily-quizzes",
+  "/api/ncert-books",
+  "/api/subjects",
 ];
 
 // Only admin pages are protected at the middleware level.
