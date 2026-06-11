@@ -16,9 +16,9 @@ const PUBLIC_API_ROUTES = [
   "/api/subjects",
 ];
 
-// Only admin pages are protected at the middleware level.
-// All other pages are open; auth-gated actions use the RequireAuthModal.
-const isProtectedRoute = createRouteMatcher([
+// Admin routes are protected at the middleware level — both auth and role check
+// happen server-side BEFORE the page loads, so non-admin users never see admin content.
+const isAdminRoute = createRouteMatcher([
   "/admin(.*)",
 ]);
 
@@ -33,8 +33,16 @@ export default isClerkConfigured ? clerkMiddleware(async (auth, req) => {
   if (isPublicApiRoute(req)) {
     return NextResponse.next();
   }
-  if (isProtectedRoute(req)) {
+  if (isAdminRoute(req)) {
+    // 1. Ensure user is signed in (redirects to sign-in if not)
     await auth.protect();
+
+    // 2. Check admin role server-side — redirect non-admins to home immediately
+    const { sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as Record<string, unknown>)?.role;
+    if (role !== "admin") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
   }
   return NextResponse.next();
 }) : function middleware() {

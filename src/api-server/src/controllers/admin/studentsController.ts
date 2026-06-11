@@ -23,34 +23,31 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
       .from(userStreaksTable)
       .where(whereClause);
 
+    // Use LEFT JOIN + GROUP BY instead of correlated subqueries
+    // Correlated subqueries in Drizzle SQL templates can fail to correlate properly
+    // due to parameter binding, causing all rows to show the same aggregate values.
     const users = await db
       .select({
         userId: userStreaksTable.userId,
         displayName: userStreaksTable.displayName,
         createdAt: userStreaksTable.createdAt,
-        totalAttempts: sql<number>`coalesce((
-          select count(*) from ${studentAttemptsTable}
-          where ${studentAttemptsTable.userId} = ${userStreaksTable.userId}
-        ), 0)`,
-        avgScore: sql<number>`coalesce((
-          select avg(score) from ${studentAttemptsTable}
-          where ${studentAttemptsTable.userId} = ${userStreaksTable.userId}
-        ), 0)`,
-        totalScore: sql<number>`coalesce((
-          select coalesce(sum(score), 0) from ${studentAttemptsTable}
-          where ${studentAttemptsTable.userId} = ${userStreaksTable.userId}
-        ), 0)`,
-        passedCount: sql<number>`coalesce((
-          select count(*) from ${studentAttemptsTable}
-          where ${studentAttemptsTable.userId} = ${userStreaksTable.userId} and is_passed = true
-        ), 0)`,
-        lastAttemptAt: sql<string | null>`(
-          select max(attempted_at) from ${studentAttemptsTable}
-          where ${studentAttemptsTable.userId} = ${userStreaksTable.userId}
-        )`,
+        totalAttempts: sql<number>`coalesce(count(${studentAttemptsTable.id}), 0)`,
+        avgScore: sql<number>`coalesce(avg(${studentAttemptsTable.score}), 0)`,
+        totalScore: sql<number>`coalesce(sum(${studentAttemptsTable.score}), 0)`,
+        passedCount: sql<number>`coalesce(sum(case when ${studentAttemptsTable.isPassed} then 1 else 0 end), 0)`,
+        lastAttemptAt: sql<string | null>`max(${studentAttemptsTable.attemptedAt})`,
       })
       .from(userStreaksTable)
+      .leftJoin(
+        studentAttemptsTable,
+        eq(userStreaksTable.userId, studentAttemptsTable.userId),
+      )
       .where(whereClause)
+      .groupBy(
+        userStreaksTable.userId,
+        userStreaksTable.displayName,
+        userStreaksTable.createdAt,
+      )
       .orderBy(desc(userStreaksTable.createdAt))
       .limit(limitNum)
       .offset(offset);

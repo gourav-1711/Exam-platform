@@ -189,11 +189,12 @@ export default function GlobalMcqPlayer({
 
   // FIX: use the ref so this effect always calls the current handleSubmit,
   // even though timeLeft (and therefore the effect) updates every second.
+  // NCERT and PYQ modes have no timer — never auto-submit.
   useEffect(() => {
-    if (timeLeft <= 0 && !isSubmitted) {
+    if (mode !== "ncert" && mode !== "pyq" && timeLeft <= 0 && !isSubmitted) {
       handleSubmitRef.current();
     }
-  }, [timeLeft, isSubmitted]);
+  }, [mode, timeLeft, isSubmitted]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -275,27 +276,45 @@ export default function GlobalMcqPlayer({
       // Show the full-screen loading overlay IMMEDIATELY — blocks all clicks
       setIsNavigatingToResult(true);
 
-      // Fire save attempt in background
-      const savePromise = saveAttempt({
-        score,
-        totalMarks:
-          mode === "mock" || mode === "daily"
-            ? resolvedMaxMarks
-            : resolvedMaxScore,
-        correctCount,
-        wrongCount,
-        skippedCount,
-        timeTakenSecs,
-        isPassed,
-      });
+      // Only save attempt history for mock tests and daily quizzes
+      // NCERT and PYQ are practice modes — no need to track scores
+      const shouldSave = mode === "mock" || mode === "daily";
+      const savePromise = shouldSave
+        ? saveAttempt({
+            score,
+            totalMarks:
+              mode === "mock" || mode === "daily"
+                ? resolvedMaxMarks
+                : resolvedMaxScore,
+            correctCount,
+            wrongCount,
+            skippedCount,
+            timeTakenSecs,
+            isPassed,
+          })
+        : Promise.resolve();
 
-      // Navigate after save completes (even if save fails, still show results)
-      Promise.resolve(savePromise)
+      // Safety timeout: if save attempt takes > 8 seconds, navigate anyway
+      const timeoutPromise = new Promise<unknown>((_, reject) =>
+        setTimeout(() => reject(new Error("Save attempt timed out")), 8000),
+      );
+
+      // Navigate after save completes (even if save fails/times out, still show results)
+      Promise.race([Promise.resolve(savePromise), timeoutPromise])
         .catch((err) => {
-          console.error("Failed to save attempt:", err);
+          if (err instanceof Error && err.message !== "Save attempt timed out") {
+            console.error("Failed to save attempt:", err);
+          }
         })
         .finally(() => {
-          onShowResult(resultData);
+          try {
+            onShowResult(resultData);
+          } catch (err) {
+            // If onShowResult throws (e.g. sessionStorage full), still navigate
+            console.error("Failed to navigate to results:", err);
+            // Hide the loading overlay so buttons become clickable again
+            setIsNavigatingToResult(false);
+          }
           // Note: onShowResult calls router.push() which unmounts this component,
           // so the overlay naturally disappears with the component.
         });
@@ -411,8 +430,9 @@ export default function GlobalMcqPlayer({
 
   // ── Main render ────────────────────────────────────────────────────────
 
+  // z-40 so portaled modals (AlertDialog at z-50, Sheet at z-50) render on top
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex flex-col md:flex-row overflow-hidden">
+    <div className="fixed inset-0 z-40 bg-background flex flex-col md:flex-row overflow-hidden">
       {/* ── Sidebar ──────────────────────────────────────────────────── */}
       {/* Desktop: always visible when showSidebar is true */}
       {/* Mobile: overlay panel that slides in from the left */}
@@ -539,8 +559,8 @@ export default function GlobalMcqPlayer({
           </div>
 
           <div className="flex items-center gap-1 md:gap-3 shrink-0">
-            {/* Timer */}
-            {!isSubmitted && (
+            {/* Timer — hidden for NCERT/PYQ (no time limit) */}
+            {!isSubmitted && mode !== "ncert" && mode !== "pyq" && (
               <div
                 className={cn(
                   "flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 md:py-1.5 rounded-lg font-mono font-bold border text-xs md:text-sm",

@@ -137,7 +137,11 @@ export default function MockTestPlayer() {
 
   const handleShowResult = (result: ResultData) => {
     // FIX: use the exam-specific storage key and pass id in the URL
-    sessionStorage.setItem(getResultStorageKey(id), JSON.stringify(result));
+    try {
+      sessionStorage.setItem(getResultStorageKey(id), JSON.stringify(result));
+    } catch (err) {
+      console.error("Failed to cache result:", err);
+    }
     router.push(
       `/result?id=${encodeURIComponent(id)}&returnTo=${encodeURIComponent("/mock-tests")}`,
     );

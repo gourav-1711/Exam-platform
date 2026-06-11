@@ -76,7 +76,11 @@ export default function QuizPlayer() {
 
   const handleShowResult = (result: ResultData) => {
     // FIX: quiz-specific key prevents stale results when navigating between quizzes
-    sessionStorage.setItem(getResultStorageKey(id), JSON.stringify(result));
+    try {
+      sessionStorage.setItem(getResultStorageKey(id), JSON.stringify(result));
+    } catch (err) {
+      console.error("Failed to cache result:", err);
+    }
     router.push(
       `/result?id=${encodeURIComponent(id)}&returnTo=${encodeURIComponent("/daily-quiz")}`,
     );

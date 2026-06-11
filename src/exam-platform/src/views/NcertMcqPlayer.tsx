@@ -130,7 +130,11 @@ export default function NcertMcqPlayer() {
 
   const handleShowResult = (result: ResultData) => {
     // FIX: use the set-specific storage key and pass setId in the URL
-    sessionStorage.setItem(getResultStorageKey(setId), JSON.stringify(result));
+    try {
+      sessionStorage.setItem(getResultStorageKey(setId), JSON.stringify(result));
+    } catch (err) {
+      console.error("Failed to cache result:", err);
+    }
     router.push(
       `/result?id=${encodeURIComponent(setId)}&returnTo=${encodeURIComponent("/ncert-mcq")}`,
     );

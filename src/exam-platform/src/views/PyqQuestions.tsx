@@ -85,10 +85,14 @@ export default function PyqQuestions() {
 
   const handleShowResult = (result: ResultData) => {
     // FIX: use subject-specific storage key and pass slug in the URL
-    sessionStorage.setItem(
-      getResultStorageKey(subjectSlug),
-      JSON.stringify(result),
-    );
+    try {
+      sessionStorage.setItem(
+        getResultStorageKey(subjectSlug),
+        JSON.stringify(result),
+      );
+    } catch (err) {
+      console.error("Failed to cache result:", err);
+    }
     router.push(
       `/result?id=${encodeURIComponent(subjectSlug)}&returnTo=${encodeURIComponent("/pyq")}`,
     );
