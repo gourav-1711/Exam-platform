@@ -63,6 +63,7 @@ export async function createSyllabus(req: Request, res: Response, next: NextFunc
       );
       body = {
         ...body,
+        readUrl: result.secureUrl,
         downloadUrl: result.secureUrl,
       };
     }
@@ -95,6 +96,7 @@ export async function updateSyllabus(req: Request, res: Response, next: NextFunc
       );
       body = {
         ...body,
+        readUrl: result.secureUrl,
         downloadUrl: result.secureUrl,
       };
     }

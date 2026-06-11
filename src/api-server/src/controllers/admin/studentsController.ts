@@ -23,37 +23,42 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
       .from(userStreaksTable)
       .where(whereClause);
 
-    // Use LEFT JOIN + GROUP BY instead of correlated subqueries
-    // Correlated subqueries in Drizzle SQL templates can fail to correlate properly
-    // due to parameter binding, causing all rows to show the same aggregate values.
+    // Step 1: Fetch paginated users from userStreaksTable (simple query — no join issues)
     const users = await db
       .select({
         userId: userStreaksTable.userId,
         displayName: userStreaksTable.displayName,
         createdAt: userStreaksTable.createdAt,
-        totalAttempts: sql<number>`coalesce(count(${studentAttemptsTable.id}), 0)`,
-        avgScore: sql<number>`coalesce(avg(${studentAttemptsTable.score}), 0)`,
-        totalScore: sql<number>`coalesce(sum(${studentAttemptsTable.score}), 0)`,
-        passedCount: sql<number>`coalesce(sum(case when ${studentAttemptsTable.isPassed} then 1 else 0 end), 0)`,
-        lastAttemptAt: sql<string | null>`max(${studentAttemptsTable.attemptedAt})`,
       })
       .from(userStreaksTable)
-      .leftJoin(
-        studentAttemptsTable,
-        eq(userStreaksTable.userId, studentAttemptsTable.userId),
-      )
       .where(whereClause)
-      .groupBy(
-        userStreaksTable.userId,
-        userStreaksTable.displayName,
-        userStreaksTable.createdAt,
-      )
       .orderBy(desc(userStreaksTable.createdAt))
       .limit(limitNum)
       .offset(offset);
 
+    // Step 2: Fetch aggregate stats for JUST these userIds (simple GROUP BY — no join/correlation)
+    const userIds = users.map(u => u.userId);
+    const stats = userIds.length > 0
+      ? await db
+          .select({
+            userId: studentAttemptsTable.userId,
+            totalAttempts: sql<number>`count(*)::int`,
+            avgScore: sql<number>`coalesce(avg(${studentAttemptsTable.score}), 0)`,
+            totalScore: sql<number>`coalesce(sum(${studentAttemptsTable.score}), 0)`,
+            passedCount: sql<number>`coalesce(sum(case when ${studentAttemptsTable.isPassed} then 1 else 0 end), 0)`,
+            lastAttemptAt: sql<string | null>`max(${studentAttemptsTable.attemptedAt})`,
+          })
+          .from(studentAttemptsTable)
+          .where(sql`${studentAttemptsTable.userId} = ANY(ARRAY[${sql.join(userIds.map(id => sql`${id}`), sql`, `)}]::text[])`)
+          .groupBy(studentAttemptsTable.userId)
+      : [];
+
+    // Step 3: Merge stats into a Map for O(1) lookup
+    const statsMap = new Map(stats.map(s => [s.userId, s]));
+
     const enriched = await Promise.all(
       users.map(async (u) => {
+        const s = statsMap.get(u.userId);
         let name = u.displayName || "Learner";
         let email = "";
         try {
@@ -69,11 +74,11 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
           userId: u.userId,
           displayName: name,
           email,
-          totalAttempts: Number(u.totalAttempts),
-          avgScore: Math.round(Number(u.avgScore) * 100) / 100,
-          totalScore: Number(u.totalScore),
-          passedCount: Number(u.passedCount),
-          lastAttemptAt: u.lastAttemptAt,
+          totalAttempts: s ? Number(s.totalAttempts) : 0,
+          avgScore: s ? Math.round(Number(s.avgScore) * 100) / 100 : 0,
+          totalScore: s ? Number(s.totalScore) : 0,
+          passedCount: s ? Number(s.passedCount) : 0,
+          lastAttemptAt: s?.lastAttemptAt ?? null,
           joinedAt: u.createdAt.toISOString(),
         };
       }),
