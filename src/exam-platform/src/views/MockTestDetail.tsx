@@ -59,7 +59,7 @@ export default function MockTestDetail() {
                     className="w-full rounded-xl bg-primary text-primary-foreground h-14 text-lg gap-2"
                     onClick={async () => {
                       await requireAuth(() => {
-                        router.push(`/mock-test/${test.id}`);
+                        router.push(`/mock-tests/${test.id}/play`);
                       });
                     }}
                   >

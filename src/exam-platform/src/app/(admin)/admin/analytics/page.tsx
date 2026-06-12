@@ -5,13 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
 
-import {
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BookOpen, Award, TrendingUp, Users, BarChart3 } from "lucide-react";
 
@@ -142,43 +136,7 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-border/50 bg-white shadow-sm rounded-2xl">
-          <CardHeader>
-            <CardTitle className="text-base text-gray-900 font-bold">
-              Attempt Breakdown
-            </CardTitle>
-            <CardDescription className="text-xs text-gray-500">
-              Pass vs fail distribution across all student submissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: "Passed", value: data.passCount },
-                    { name: "Failed", value: data.failCount },
-                  ]}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  label={({ name, percent }: { name?: string; percent?: number }) =>
-                    `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
-                  }
-                  labelLine={false}
-                >
-                  <Cell fill="#10b981" />
-                  <Cell fill="#ef4444" />
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         <Card className="border-border/50 bg-white shadow-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base text-gray-900 font-bold">

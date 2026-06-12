@@ -82,11 +82,11 @@ export default function NcertBooks() {
           <div className="flex flex-wrap gap-2">
             <ToggleGroup
               type="single"
-              value={selectedClass ? String(selectedClass) : ""}
-              onValueChange={(v) => setSelectedClass(v && v !== "" ? Number(v) : null)}
+              value={selectedClass ? String(selectedClass) : "all"}
+              onValueChange={(v) => setSelectedClass(v && v !== "all" ? Number(v) : null)}
               className="flex flex-wrap gap-2 bg-secondary/10 p-1 rounded-lg"
            >
-              <ToggleGroupItem value="" className="text-sm px-3 py-1.5 rounded-lg">
+              <ToggleGroupItem value="all" className="text-sm px-3 py-1.5 rounded-lg">
                 All
               </ToggleGroupItem>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((cls) => (
