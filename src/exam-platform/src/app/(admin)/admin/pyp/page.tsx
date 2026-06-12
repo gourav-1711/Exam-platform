@@ -556,7 +556,7 @@ export default function PypAdminPage() {
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {subjects.map((s: { id: string; name: string }) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}

@@ -777,7 +777,7 @@ export default function QuestionsAdminPage() {
                       <SelectValue placeholder="None" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {pyqSubjects.map((s: { id: string; name: string }) => (
                         <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
                       ))}

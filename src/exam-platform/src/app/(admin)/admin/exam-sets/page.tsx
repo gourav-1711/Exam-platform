@@ -499,7 +499,7 @@ export default function ExamSetsAdminPage() {
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {subjects.map((s: Subject) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name}
