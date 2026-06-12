@@ -120,7 +120,7 @@ export default function ActivityLogsPage() {
           ))}
         </div>
       ) : !data?.data.length ? (
-        <Card className="p-12">
+        <Card className="p-6 lg:p-12">
           <Empty>
             <Activity className="h-10 w-10 text-gray-300" />
             <EmptyTitle>No activity logs found</EmptyTitle>
@@ -138,13 +138,18 @@ export default function ActivityLogsPage() {
               {data?.data.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-start gap-4 px-4 py-3.5 hover:bg-gray-50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 px-3 sm:px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase shrink-0 mt-0.5 border ${getActionColor(log.action)}`}
-                  >
-                    {log.action.replace(/_/g, " ")}
-                  </span>
+                  <div className="flex items-center gap-2 sm:gap-0">
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase shrink-0 border ${getActionColor(log.action)}`}
+                    >
+                      {log.action.replace(/_/g, " ")}
+                    </span>
+                    <time className="text-[10px] text-gray-400 font-mono sm:hidden ml-auto">
+                      {new Date(log.createdAt).toLocaleDateString()}
+                    </time>
+                  </div>
                   <div className="flex-1 min-w-0">
                     {log.entityType && (
                       <Badge
@@ -154,22 +159,23 @@ export default function ActivityLogsPage() {
                         {log.entityType}
                       </Badge>
                     )}
-                    <span className="font-mono text-xs text-gray-400">
+                    <span className="font-mono text-xs text-gray-400 break-all">
                       by {log.userId.slice(0, 20)}...
                     </span>
                     {log.ipAddress && (
-                      <span className="text-[10px] text-gray-400 ml-2 font-mono">
+                      <span className="text-[10px] text-gray-400 ml-2 font-mono hidden sm:inline">
                         ({log.ipAddress})
                       </span>
                     )}
                   </div>
-                  <time className="text-xs text-gray-400 shrink-0 font-mono">
+                  <time className="text-xs text-gray-400 shrink-0 font-mono hidden sm:block">
                     {new Date(log.createdAt).toLocaleString()}
                   </time>
                 </div>
               ))}
             </div>
-          </Card>              {totalPages > 1 && (
+          </Card>
+          {totalPages > 1 && (
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-500">
                 Page {page} of {totalPages}

@@ -130,17 +130,17 @@ export default function SubjectsAdminPage() {
         </p>
       </div>
 
-      <form onSubmit={createSubject} className="flex gap-2 mb-4 max-w-lg">
+      <form onSubmit={createSubject} className="flex flex-col sm:flex-row gap-2 mb-4 max-w-lg">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New subject name..."
-          className="rounded-xl h-11 flex-1"
+          className="rounded-xl h-11 w-full"
         />
         <select
           value={examCategory}
           onChange={(e) => setExamCategory(e.target.value)}
-          className="px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 h-11"
+          className="px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 h-11 w-full sm:w-auto"
         >
           <option value="General">General</option>
           <option value="UPSC">UPSC</option>
@@ -149,7 +149,7 @@ export default function SubjectsAdminPage() {
           <option value="Railway">Railway</option>
           <option value="State PSC">State PSC</option>
         </select>
-        <Button type="submit" disabled={!name.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-11 font-bold shrink-0">
+        <Button type="submit" disabled={!name.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-11 font-bold shrink-0 w-full sm:w-auto">
           Create
         </Button>
       </form>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Menu } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -33,10 +33,13 @@ import {
 import Link from "next/link";
 import { useAdminSupportUnreadCount } from "@/lib/api";
 import { NAV } from "./AdminSidebar";
+import { useAppDispatch } from "@/store/hooks";
+import { toggleMobileAdminSidebar } from "@/store/slices/uiSlice";
 
 export function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [searchOpen, setSearchOpen] = React.useState(false);
 
   const { data: unreadData, isLoading } = useAdminSupportUnreadCount({
@@ -70,8 +73,16 @@ export function AdminHeader() {
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
-      <div className="h-16 px-6 flex items-center justify-between gap-4">
-        <div className="min-w-0 flex items-center gap-6">
+      <div className="h-16 px-4 lg:px-6 flex items-center justify-between gap-2 lg:gap-4">
+        <div className="min-w-0 flex items-center gap-2 lg:gap-6">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => dispatch(toggleMobileAdminSidebar())}
+            className="p-2 rounded-lg hover:bg-muted transition-colors lg:hidden shrink-0"
+            aria-label="Open sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <Breadcrumb>
             <BreadcrumbList>
               {breadcrumb.map((b, idx) => {

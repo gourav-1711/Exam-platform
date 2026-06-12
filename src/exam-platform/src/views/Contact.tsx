@@ -1,21 +1,22 @@
 "use client";
 
 import { StaticPageLayout } from "@/components/shared/StaticPageLayout";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+
 import { Mail, MessageCircle, MapPin } from "lucide-react";
-import { contact_gmail, contact_number, contact_address, whatsapp_link } from "@/lib/data";
+import {
+  contact_gmail,
+  contact_number,
+  contact_address,
+  whatsapp_link,
+} from "@/lib/data";
 
 export default function Contact() {
-
-  const contactNumberFormatted = contact_number 
+  const contactNumberFormatted = contact_number
     ? `+91 ${contact_number.slice(0, 5)} ${contact_number.slice(5)}`
     : "";
 
   return (
     <StaticPageLayout title="Contact Us" heading="Contact Us">
-
       {/* Contact Info Cards */}
       <div className="space-y-3">
         {[
@@ -44,31 +45,53 @@ export default function Contact() {
             iconBg: "bg-blue-100",
             iconColor: "text-blue-600",
             title: "Location",
-            sub: contact_address || "Rajasthan, India",
-            value: "Jaipur, Rajasthan — 302001",
+            sub: "Manish ki Pathshala",
+            value: "Shri Ganga Nagar , Rajsthan India",
             href: null,
             valueColor: "text-foreground",
           },
-        ].map(({ icon: Icon, iconBg, iconColor, title, sub, value, href, valueColor }) => (
-          <div key={title} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-border/50">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconBg}`}>
-              <Icon className={`w-4 h-4 ${iconColor}`} />
+        ].map(
+          ({
+            icon: Icon,
+            iconBg,
+            iconColor,
+            title,
+            sub,
+            value,
+            href,
+            valueColor,
+          }) => (
+            <div
+              key={title}
+              className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-border/50"
+            >
+              <div
+                className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${iconBg}`}
+              >
+                <Icon className={`w-4 h-4 ${iconColor}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-sm text-foreground">{title}</p>
+                <p className="text-xs text-muted-foreground">{sub}</p>
+                {href ? (
+                  <a
+                    href={href}
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel="noopener noreferrer"
+                    className={`text-xs font-semibold mt-0.5 hover:underline block ${valueColor}`}
+                  >
+                    {value}
+                  </a>
+                ) : (
+                  <p className={`text-xs font-semibold mt-0.5 ${valueColor}`}>
+                    {value}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold text-sm text-foreground">{title}</p>
-              <p className="text-xs text-muted-foreground">{sub}</p>
-              {href ? (
-                <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer"
-                  className={`text-xs font-semibold mt-0.5 hover:underline block ${valueColor}`}>{value}</a>
-              ) : (
-                <p className={`text-xs font-semibold mt-0.5 ${valueColor}`}>{value}</p>
-              )}
-            </div>
-          </div>
-        ))}
+          ),
+        )}
       </div>
-
-
     </StaticPageLayout>
   );
 }

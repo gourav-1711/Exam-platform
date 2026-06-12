@@ -61,7 +61,7 @@ export default function StudentsPage() {
     enabled: !!selectedUserId,
     staleTime: 30 * 1000,
   });
-
+  console.log(data?.data, attempts);
   return (
     <div className="p-6 md:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -111,25 +111,25 @@ export default function StudentsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Student
                       </th>
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Attempts
                       </th>
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="hidden sm:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Avg Score
                       </th>
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="hidden sm:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Total
                       </th>
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="hidden md:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Passed
                       </th>
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="hidden md:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Joined
                       </th>
-                      <th className="px-6 py-3 font-semibold text-gray-600">
+                      <th className="hidden lg:table-cell px-4 lg:px-6 py-3 font-semibold text-gray-600 text-xs">
                         Last Active
                       </th>
                     </tr>
@@ -141,45 +141,45 @@ export default function StudentsPage() {
                         onClick={() => setSelectedUserId(s.userId)}
                         className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                       >
-                        <td className="px-6 py-3.5">
+                        <td className="px-4 lg:px-6 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-xs flex-shrink-0">
                               {(s.displayName || s.userId).slice(0, 1).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-gray-900 truncate max-w-[150px]">
+                              <p className="text-sm font-semibold text-gray-900 truncate max-w-[120px] lg:max-w-[150px]">
                                 {s.displayName || "Learner"}
                               </p>
-                              <p className="text-[10px] font-mono text-gray-400 truncate max-w-[150px]">
+                              <p className="text-[10px] font-mono text-gray-400 truncate max-w-[120px] lg:max-w-[150px]">
                                 {s.email || s.userId}
                               </p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3.5 font-medium text-gray-900">
+                        <td className="px-4 lg:px-6 py-3.5 font-medium text-gray-900 text-sm">
                           {s.totalAttempts}
                         </td>
-                        <td className="px-6 py-3.5">
+                        <td className="hidden sm:table-cell px-4 lg:px-6 py-3.5">
                           <div className="flex items-center gap-1">
                             <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                            {s.avgScore}
+                            <span className="text-sm">{s.avgScore}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-3.5 font-bold text-violet-600">
+                        <td className="hidden sm:table-cell px-4 lg:px-6 py-3.5 font-bold text-violet-600 text-sm">
                           {s.totalScore}
                         </td>
-                        <td className="px-6 py-3.5">
+                        <td className="hidden md:table-cell px-4 lg:px-6 py-3.5">
                           <Badge
                             variant="outline"
-                            className="bg-green-50 text-green-700 border-green-200"
+                            className="bg-green-50 text-green-700 border-green-200 text-xs"
                           >
                             {s.passedCount}
                           </Badge>
                         </td>
-                        <td className="px-6 py-3.5 text-gray-400 text-xs">
+                        <td className="hidden md:table-cell px-4 lg:px-6 py-3.5 text-gray-400 text-xs">
                           {new Date(s.joinedAt).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-3.5 text-gray-400 text-xs">
+                        <td className="hidden lg:table-cell px-4 lg:px-6 py-3.5 text-gray-400 text-xs">
                           {s.lastAttemptAt
                             ? new Date(s.lastAttemptAt).toLocaleDateString()
                             : "—"}
@@ -224,7 +224,7 @@ export default function StudentsPage() {
 
       {/* Student Attempt History Sheet Drawer */}
       <Sheet open={!!selectedUserId} onOpenChange={(open) => !open && setSelectedUserId(null)}>
-        <SheetContent side="right" className="w-[450px] p-0 flex flex-col">
+        <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col">
           <SheetHeader className="px-5 py-4 border-b border-gray-100">
             <SheetTitle className="text-lg font-bold text-gray-900">Student Profile Summary</SheetTitle>
             <SheetDescription className="text-xs text-gray-400 font-mono">

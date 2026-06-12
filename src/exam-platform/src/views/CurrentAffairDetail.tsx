@@ -162,7 +162,7 @@ export default function CurrentAffairDetail() {
           </div>
 
           {/* Article title */}
-          <h2 className="text-xl md:text-2xl font-extrabold text-foreground leading-snug mb-4">
+          <h2 className="text-xl md:text-2xl font-extrabold leading-snug mb-4  text-violet-500 tracking-wide uppercase">
             {article.title}
           </h2>
 
@@ -178,7 +178,7 @@ export default function CurrentAffairDetail() {
             <div className="border border-border rounded-xl px-4 py-3 mb-5 bg-muted/30">
               <div className="flex items-center gap-2 mb-2">
                 <BookOpen className="w-4 h-4 text-violet-500" />
-                <span className="text-xs font-bold tracking-widest uppercase text-violet-500">
+                <span className="text-sm font-bold tracking-widest uppercase text-violet-500">
                   Deep Analysis
                 </span>
               </div>
