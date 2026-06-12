@@ -23,6 +23,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -457,26 +464,28 @@ export default function QuestionsAdminPage() {
               className="pl-9 rounded-xl h-10"
             />
           </div>
-          <select
-            value={filterSubject}
-            onChange={(e) => { setFilterSubject(e.target.value); setPage(1); setSelectedIds([]); }}
-            className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          >
-            <option value="All">All Subjects</option>
-            {pyqSubjects.map((s: { id: string; name: string }) => (
-              <option key={s.id} value={s.name}>{s.name}</option>
-            ))}
-          </select>
-          <select
-            value={filterDifficulty}
-            onChange={(e) => { setFilterDifficulty(e.target.value); setPage(1); setSelectedIds([]); }}
-            className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-          >
-            <option value="All">All Difficulties</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+          <Select value={filterSubject} onValueChange={(v) => { setFilterSubject(v); setPage(1); setSelectedIds([]); }}>
+            <SelectTrigger className="w-full rounded-xl h-10">
+              <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Subjects</SelectItem>
+              {pyqSubjects.map((s: { id: string; name: string }) => (
+                <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterDifficulty} onValueChange={(v) => { setFilterDifficulty(v); setPage(1); setSelectedIds([]); }}>
+            <SelectTrigger className="w-full rounded-xl h-10">
+              <SelectValue placeholder="All Difficulties" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Difficulties</SelectItem>
+              <SelectItem value="easy">Easy</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="hard">Hard</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* ── Table Card ──────────────────────────────────────────────────── */}
@@ -538,7 +547,7 @@ export default function QuestionsAdminPage() {
                   <span>{allSelected ? "Deselect all" : `Select all ${questions.length} on page`}</span>
                 </div>
               )}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto scrollbar-thin">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
@@ -597,7 +606,7 @@ export default function QuestionsAdminPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right pr-5" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -653,7 +662,7 @@ export default function QuestionsAdminPage() {
 
         {/* ── Detail Dialog ───────────────────────────────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
-          <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-y-auto scrollbar-thin">
             {viewingItem && (
               <>
                 <DialogHeader>
@@ -746,7 +755,7 @@ export default function QuestionsAdminPage() {
               </div>
             </SheetHeader>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">
                   {formError}
@@ -763,20 +772,30 @@ export default function QuestionsAdminPage() {
               <div className="grid grid-cols-2 gap-3">
                 <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Subject</Label>
-                  <select value={formSubject} onChange={(e) => setFormSubject(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                    <option value="">None</option>
-                    {pyqSubjects.map((s: { id: string; name: string }) => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
-                  </select>
+                  <Select value={formSubject} onValueChange={setFormSubject}>
+                    <SelectTrigger className="w-full rounded-xl h-10">
+                      <SelectValue placeholder="None" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {pyqSubjects.map((s: { id: string; name: string }) => (
+                        <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </motion.div>
                 <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Difficulty</Label>
-                  <select value={formDifficulty} onChange={(e) => setFormDifficulty(e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
+                  <Select value={formDifficulty} onValueChange={setFormDifficulty}>
+                    <SelectTrigger className="w-full rounded-xl h-10">
+                      <SelectValue placeholder="Difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </motion.div>
               </div>
 

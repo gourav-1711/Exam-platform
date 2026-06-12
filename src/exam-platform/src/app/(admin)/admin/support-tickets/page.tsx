@@ -88,13 +88,26 @@ export default function SupportTicketsAdminPage() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search to avoid excessive API calls
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [searchQuery]);
   const [replyText, setReplyText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: ticketsList, isLoading: loadingList } =
     useAdminListSupportTickets({
       status: filterStatus === "all" ? undefined : filterStatus,
-      search: searchQuery || undefined,
+      search: debouncedSearch || undefined,
       page: 1,
       limit: 50,
     });
@@ -255,7 +268,7 @@ function TicketListPanel({
             className="pl-8 h-8 text-xs rounded-lg border-gray-200 bg-gray-50 focus-visible:bg-white"
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
+        <div className="flex gap-1 overflow-x-auto scrollbar-thin pb-0.5">
           {STATUSES.map((st) => {
             const active = filterStatus === st;
             const cfg = STATUS_CONFIG[st];
@@ -286,7 +299,7 @@ function TicketListPanel({
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
         {loadingList ? (
           <div className="p-3 space-y-2">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -513,7 +526,7 @@ function TicketDetailPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/40 min-h-0">
+      <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3 bg-gray-50/40 min-h-0">
         {(!messages || messages.length === 0) && (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-12">
             <AlertCircle className="w-7 h-7 text-gray-300" />

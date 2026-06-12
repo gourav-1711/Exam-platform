@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { studyNotesTable } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { cacheFlushPattern } from "../../lib/cache";
@@ -31,7 +31,7 @@ export async function listAllStudyNotes(req: Request, res: Response, next: NextF
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (search) conditions.push(like(studyNotesTable.title, `%${search}%`));
+    if (search) conditions.push(ilike(studyNotesTable.title, `%${search}%`));
     if (subject) conditions.push(eq(studyNotesTable.subject, subject));
     if (medium) conditions.push(eq(studyNotesTable.medium, medium));
 

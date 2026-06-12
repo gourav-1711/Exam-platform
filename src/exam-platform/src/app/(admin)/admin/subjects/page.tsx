@@ -7,6 +7,13 @@ import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -137,18 +144,19 @@ export default function SubjectsAdminPage() {
           placeholder="New subject name..."
           className="rounded-xl h-11 w-full"
         />
-        <select
-          value={examCategory}
-          onChange={(e) => setExamCategory(e.target.value)}
-          className="px-3 py-2 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 h-11 w-full sm:w-auto"
-        >
-          <option value="General">General</option>
-          <option value="UPSC">UPSC</option>
-          <option value="SSC">SSC</option>
-          <option value="Banking">Banking</option>
-          <option value="Railway">Railway</option>
-          <option value="State PSC">State PSC</option>
-        </select>
+        <Select value={examCategory} onValueChange={setExamCategory}>
+          <SelectTrigger className="h-11 w-full sm:w-40 rounded-xl">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="General">General</SelectItem>
+            <SelectItem value="UPSC">UPSC</SelectItem>
+            <SelectItem value="SSC">SSC</SelectItem>
+            <SelectItem value="Banking">Banking</SelectItem>
+            <SelectItem value="Railway">Railway</SelectItem>
+            <SelectItem value="State PSC">State PSC</SelectItem>
+          </SelectContent>
+        </Select>
         <Button type="submit" disabled={!name.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-6 h-11 font-bold shrink-0 w-full sm:w-auto">
           Create
         </Button>

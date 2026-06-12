@@ -411,7 +411,7 @@ export default function SyllabusAdminPage() {
               </Empty>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
@@ -462,7 +462,7 @@ export default function SyllabusAdminPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right pr-5" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
@@ -570,7 +570,7 @@ export default function SyllabusAdminPage() {
               </div>
             </SheetHeader>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">{formError}</div>
               )}

@@ -21,6 +21,13 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -210,7 +217,7 @@ export default function ExamSetsAdminPage() {
       description: formDescription.trim() || null,
       type: formType,
       subjectId: formSubjectId || null,
-      classNum: formType === "ncert" && formClassNum ? parseInt(formClassNum) : null,
+      classNum: formClassNum ? parseInt(formClassNum) : null,
       medium: formMedium || null,
       questionIds: formQuestionIds,
     };
@@ -310,7 +317,7 @@ export default function ExamSetsAdminPage() {
             </Empty>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50/70">
@@ -428,7 +435,7 @@ export default function ExamSetsAdminPage() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-md overflow-y-auto"
+          className="w-full sm:max-w-md overflow-y-auto scrollbar-thin"
         >
           <SheetHeader className="mb-6">
             <SheetTitle className="text-lg font-bold text-gray-900">
@@ -470,77 +477,75 @@ export default function ExamSetsAdminPage() {
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   Type *
                 </Label>
-                <select
-                  value={formType}
-                  onChange={(e) =>
-                    setFormType(e.target.value as "pyq" | "ncert")
-                  }
-                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  {EXAM_SET_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
+                <Select value={formType} onValueChange={(v) => setFormType(v as "pyq" | "ncert")}>
+                  <SelectTrigger className="w-full rounded-xl h-10">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXAM_SET_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   Subject
                 </Label>
-                <select
-                  value={formSubjectId}
-                  onChange={(e) => setFormSubjectId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  <option value="">None</option>
-                  {subjects.map((s: Subject) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={formSubjectId} onValueChange={setFormSubjectId}>
+                  <SelectTrigger className="w-full rounded-xl h-10">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {subjects.map((s: Subject) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {formType === "ncert" && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Class (Required for NCERT)
-                  </Label>
-                  <select
-                    value={formClassNum}
-                    onChange={(e) => setFormClassNum(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="">Select</option>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Class
+                </Label>
+                <Select value={formClassNum} onValueChange={setFormClassNum}>
+                  <SelectTrigger className="w-full rounded-xl h-10">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {CLASSES.map((c) => (
-                      <option key={c.value} value={c.value}>
+                      <SelectItem key={c.value} value={String(c.value)}>
                         {c.label}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Medium
-                  </Label>
-                  <select
-                    value={formMedium}
-                    onChange={(e) => setFormMedium(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="">Any</option>
-                    {MEDIUMS.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Medium
+                </Label>
+                <Select value={formMedium} onValueChange={setFormMedium}>
+                  <SelectTrigger className="w-full rounded-xl h-10">
+                    <SelectValue placeholder="Any" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MEDIUMS.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
             {/* Question Selector */}
             <motion.div className="space-y-3 pt-2 border-t">

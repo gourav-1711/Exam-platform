@@ -329,7 +329,7 @@ export default function AnnouncementsAdminPage() {
               </Empty>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
@@ -443,7 +443,7 @@ export default function AnnouncementsAdminPage() {
 
                           {/* Actions */}
                           <TableCell className="text-right pr-5">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <motion.div
@@ -807,17 +807,7 @@ function AnnouncementFormSheet({
         {/* Scrollable form body */}
         <form
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-6 py-5 space-y-5"
-          style={{
-            scrollbarWidth: "thin",
-            scrollbarColor: "hsl(var(--border)) transparent",
-          }}
-        >
-          <style>{`
-            form::-webkit-scrollbar { width: 4px; }
-            form::-webkit-scrollbar-track { background: transparent; }
-            form::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
-          `}</style>
+          className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5">
 
           {fields.map((f, i) => (
             <motion.div

@@ -18,6 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -429,7 +436,7 @@ export default function NcertAdminPage() {
               </Empty>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
@@ -474,7 +481,7 @@ export default function NcertAdminPage() {
                           <span className="text-xs text-gray-500">{book.downloadUrl ? "PDF" : "External Link"}</span>
                         </TableCell>
                         <TableCell className="text-right pr-5" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             {book.downloadUrl && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -581,7 +588,7 @@ export default function NcertAdminPage() {
               </div>
             </SheetHeader>
 
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs font-semibold text-red-700">{formError}</div>
               )}
@@ -594,24 +601,29 @@ export default function NcertAdminPage() {
               <div className="grid grid-cols-2 gap-3">
                 <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Subject *</Label>
-                  <select value={formSubject} onChange={(e) => setFormSubject(e.target.value)} required
-                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    <option value="">Select</option>
-                    {pyqSubjects.map((s: { id: string | number; name: string }) => (
-                      <option key={s.id} value={s.name}>{s.name}</option>
-                    ))}
-                  </select>
+                  <Select value={formSubject} onValueChange={setFormSubject}>
+                    <SelectTrigger className="w-full rounded-xl h-10">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pyqSubjects.map((s: { id: string | number; name: string }) => (
+                        <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </motion.div>
                 <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Class *</Label>
-                  <select value={formClassNum} onChange={(e) => setFormClassNum(e.target.value)} required
-                    className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  >
-                    {CLASSES.map((c) => (
-                      <option key={c} value={c}>Class {c}</option>
-                    ))}
-                  </select>
+                  <Select value={formClassNum} onValueChange={setFormClassNum}>
+                    <SelectTrigger className="w-full rounded-xl h-10">
+                      <SelectValue placeholder="Class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASSES.map((c) => (
+                        <SelectItem key={c} value={String(c)}>Class {c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </motion.div>
               </div>
 

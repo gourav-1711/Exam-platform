@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { mockTestsTable } from "@workspace/db";
-import { eq, desc, like, and, sql, type SQL } from "drizzle-orm";
+import { eq, desc, ilike, and, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { formatZodIssues } from "../../utils/validation";
@@ -31,7 +31,7 @@ export async function listAllMockTests(req: Request, res: Response, next: NextFu
     const offset = (pageNum - 1) * limitNum;
 
     const conditions: SQL[] = [];
-    if (search) conditions.push(like(mockTestsTable.title, `%${search}%`));
+    if (search) conditions.push(ilike(mockTestsTable.title, `%${search}%`));
     if (difficulty) conditions.push(eq(mockTestsTable.difficulty, difficulty));
     if (subjectId) conditions.push(eq(mockTestsTable.subjectId, subjectId));
 

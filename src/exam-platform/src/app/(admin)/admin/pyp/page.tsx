@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Trash2,
@@ -24,6 +24,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -58,12 +65,7 @@ interface PypPaper {
   updatedAt: string;
 }
 
-const SHIFT_NAMES = [
-  "Shift 1",
-  "Shift 2",
-  "Shift 3",
-  "Evening Shift",
-] as const;
+
 
 export default function PypAdminPage() {
   const queryClient = useQueryClient();
@@ -78,7 +80,7 @@ export default function PypAdminPage() {
 
   // Form state
   const [examName, setExamName] = useState("");
-  const [shiftName, setShiftName] = useState("Shift 1");
+  const [shiftName, setShiftName] = useState("");
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [subjectId, setSubjectId] = useState("");
   const [questionPaperUrl, setQuestionPaperUrl] = useState("");
@@ -111,15 +113,17 @@ export default function PypAdminPage() {
 
   // Search
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Dynamic Subjects
   const { data: subjects = [] } = useListSubjects();
 
   const { data: pypResponse, isLoading } = useQuery({
-    queryKey: ["admin", "pyp", search],
+    queryKey: ["admin", "pyp", debouncedSearch],
     queryFn: () => {
       const sp = new URLSearchParams();
-      if (search.trim()) sp.set("search", search.trim());
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       const query = sp.toString();
       return adminFetch<{ data: PypPaper[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
         `/api/admin/pyp${query ? `?${query}` : ""}`,
@@ -214,7 +218,7 @@ export default function PypAdminPage() {
 
   const resetForm = () => {
     setExamName("");
-    setShiftName("Shift 1");
+    setShiftName("");
     setYear(String(new Date().getFullYear()));
     setSubjectId("");
     setQuestionPaperUrl("");
@@ -339,7 +343,14 @@ export default function PypAdminPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value;
+            setSearch(val);
+            if (searchTimer.current) clearTimeout(searchTimer.current);
+            searchTimer.current = setTimeout(() => {
+              setDebouncedSearch(val);
+            }, 400);
+          }}
           placeholder="Search papers..."
           className="pl-9 rounded-xl h-10"
         />
@@ -361,7 +372,7 @@ export default function PypAdminPage() {
             </Empty>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scrollbar-thin">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50/70">
@@ -480,7 +491,7 @@ export default function PypAdminPage() {
       <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) setEditingItem(null); setSheetOpen(open); }}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-md overflow-y-auto"
+          className="w-full sm:max-w-md overflow-y-auto scrollbar-thin"
         >
           <SheetHeader className="mb-6">
             <SheetTitle className="text-lg font-bold text-gray-900">
@@ -510,34 +521,29 @@ export default function PypAdminPage() {
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   Shift
                 </Label>
-                <select
+                <Input
                   value={shiftName}
                   onChange={(e) => setShiftName(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                >
-                  {SHIFT_NAMES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="e.g. Shift 1, Morning, Evening"
+                  className="rounded-xl h-10"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                   Year *
                 </Label>
-                <select
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  required
-                  className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                >
-                  {YEARS.map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
+                <Select value={year} onValueChange={setYear}>
+                  <SelectTrigger className="w-full rounded-xl h-10">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -545,18 +551,19 @@ export default function PypAdminPage() {
               <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Subject
               </Label>
-              <select
-                value={subjectId}
-                onChange={(e) => setSubjectId(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              >
-                <option value="">None</option>
-                {subjects.map((s: { id: string; name: string }) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <Select value={subjectId} onValueChange={setSubjectId}>
+                <SelectTrigger className="w-full rounded-xl h-10">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {subjects.map((s: { id: string; name: string }) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Upload mode toggle */}

@@ -46,17 +46,19 @@ interface ExamSetsResponse {
   };
 }
 
-export default function PyqSubjects() {
+export default function PyqPage() {
   const router = useRouter();
   const { requireAuth } = useRequireAuth();
   const [subjectId, setSubjectId] = useState("all");
+  const [mediumFilter, setMediumFilter] = useState("all");
   const { data: subjects = [] } = useListSubjects();
 
   const { data, isLoading } = useQuery<ExamSetsResponse>({
-    queryKey: ["pyq-sets", subjectId],
+    queryKey: ["pyq-sets", subjectId, mediumFilter],
     queryFn: () => {
       const params = new URLSearchParams({ type: "pyq", limit: "50" });
       if (subjectId !== "all") params.set("subjectId", subjectId);
+      if (mediumFilter !== "all") params.set("medium", mediumFilter);
       return apiFetch<ExamSetsResponse>(`/exam-sets?${params.toString()}`);
     },
   });
@@ -72,10 +74,10 @@ export default function PyqSubjects() {
         </p>
       </div>
 
-      {/* Subject Filter */}
-      <div className="flex flex-wrap items-center gap-3 p-4 bg-card border rounded-2xl shadow-sm">
+      {/* Filters */}
+      <div className="grid md:grid-cols-2 items-center gap-3 p-4 bg-card border rounded-2xl shadow-sm">
         <Select value={subjectId} onValueChange={setSubjectId}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Subject" />
           </SelectTrigger>
           <SelectContent>
@@ -85,6 +87,17 @@ export default function PyqSubjects() {
                 {s.name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={mediumFilter} onValueChange={setMediumFilter}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Medium" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Mediums</SelectItem>
+            <SelectItem value="English">English</SelectItem>
+            <SelectItem value="Hindi">Hindi</SelectItem>
           </SelectContent>
         </Select>
       </div>

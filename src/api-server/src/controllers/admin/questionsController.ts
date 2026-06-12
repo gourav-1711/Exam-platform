@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { questionsTable } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { cacheDel, cacheFlushPattern } from "../../lib/cache";
 import { routeParam } from "../../lib/routeParams";
@@ -37,7 +37,9 @@ export async function listAllQuestions(req: Request, res: Response, next: NextFu
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (search) conditions.push(like(questionsTable.text, `%${search}%`));
+    if (search) {
+      conditions.push(ilike(questionsTable.text, `%${search}%`));
+    }
     if (subject) conditions.push(eq(questionsTable.subject, subject));
     if (difficulty) conditions.push(eq(questionsTable.difficulty, difficulty));
 

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { supportTicketsTable, supportMessagesTable } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { sanitizeHtml } from "../../utils/sanitize";
@@ -44,7 +44,7 @@ export async function listAllSupportTickets(req: Request, res: Response, next: N
       conditions.push(eq(supportTicketsTable.status, _status));
     }
     if (_search)
-      conditions.push(like(supportTicketsTable.title, `%${_search}%`));
+      conditions.push(ilike(supportTicketsTable.title, `%${_search}%`));
 
     const where = conditions.length ? and(...conditions) : undefined;
 

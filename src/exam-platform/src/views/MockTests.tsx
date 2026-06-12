@@ -48,7 +48,7 @@ export default function MockTests() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{test.description}</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm mt-4 bg-muted/30 p-4 rounded-2xl">
+                <div className="flex flex-wrap justify-between items-center gap-y-3 gap-x-2 text-sm mt-4 bg-muted/30 p-4 rounded-2xl">
                   <div className="flex items-center gap-2 font-medium">
                     <Clock className="w-4 h-4 text-muted-foreground" /> {test.durationMins}m
                   </div>

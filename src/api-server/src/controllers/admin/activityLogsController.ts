@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { activityLogsTable } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, and, sql, desc } from "drizzle-orm";
 
 export async function listActivityLogs(req: Request, res: Response, next: NextFunction) {
   try {
@@ -11,7 +11,7 @@ export async function listActivityLogs(req: Request, res: Response, next: NextFu
     const offset = (page - 1) * limit;
 
     const conditions = [];
-    if (action) conditions.push(like(activityLogsTable.action, `%${action}%`));
+    if (action) conditions.push(ilike(activityLogsTable.action, `%${action}%`));
     const where = conditions.length ? and(...conditions) : undefined;
 
     const [countRow] = await db

@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { subjects } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -18,7 +18,7 @@ export async function listAllSubjects(req: Request, res: Response, next: NextFun
   try {
     const { search } = req.query as Record<string, string>;
     const conditions = [];
-    if (search) conditions.push(like(subjects.name, `%${search}%`));
+    if (search) conditions.push(ilike(subjects.name, `%${search}%`));
     const where = conditions.length ? and(...conditions) : undefined;
 
     const data = await db

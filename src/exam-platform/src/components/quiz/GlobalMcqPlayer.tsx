@@ -563,31 +563,21 @@ export default function GlobalMcqPlayer({
               </span>
             </Button>
 
-            {/* Exit button (mobile) */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                window.location.href = onBackHref;
-              }}
-              className="md:hidden shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-              aria-label="Exit test"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+            {/* Exit button (mobile only — hidden when right-side Exit is already visible) */}
+            {!isSubmitted && mode !== "ncert" && mode !== "pyq" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  window.location.href = onBackHref;
+                }}
+                className="md:hidden shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                aria-label="Exit test"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            )}
 
-            {/* Exit button (desktop) */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                window.location.href = onBackHref;
-              }}
-              className="hidden md:inline-flex text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
-            >
-              <LogOut className="w-4 h-4" />
-              Exit
-            </Button>
             <span
               className="font-bold text-sm md:text-lg truncate max-w-[120px] sm:max-w-sm cursor-pointer"
               onClick={() => {
@@ -664,8 +654,8 @@ export default function GlobalMcqPlayer({
           <div className="max-w-3xl mx-auto pb-safe">
             {/* Completed banner — only for mock/daily (submission-based modes) */}
             {isSubmitted && (
-              <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm flex items-center justify-between">
-                <div>
+              <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-lg">Completed</h3>
                   <p className="text-sm text-muted-foreground">
                     Score:{" "}
@@ -680,6 +670,7 @@ export default function GlobalMcqPlayer({
                 <Button
                   variant="outline"
                   onClick={() => setShowExplanation((v) => !v)}
+                  className="shrink-0"
                 >
                   {showExplanation ? "Hide Explanations" : "Show Explanations"}
                 </Button>
@@ -690,8 +681,8 @@ export default function GlobalMcqPlayer({
             {!isSubmitted && (mode === "ncert" || mode === "pyq") &&
               Object.keys(lockedQuestions).length > 0 && (
               <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-1.5 text-sm">
                       <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500/30" />
                       <span className="text-muted-foreground">
@@ -724,7 +715,7 @@ export default function GlobalMcqPlayer({
                     variant="outline"
                     size="sm"
                     onClick={() => setShowExplanation((v) => !v)}
-                    className="text-xs"
+                    className="text-xs shrink-0"
                   >
                     {showExplanation ? "Hide Explanations" : "Show Explanations"}
                   </Button>

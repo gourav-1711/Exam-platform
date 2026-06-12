@@ -25,7 +25,7 @@ export default function About() {
       {/* Who We Are */}
       <SectionHeading>Who We Are</SectionHeading>
       <SectionText>
-        Founded by Manish, an educator passionate about transforming the way students prepare
+        Founded by Manish Swami, an educator passionate about transforming the way students prepare
         for competitive exams, Manish Ki Pathshala started as a small initiative to provide quality
         guidance for RAS and RPSC exams. Today, we have grown into a comprehensive learning
         platform serving thousands of aspirants.

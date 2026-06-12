@@ -1,5 +1,5 @@
-import PyqSubjects from "@/views/PyqSubjects";
+import PyqPage from "@/views/PyqPage";
 
 export default function PyqSubjectsPage() {
-  return <PyqSubjects />;
+  return <PyqPage />;
 }

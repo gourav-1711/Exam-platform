@@ -46,7 +46,7 @@ export default function Contact() {
             iconColor: "text-blue-600",
             title: "Location",
             sub: "Manish ki Pathshala",
-            value: "Sri Ganganagar , Rajsthan (India) - 335001",
+            value: "Sri Ganganagar , Rajasthan (India) - 335001",
             href: null,
             valueColor: "text-foreground",
           },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
+import { useListSubjects } from "@/lib/api";
 
 interface Question {
   id: string;
@@ -36,26 +37,22 @@ interface QuestionSelectorProps {
   onChange: (ids: string[]) => void;
 }
 
-const SUBJECTS = [
-  "All",
-  "History",
-  "Geography",
-  "Polity",
-  "Economy",
-  "Science",
-  "Current Affairs",
-  "Mathematics",
-  "English",
-  "Hindi",
-  "Reasoning",
-];
-
 export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [subject, setSubject] = useState("All");
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: pyqSubjects = [] } = useListSubjects();
 
-  const queryKey = ["admin", "questions", "selector", page, search, subject];
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
+
+  const queryKey = ["admin", "questions", "selector", page, debouncedSearch, subject];
 
   const adminFetch = useAdminFetch();
 
@@ -66,13 +63,22 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
         page: String(page),
         limit: "10",
       });
-      if (search.trim()) sp.set("search", search.trim());
+      if (debouncedSearch.trim()) sp.set("search", debouncedSearch.trim());
       if (subject !== "All") sp.set("subject", subject);
 
       return adminFetch<QuestionsResponse>(`/api/admin/questions?${sp.toString()}`);
     },
     staleTime: 10_000,
   });
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setPage(1);
+    }, 400);
+  };
 
   const toggleSelect = (id: string) => {
     if (selectedIds.includes(id)) {
@@ -91,10 +97,7 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search questions..."
             className="pl-9 h-10 rounded-xl"
           />
@@ -107,9 +110,10 @@ export function QuestionSelector({ selectedIds, onChange }: QuestionSelectorProp
           }}
           className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20"
         >
-          {SUBJECTS.map((s) => (
-            <option key={s} value={s}>
-              {s}
+          <option value="All">All Subjects</option>
+          {pyqSubjects.map((s: { id: string | number; name: string }) => (
+            <option key={s.id} value={s.name}>
+              {s.name}
             </option>
           ))}
         </select>

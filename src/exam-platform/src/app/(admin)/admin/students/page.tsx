@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users, ChevronLeft, ChevronRight, TrendingUp, HelpCircle, Calendar, CheckCircle2, Clock, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,10 +38,12 @@ export default function StudentsPage() {
   const adminFetch = useAdminFetch();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "students", page, searchQuery],
+    queryKey: ["admin", "students", page, debouncedSearch],
     queryFn: () =>
       adminFetch<{
         data: StudentStat[];
@@ -51,7 +53,7 @@ export default function StudentsPage() {
           totalPages: number;
           limit: number;
         };
-      }>(`/api/admin/students?page=${page}&limit=20&search=${encodeURIComponent(searchQuery)}`),
+      }>(`/api/admin/students?page=${page}&limit=20&search=${encodeURIComponent(debouncedSearch)}`),
     staleTime: 60 * 1000,
   });
 
@@ -75,7 +77,15 @@ export default function StudentsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSearchQuery(val);
+              if (searchTimer.current) clearTimeout(searchTimer.current);
+              searchTimer.current = setTimeout(() => {
+                setDebouncedSearch(val);
+                setPage(1);
+              }, 400);
+            }}
             placeholder="Search by name..."
             className="pl-9 h-9 rounded-xl text-sm"
           />
@@ -107,7 +117,7 @@ export default function StudentsPage() {
             </Card>
           ) : (
             <Card className="border-0 shadow-sm overflow-hidden rounded-2xl">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto scrollbar-thin">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
@@ -232,7 +242,7 @@ export default function StudentsPage() {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div className="flex-1 overflow-y-auto scrollbar-thin p-5 space-y-6">
             <div>
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Attempt Timeline</h3>
               {loadingAttempts ? (

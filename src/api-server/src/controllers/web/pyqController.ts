@@ -56,7 +56,7 @@ export async function getPyqSubjects(req: Request, res: Response, next: NextFunc
 
 export async function getPyqSets(req: Request, res: Response, next: NextFunction) {
   try {
-    const { subjectId } = req.query as Record<string, string>;
+    const { subjectId, medium } = req.query as Record<string, string>;
     const conditions = [eq(examSetsTable.type, "pyq"), eq(examSetsTable.isActive, true)];
     if (subjectId) {
       // subjectId could be a UUID or a slug — resolve to a UUID before filtering
@@ -72,6 +72,9 @@ export async function getPyqSets(req: Request, res: Response, next: NextFunction
           conditions.push(eq(examSetsTable.subjectId, subjBySlug.id));
         }
       }
+    }
+    if (medium && medium !== "all") {
+      conditions.push(eq(examSetsTable.medium, medium));
     }
     const sets = await db
       .select()

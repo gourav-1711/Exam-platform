@@ -34,7 +34,7 @@ export default function QuizListing() {
   return (
     <PageTransition className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
       <div className="space-y-2">
-        <PageHeading heading="Daily Quiz" />
+        <PageHeading heading="Daily Free Quizzes" />
         <p className="text-muted-foreground">
           Test your knowledge with our daily curated quizzes.
         </p>
@@ -132,7 +132,7 @@ function QuizCard({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mt-auto pt-4 border-t border-border/50">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground mt-auto pt-4 border-t border-border/50">
           <div className="flex items-center gap-1.5">
             <Clock className="w-4 h-4" /> {quiz.durationMins} mins
           </div>

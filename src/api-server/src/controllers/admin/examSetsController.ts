@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { examSetsTable } from "@workspace/db";
-import { eq, desc, like, and, sql, type SQL } from "drizzle-orm";
+import { eq, desc, ilike, and, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -37,7 +37,7 @@ export async function listAllExamSets(req: Request, res: Response, next: NextFun
 
     const conditions: SQL[] = [];
     if (type && (type === "pyq" || type === "ncert")) conditions.push(eq(examSetsTable.type, type));
-    if (search) conditions.push(like(examSetsTable.title, `%${search}%`));
+    if (search) conditions.push(ilike(examSetsTable.title, `%${search}%`));
 
     const where = conditions.length ? and(...conditions) : undefined;
 

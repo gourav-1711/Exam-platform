@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { previousYearPapersTable } from "@workspace/db";
-import { eq, and, like, sql, desc } from "drizzle-orm";
+import { eq, and, ilike, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -49,7 +49,7 @@ export async function listAllPyp(req: Request, res: Response, next: NextFunction
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (search) conditions.push(like(previousYearPapersTable.examName, `%${search}%`));
+    if (search) conditions.push(ilike(previousYearPapersTable.examName, `%${search}%`));
 
     const where = conditions.length ? and(...conditions) : undefined;
 

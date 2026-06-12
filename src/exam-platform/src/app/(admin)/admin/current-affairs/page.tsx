@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@clerk/nextjs";
 import {
@@ -21,6 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -65,6 +72,7 @@ const CATEGORIES = [
   "International",
   "Economy",
   "Science & Tech",
+  "State"
 ];
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -112,6 +120,8 @@ export default function CurrentAffairsAdminPage() {
 
   // State
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [category, setCategory] = useState("All");
   const [page, setPage] = useState(1);
 
@@ -150,14 +160,14 @@ export default function CurrentAffairsAdminPage() {
 
   // ── Queries ────────────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery<CurrentAffairsResponse>({
-    queryKey: ["admin", "current-affairs", page, search, category],
+    queryKey: ["admin", "current-affairs", page, debouncedSearch, category],
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
       return adminApi.listCurrentAffairs(token, {
         page,
         limit: 10,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         category: category === "All" ? undefined : category,
       });
     },
@@ -319,27 +329,30 @@ export default function CurrentAffairsAdminPage() {
             <Input
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
+                const val = e.target.value;
+                setSearch(val);
+                if (searchTimer.current) clearTimeout(searchTimer.current);
+                searchTimer.current = setTimeout(() => {
+                  setDebouncedSearch(val);
+                  setPage(1);
+                }, 400);
               }}
               placeholder="Search articles..."
               className="pl-9 rounded-xl h-10"
             />
           </div>
-          <select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
-            className="px-3 py-2 border border-gray-200 bg-white text-gray-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full sm:w-48"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c === "All" ? "All Categories" : c}
-              </option>
-            ))}
-          </select>
+          <Select value={category} onValueChange={(v) => { setCategory(v); setPage(1); }}>
+            <SelectTrigger className="w-full sm:w-48 rounded-xl h-10">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c === "All" ? "All Categories" : c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* ── Table Card ──────────────────────────────────────────────────── */}
@@ -390,7 +403,7 @@ export default function CurrentAffairsAdminPage() {
               </Empty>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50/70 hover:bg-gray-50/70">
@@ -453,7 +466,7 @@ export default function CurrentAffairsAdminPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right pr-5">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <motion.div
@@ -586,7 +599,7 @@ export default function CurrentAffairsAdminPage() {
 
             <form
               onSubmit={handleSubmit}
-              className="flex-1 overflow-y-auto px-6 py-5 space-y-5"
+              className="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5"
             >
               <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title *</Label>
@@ -625,17 +638,18 @@ export default function CurrentAffairsAdminPage() {
 
               <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Category</Label>
-                <select
-                  value={formCategory}
-                  onChange={(e) => setFormCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  {CATEGORIES.filter((c) => c !== "All").map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+                <Select value={formCategory} onValueChange={setFormCategory}>
+                  <SelectTrigger className="w-full rounded-xl h-10">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.filter((c) => c !== "All").map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </motion.div>
             </form>
 
@@ -675,7 +689,7 @@ export default function CurrentAffairsAdminPage() {
 
         {/* ── Detail Dialog ───────────────────────────────────────────────── */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
-          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto scrollbar-thin">
             {viewingItem && (
               <>
                 <DialogHeader>

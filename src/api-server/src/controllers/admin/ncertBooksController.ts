@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../lib/db";
 import { ncertBooksTable } from "@workspace/db";
-import { eq, like, and, sql, desc } from "drizzle-orm";
+import { eq, ilike, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
@@ -43,7 +43,7 @@ export async function listAllNcertBooks(req: Request, res: Response, next: NextF
     const offset = (pageNum - 1) * limitNum;
 
     const conditions = [];
-    if (search) conditions.push(like(ncertBooksTable.title, `%${search}%`));
+    if (search) conditions.push(ilike(ncertBooksTable.title, `%${search}%`));
     if (classNum) conditions.push(eq(ncertBooksTable.classNum, parseInt(classNum, 10)));
     if (subject) conditions.push(eq(ncertBooksTable.subject, subject));
     if (medium) conditions.push(eq(ncertBooksTable.medium, medium));

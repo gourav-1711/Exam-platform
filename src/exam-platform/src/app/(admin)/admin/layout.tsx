@@ -31,7 +31,7 @@ export default function AdminLayout({
       <AdminSidebar />
       <div className="flex flex-col flex-1 min-w-0">
         <AdminHeader />
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50">{children}</main>
+        <main className="flex-1 overflow-y-auto scrollbar-thin p-4 lg:p-6 bg-gray-50">{children}</main>
       </div>
     </div>
   );
