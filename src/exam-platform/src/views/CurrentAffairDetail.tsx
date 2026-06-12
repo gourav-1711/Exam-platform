@@ -8,6 +8,7 @@ import { useGetCurrentAffair, getGetCurrentAffairQueryKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { telegram_link, whatsapp_link } from "@/lib/data";
 
 /* ─────────────────────────────────────────
    Inline SVG icons for WhatsApp & Telegram
@@ -115,12 +116,10 @@ export default function CurrentAffairDetail() {
 
   /* ── Share handler ── */
   const handleShare = (platform: "whatsapp" | "telegram") => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(article.title);
     if (platform === "whatsapp") {
-      window.open(`https://wa.me/?text=${text}%20${url}`, "_blank");
+      window.open(whatsapp_link, "_blank");
     } else {
-      window.open(`https://t.me/share/url?url=${url}&text=${text}`, "_blank");
+      window.open(telegram_link, "_blank");
     }
   };
 
