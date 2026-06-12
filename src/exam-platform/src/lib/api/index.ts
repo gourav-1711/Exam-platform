@@ -452,7 +452,7 @@ export function useListPyqQuestions(
 export function useGetCurrentAffair(id: string, options?: QueryHookOptions) {
   return usePublicQuery<CurrentAffair>(
     getGetCurrentAffairQueryKey(id),
-    () => apiFetch<CurrentAffair>(`/current-affairs/${encodeURIComponent(id)}`),
+    () => apiFetch<CurrentAffair>(`/current-affairs/${id}`),
     options,
   );
 }

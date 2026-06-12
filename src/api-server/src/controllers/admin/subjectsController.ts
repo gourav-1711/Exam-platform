@@ -5,15 +5,7 @@ import { eq, like, and, sql, desc } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 200);
-}
+import { slugify } from "../../utils/slugify";
 
 const subjectSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -49,7 +41,7 @@ export async function createSubject(req: Request, res: Response, next: NextFunct
     const { name, examCategory, description, isActive } = parsed.data;
 
     // Check for duplicate slug
-    const slug = slugify(name);
+    const slug = slugify(name, "subject");
     const [existing] = await db
       .select({ id: subjects.id })
       .from(subjects)
@@ -77,7 +69,7 @@ export async function updateSubject(req: Request, res: Response, next: NextFunct
     }
     const updateData: Record<string, unknown> = { ...parsed.data };
     if (updateData.name) {
-      updateData.slug = slugify(updateData.name as string);
+      updateData.slug = slugify(updateData.name as string, "subject");
     }
     const [updated] = await db
       .update(subjects)

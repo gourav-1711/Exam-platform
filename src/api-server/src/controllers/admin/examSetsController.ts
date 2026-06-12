@@ -5,6 +5,7 @@ import { eq, desc, like, and, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { routeParam } from "../../lib/routeParams";
 import { AppError } from "../../middleware/errorHandler";
+import { slugify } from "../../utils/slugify";
 
 function formatZodIssues(issues: z.ZodIssue[]): string {
   return issues
@@ -21,15 +22,6 @@ const examSetSchema = z.object({
   medium: z.string().optional().nullable(),
   questionIds: z.array(z.string()).default([]).transform((ids) => ids.filter((id): id is string => id !== null && id !== undefined && id !== "")),
 });
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 200);
-}
 
 export async function listAllExamSets(req: Request, res: Response, next: NextFunction) {
   try {
@@ -100,7 +92,7 @@ export async function createExamSet(req: Request, res: Response, next: NextFunct
     }
 
     const { questionIds, ...rest } = parsed.data;
-    const slug = slugify(parsed.data.title);
+    const slug = slugify(parsed.data.title, "set");
 
     const [set] = await db
       .insert(examSetsTable)
@@ -129,7 +121,7 @@ export async function updateExamSet(req: Request, res: Response, next: NextFunct
     const { questionIds, ...rest } = parsed.data;
     const updateData: Record<string, unknown> = {
       ...rest,
-      ...(rest.title ? { slug: slugify(rest.title) } : {}),
+      ...(rest.title ? { slug: slugify(rest.title, "set") } : {}),
       ...(questionIds !== undefined ? { questionIds, totalQuestions: questionIds.length } : {}),
     };
 

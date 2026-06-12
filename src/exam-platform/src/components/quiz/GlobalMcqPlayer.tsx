@@ -158,6 +158,8 @@ export default function GlobalMcqPlayer({
     reset,
   } = useMcqSession(sessionId, durationMins, questions.length);
 
+  // Track per-question locking (for ncert/pyq — lock immediately on selection)
+  const [lockedQuestions, setLockedQuestions] = useState<Record<number, boolean>>({});
   const [showExplanation, setShowExplanation] = useState(false);
   const [showReportCard, setShowReportCard] = useState(false);
   const [showMobilePalette, setShowMobilePalette] = useState(false);
@@ -180,6 +182,7 @@ export default function GlobalMcqPlayer({
       return;
     }
     reset();
+    setLockedQuestions({});
     setShowExplanation(false);
     setShowReportCard(false);
     setShowMobilePalette(false);
@@ -226,10 +229,22 @@ export default function GlobalMcqPlayer({
     ],
   );
 
+  // In ncert/pyq mode, a question shows feedback once the user selects an option
+  // In mock/daily mode, feedback shows only after global submission
+  const isQuestionLocked = (qIndex: number) =>
+    isSubmitted || (mode !== "mock" && mode !== "daily" && lockedQuestions[qIndex]);
+
   const handleSelectOption = (optIndex: number) => {
     if (isSubmitted) return;
     if (!currentQ) return;
+    if (isQuestionLocked(currentQIndex)) return;
+
     setAnswers((prev) => ({ ...prev, [currentQIndex]: optIndex }));
+
+    // NCERT/PYQ — lock the question immediately on selection
+    if (mode === "ncert" || mode === "pyq") {
+      setLockedQuestions((prev) => ({ ...prev, [currentQIndex]: true }));
+    }
   };
 
   const handleSubmit = () => {
@@ -384,7 +399,8 @@ export default function GlobalMcqPlayer({
         let ringClass = "";
         let label = String(i + 1);
 
-        if (isSubmitted) {
+        const locked = isQuestionLocked(i);
+        if (isSubmitted || locked) {
           const isCorrect = answers[i] === questions[i].correctIndex;
           if (!isAnswered) {
             bgClass = "bg-muted/40 text-muted-foreground/50";
@@ -455,13 +471,25 @@ export default function GlobalMcqPlayer({
           <div className="flex-1 overflow-y-auto p-3">
             {renderQuestionGrid()}
           </div>
-          {!isSubmitted && (
+          {!isSubmitted && (mode === "mock" || mode === "daily") && (
             <div className="px-3 py-2.5 border-t shrink-0 space-y-1">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/30" />
                 <span>Answered</span>
                 <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
                 <span>Unanswered</span>
+              </div>
+            </div>
+          )}
+          {!isSubmitted && (mode === "ncert" || mode === "pyq") && (
+            <div className="px-3 py-2.5 border-t shrink-0 space-y-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/40" />
+                <span>Correct</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive/40 ml-2" />
+                <span>Wrong</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
+                <span>Pending</span>
               </div>
             </div>
           )}
@@ -488,17 +516,29 @@ export default function GlobalMcqPlayer({
               <div className="flex-1 overflow-y-auto p-3">
                 {renderQuestionGrid(() => setShowSidebar(false))}
               </div>
-              {!isSubmitted && (
-                <div className="px-3 py-2.5 border-t shrink-0">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/30" />
-                    <span>Answered</span>
-                    <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
-                    <span>Unanswered</span>
-                  </div>
-                </div>
-              )}
-            </aside>
+          {!isSubmitted && (mode === "mock" || mode === "daily") && (
+            <div className="px-3 py-2.5 border-t shrink-0">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/30" />
+                <span>Answered</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
+                <span>Unanswered</span>
+              </div>
+            </div>
+          )}
+          {!isSubmitted && (mode === "ncert" || mode === "pyq") && (
+            <div className="px-3 py-2.5 border-t shrink-0">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-emerald-500/40" />
+                <span>Correct</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive/40 ml-2" />
+                <span>Wrong</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-muted-foreground/20 ml-2" />
+                <span>Pending</span>
+              </div>
+            </div>
+          )}
+        </aside>
           </>
         )}
       </>
@@ -596,6 +636,17 @@ export default function GlobalMcqPlayer({
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Exit</span>
               </Button>
+            ) : mode === "ncert" || mode === "pyq" ? (
+              <Button
+                onClick={() => {
+                  window.location.href = onBackHref;
+                }}
+                variant="ghost"
+                className="gap-1.5 text-muted-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Exit</span>
+              </Button>
             ) : (
               <Button
                 variant="default"
@@ -611,7 +662,7 @@ export default function GlobalMcqPlayer({
         {/* Main content */}
         <div className="flex-1 overflow-y-auto p-3 md:p-8 min-h-0">
           <div className="max-w-3xl mx-auto pb-safe">
-            {/* Completed banner */}
+            {/* Completed banner — only for mock/daily (submission-based modes) */}
             {isSubmitted && (
               <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm flex items-center justify-between">
                 <div>
@@ -632,6 +683,52 @@ export default function GlobalMcqPlayer({
                 >
                   {showExplanation ? "Hide Explanations" : "Show Explanations"}
                 </Button>
+              </div>
+            )}
+
+            {/* Practice mode stats bar — for ncert/pyq: shows progress */}
+            {!isSubmitted && (mode === "ncert" || mode === "pyq") &&
+              Object.keys(lockedQuestions).length > 0 && (
+              <div className="mb-6 p-4 rounded-xl bg-card border shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-emerald-500/30" />
+                      <span className="text-muted-foreground">
+                        Correct:{" "}
+                        <span className="font-semibold text-foreground">
+                          {computed.correctCount}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-destructive/30" />
+                      <span className="text-muted-foreground">
+                        Wrong:{" "}
+                        <span className="font-semibold text-foreground">
+                          {computed.wrongCount}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <span className="inline-block w-3 h-3 rounded-sm bg-muted-foreground/20" />
+                      <span className="text-muted-foreground">
+                        Remaining:{" "}
+                        <span className="font-semibold text-foreground">
+                          {questions.length - Object.keys(lockedQuestions).length}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowExplanation((v) => !v)}
+                    className="text-xs"
+                  >
+                    {showExplanation ? "Hide Explanations" : "Show Explanations"}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -656,14 +753,13 @@ export default function GlobalMcqPlayer({
 
                 <div className="space-y-3">
                   {currentQ.options.map((opt, i) => {
+                    const locked = isQuestionLocked(currentQIndex);
                     const isSelected = answers[currentQIndex] === i;
-                    const isCorrect =
-                      isSubmitted && currentQ.correctIndex === i;
-                    const isWrongSelected =
-                      isSubmitted && isSelected && !isCorrect;
+                    const isCorrect = locked && currentQ.correctIndex === i;
+                    const isWrongSelected = locked && isSelected && !isCorrect;
 
                     let bgClass = "bg-card hover:bg-muted border-border";
-                    if (isSelected && !isSubmitted)
+                    if (isSelected && !locked)
                       bgClass =
                         "bg-primary/5 border-primary text-primary shadow-sm";
                     if (isCorrect)
@@ -680,8 +776,8 @@ export default function GlobalMcqPlayer({
                         className={cn(
                           "p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3",
                           bgClass,
-                          isSubmitted && "cursor-default",
-                          !isSubmitted &&
+                          locked && "cursor-default",
+                          !locked &&
                             "hover:border-primary/40 hover:bg-primary/5",
                         )}
                       >
@@ -711,56 +807,81 @@ export default function GlobalMcqPlayer({
                   })}
                 </div>
 
-                {isSubmitted && showExplanation && currentQ.explanation && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-100"
+                {(isSubmitted || isQuestionLocked(currentQIndex)) &&
+                  showExplanation &&
+                  currentQ.explanation && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-100"
+                    >
+                      <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2">
+                        <Lightbulb className="w-5 h-5" /> Explanation
+                      </div>
+                      <p className="text-sm text-blue-900 leading-relaxed">
+                        {currentQ.explanation}
+                      </p>
+                    </motion.div>
+                  )}
+
+                {/* Navigation — inside the card so it's always visible after explanation */}
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentQIndex((p) => Math.max(0, p - 1))}
+                    disabled={isFirstQ}
+                    className="rounded-xl h-12 px-6"
                   >
-                    <div className="flex items-center gap-2 text-blue-700 font-semibold mb-2">
-                      <Lightbulb className="w-5 h-5" /> Explanation
-                    </div>
-                    <p className="text-sm text-blue-900 leading-relaxed">
-                      {currentQ.explanation}
-                    </p>
-                  </motion.div>
-                )}
+                    <ChevronLeft className="w-5 h-5 mr-1" /> Previous
+                  </Button>
+
+                  {mode === "ncert" || mode === "pyq" ? (
+                    <Button
+                      onClick={() => {
+                        if (isLastQ) {
+                          window.location.href = onBackHref;
+                        } else {
+                          setCurrentQIndex((p) =>
+                            Math.min(questions.length - 1, p + 1),
+                          );
+                        }
+                      }}
+                      className="rounded-xl h-12 px-6 bg-foreground text-background hover:bg-foreground/90"
+                    >
+                      {isLastQ ? (
+                        "Back to List"
+                      ) : (
+                        <>
+                          Next <ChevronRight className="w-5 h-5 ml-1" />
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        if (isLastQ && !isSubmitted) {
+                          setShowSubmitConfirm(true);
+                        } else if (!isLastQ) {
+                          setCurrentQIndex((p) =>
+                            Math.min(questions.length - 1, p + 1),
+                          );
+                        }
+                      }}
+                      disabled={isLastQ && isSubmitted}
+                      className="rounded-xl h-12 px-6 bg-foreground text-background hover:bg-foreground/90"
+                    >
+                      {isLastQ && !isSubmitted ? (
+                        "Finish & Submit"
+                      ) : (
+                        <>
+                          Next <ChevronRight className="w-5 h-5 ml-1" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
-
-            {/* Navigation */}
-            <div className="flex items-center justify-between mt-6">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentQIndex((p) => Math.max(0, p - 1))}
-                disabled={isFirstQ}
-                className="rounded-xl h-12 px-6"
-              >
-                <ChevronLeft className="w-5 h-5 mr-1" /> Previous
-              </Button>
-
-              <Button
-                onClick={() => {
-                  if (isLastQ && !isSubmitted) {
-                    setShowSubmitConfirm(true);
-                  } else if (!isLastQ) {
-                    setCurrentQIndex((p) =>
-                      Math.min(questions.length - 1, p + 1),
-                    );
-                  }
-                }}
-                disabled={isLastQ && isSubmitted}
-                className="rounded-xl h-12 px-6 bg-foreground text-background hover:bg-foreground/90"
-              >
-                {isLastQ && !isSubmitted ? (
-                  "Finish & Submit"
-                ) : (
-                  <>
-                    Next <ChevronRight className="w-5 h-5 ml-1" />
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </div>
       </div>

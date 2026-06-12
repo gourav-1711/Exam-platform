@@ -206,6 +206,7 @@ export default function PypPage() {
                           url={paper.questionPaperUrl}
                           page="pyp"
                           action="download"
+                          label="Quetion Paper"
                         />
                       </>
                     )}

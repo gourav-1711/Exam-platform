@@ -158,14 +158,14 @@ export default function QuizInstructions() {
       <div className="flex flex-col items-center gap-6">
         {/* Timer icon box */}
         <div
-          className="w-20 h-20 rounded-2xl flex items-center justify-center"
+          className="size-18 rounded-2xl flex items-center justify-center"
           style={{ background: "#EDE9FE" }}
         >
           <Timer className="w-10 h-10 text-violet-600" strokeWidth={1.8} />
         </div>
 
         {/* Quiz title */}
-        <h2 className="text-2xl md:text-3xl font-extrabold tracking-wide text-foreground text-center uppercase">
+        <h2 className="text-lg md:text-3xl font-extrabold tracking-wide text-foreground text-center uppercase">
           {quiz.title}
         </h2>
 

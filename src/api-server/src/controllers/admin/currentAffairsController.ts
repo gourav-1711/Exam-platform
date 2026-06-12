@@ -7,15 +7,7 @@ import { routeParam } from "../../lib/routeParams";
 import { cacheFlushPattern } from "../../lib/cache";
 import { formatZodIssues } from "../../utils/validation";
 import { AppError } from "../../middleware/errorHandler";
-
-function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 200);
-}
+import { slugify } from "../../utils/slugify";
 
 const currentAffairSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -105,7 +97,7 @@ export async function createCurrentAffairAdmin(req: Request, res: Response, next
     }
     const { title, summary, content, category } = parsed.data;
 
-    const slug = slugify(title);
+    const slug = slugify(title, "article");
     const insertData = {
       title,
       slug,
@@ -141,7 +133,7 @@ export async function updateCurrentAffairAdmin(req: Request, res: Response, next
     }
     const updateData: Record<string, unknown> = { ...parsed.data };
     if (updateData.title) {
-      updateData.slug = slugify(updateData.title as string);
+      updateData.slug = slugify(updateData.title as string, "article");
     }
 
     const [updated] = await db

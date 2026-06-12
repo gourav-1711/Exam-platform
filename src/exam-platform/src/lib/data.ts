@@ -1,8 +1,7 @@
 // ── Contact / Social Information ─────────────────────────────────────────────
 export const contact_gmail = "Manishkipathshalaofficial@gmail.com";
 export const contact_number = "7023464080";
-export const contact_address =
-  "Manish Ki Pathshala , Shri Ganga Nagar , Rajsthan India";
+export const contact_address = "Sri Ganganagar , Rajsthan (India) - 335001";
 export const telegram_link = "https://t.me/ManishKiPathshala";
 export const youtube_link =
   "https://youtube.com/@manish_ki_pathshala?si=yNW1A78x2ZVkTo-p";

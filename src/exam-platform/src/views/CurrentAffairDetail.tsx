@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { useGetCurrentAffair, getGetCurrentAffairQueryKey } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -85,14 +85,27 @@ function HeroBanner() {
 ───────────────────────────────────────── */
 export default function CurrentAffairDetail() {
   const params = useParams<{ id: string }>();
-  const id = params?.id ?? "";
+  const searchParams = useSearchParams();
+  const fallbackUid = searchParams?.get("id") ?? null;
+
+  const slug = params?.id ?? "";
+  const [useUid, setUseUid] = useState(false);
+  const queryId = useUid && fallbackUid ? fallbackUid : slug;
+
   const {
     data: article,
     isLoading,
     isError,
-  } = useGetCurrentAffair(id, {
-    query: { enabled: !!id, queryKey: getGetCurrentAffairQueryKey(id) },
+  } = useGetCurrentAffair(queryId, {
+    query: { enabled: !!queryId, queryKey: getGetCurrentAffairQueryKey(queryId) },
   });
+
+  // Retry by UUID if slug-based lookup fails and we have a fallback UUID
+  React.useEffect(() => {
+    if (isError && !useUid && fallbackUid) {
+      setUseUid(true);
+    }
+  }, [isError, useUid, fallbackUid]);
 
   /* ── Loading ── */
   if (isLoading) {

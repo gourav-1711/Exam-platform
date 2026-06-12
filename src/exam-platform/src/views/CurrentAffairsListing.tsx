@@ -22,11 +22,24 @@ import { Calendar, ChevronRight, Newspaper } from "lucide-react";
 
 // Fallback slugifier if DB slug is not available
 function slugifyTitle(value: string) {
-  return value
+  let slug = value
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+  // Fallback for non-Latin scripts (e.g., Hindi/Devanagari)
+  if (!slug) {
+    slug = value
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{M}\p{N}\s-]+/gu, "")
+      .replace(/[\s]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  return slug;
 }
 
 export default function CurrentAffairsListing() {
@@ -37,8 +50,8 @@ export default function CurrentAffairsListing() {
     queryFn: () => currentAffairsApi.list({ page, limit: 12 }),
     staleTime: 60 * 1000,
   });
-
-  return (      <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+  return (
+    <PageTransition className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Current Affairs</h1>
@@ -46,10 +59,7 @@ export default function CurrentAffairsListing() {
             Daily news analysis and updates for competitive exams.
           </p>
         </div>
-
-
       </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           Array(6)
@@ -60,7 +70,10 @@ export default function CurrentAffairsListing() {
             <Empty>
               <Newspaper className="w-10 h-10 text-gray-300" />
               <EmptyTitle>No articles found</EmptyTitle>
-              <EmptyDescription>There are no current affairs articles available at the moment. Check back later for updates.</EmptyDescription>
+              <EmptyDescription>
+                There are no current affairs articles available at the moment.
+                Check back later for updates.
+              </EmptyDescription>
             </Empty>
           </div>
         ) : (
@@ -91,7 +104,9 @@ export default function CurrentAffairsListing() {
                   {article.summary}
                 </p>
 
-                <Link href={`/current-affairs/${article.slug ?? slugifyTitle(article.title)}`}>
+                <Link
+                  href={`/current-affairs/${article.slug ?? slugifyTitle(article.title)}?id=${article.id}`}
+                >
                   <Button
                     variant="ghost"
                     className="w-full justify-between px-0 hover:bg-transparent hover:text-primary"
@@ -104,7 +119,6 @@ export default function CurrentAffairsListing() {
           ))
         )}
       </div>
-
       {data && data.totalPages > 1 && (
         <Pagination className="mt-8">
           <PaginationContent>
@@ -143,6 +157,7 @@ export default function CurrentAffairsListing() {
             </PaginationItem>
           </PaginationContent>
         </Pagination>
-      )}      </PageTransition>
+      )}{" "}
+    </PageTransition>
   );
 }
