@@ -6,6 +6,7 @@ import {
   real,
   boolean,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
@@ -29,7 +30,9 @@ export const mockTestsTable = pgTable("mock_tests", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("mock_tests_question_ids_idx").using("gin", t.questionIds),
+]);
 
 export const mockTestsRelations = relations(mockTestsTable, ({ one }) => ({
   subject: one(subjects, {

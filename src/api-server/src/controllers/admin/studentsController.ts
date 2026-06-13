@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
 import { studentAttemptsTable, userStreaksTable } from "@workspace/db";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import { routeParam } from "../../lib/routeParams";
 import { clerkClient } from "@clerk/express";
 
@@ -49,7 +49,7 @@ export async function listAllStudents(req: Request, res: Response, next: NextFun
             lastAttemptAt: sql<string | null>`max(${studentAttemptsTable.attemptedAt})`,
           })
           .from(studentAttemptsTable)
-          .where(sql`${studentAttemptsTable.userId} = ANY(ARRAY[${sql.join(userIds.map(id => sql`${id}`), sql`, `)}]::text[])`)
+          .where(inArray(studentAttemptsTable.userId, userIds))
           .groupBy(studentAttemptsTable.userId)
       : [];
 

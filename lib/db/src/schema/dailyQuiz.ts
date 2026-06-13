@@ -1,5 +1,5 @@
 // lib/db/src/schema/dailyQuiz.ts
-import { pgTable, uuid, text, date, time, integer, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, date, time, integer, boolean, timestamp, index } from 'drizzle-orm/pg-core';
 import { createInsertSchema } from 'drizzle-zod';
 
 export const dailyQuizzes = pgTable('daily_quizzes', {
@@ -16,7 +16,9 @@ export const dailyQuizzes = pgTable('daily_quizzes', {
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
-});
+}, (t) => [
+  index('daily_quizzes_question_ids_idx').using('gin', t.questionIds),
+]);
 
 export const insertDailyQuizSchema = createInsertSchema(dailyQuizzes).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertDailyQuiz = typeof dailyQuizzes.$inferInsert;

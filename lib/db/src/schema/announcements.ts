@@ -13,6 +13,8 @@ export const announcementsTable = pgTable("announcements", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertAnnouncementSchema = createInsertSchema(announcementsTable).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAnnouncementSchema = createInsertSchema(
+  announcementsTable,
+).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertAnnouncement = typeof announcementsTable.$inferInsert;
 export type Announcement = typeof announcementsTable.$inferSelect;

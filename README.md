@@ -127,7 +127,9 @@ pnpm -C src/exam-platform run dev
 | Quiz Player                    | `/daily-quiz/[id]/play` | Full-screen quiz interface with palette            |
 | PYQ Practice                   | `/pyq`                  | Previous year questions by subject                 |
 | NCERT MCQs                     | `/ncert-mcq`            | NCERT-based MCQ practice                           |
-| Mock Tests                     | `/mock-tests`           | Full-length mock exams                             |
+| Mock Tests                     | `/mock-tests`           | Full-length mock exam listing                      |
+| Mock Test Detail                | `/mock-tests/[id]`       | Mock test details & instructions                   |
+| Mock Test Player                | `/mock-tests/[id]/play`  | Full-screen mock exam player with timer & palette  |
 | Profile                        | `/profile`              | User stats, streak, settings                       |
 | About, Contact, Privacy, Terms | Various                 | Static information pages                           |
 

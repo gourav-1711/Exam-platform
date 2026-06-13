@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { db } from "../../db";
-import { questionsTable } from "@workspace/db";
-import { eq, ilike, and, sql, desc } from "drizzle-orm";
+import { questionsTable, examSetsTable, mockTestsTable, dailyQuizzes } from "@workspace/db";
+import { eq, ilike, and, sql, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { cacheDel, cacheFlushPattern } from "../../lib/cache";
 import { routeParam } from "../../lib/routeParams";
@@ -157,10 +157,76 @@ export async function updateQuestion(req: Request, res: Response, next: NextFunc
   }
 }
 
+interface QuestionReferenceCounts {
+  examSets: number;
+  mockTests: number;
+  dailyQuizzes: number;
+  total: number;
+}
+
+async function getQuestionReferenceCounts(ids: string[]): Promise<QuestionReferenceCounts> {
+  const tables: { label: keyof QuestionReferenceCounts; table: any; column: any }[] = [
+    { label: "examSets", table: examSetsTable, column: (examSetsTable as any).questionIds },
+    { label: "mockTests", table: mockTestsTable, column: (mockTestsTable as any).questionIds },
+    { label: "dailyQuizzes", table: dailyQuizzes, column: (dailyQuizzes as any).questionIds },
+  ];
+
+  const idArray = ids.length > 1
+    ? sql`ARRAY[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`
+    : sql`ARRAY[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`;
+
+  const results = await Promise.all(
+    tables.map(async ({ label, table, column }) => {
+      const [row] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(table)
+        .where(sql`${column} && ${idArray}`);
+      return { label, count: Number(row?.count ?? 0) };
+    }),
+  );
+
+  const counts: Record<string, number> = {};
+  let total = 0;
+  for (const { label, count } of results) {
+    counts[label] = count;
+    total += count;
+  }
+
+  return {
+    examSets: counts.examSets ?? 0,
+    mockTests: counts.mockTests ?? 0,
+    dailyQuizzes: counts.dailyQuizzes ?? 0,
+    total,
+  };
+}
+
+async function cleanupDeletedQuestionIds(ids: string[]) {
+  if (ids.length === 0) return;
+
+  const idExprs = ids.map((id) => sql`${id}::uuid`);
+  const idArray = sql`ARRAY[${sql.join(idExprs, sql`, `)}]`;
+
+  const tables = [examSetsTable, mockTestsTable, dailyQuizzes];
+
+  for (const table of tables) {
+    await db
+      .update(table as any)
+      .set({
+        questionIds: sql`(
+          SELECT COALESCE(array_agg(elem), ARRAY[]::uuid[])
+          FROM unnest(${(table as any).questionIds}) AS elem
+          WHERE elem != ALL(${idArray})
+        )`,
+      })
+      .where(sql`${(table as any).questionIds} && ${idArray}`);
+  }
+}
+
 export async function deleteQuestion(req: Request, res: Response, next: NextFunction) {
   try {
     const id = routeParam(req.params.id);
     await db.delete(questionsTable).where(eq(questionsTable.id, id));
+    try { await cleanupDeletedQuestionIds([id]); } catch { /* non-critical cleanup */ }
     cacheDel("admin:dashboard:stats");
     cacheDel("admin:analytics:overview");
     cacheFlushPattern("ncert-mcq:");
@@ -176,12 +242,8 @@ export async function bulkDeleteQuestions(req: Request, res: Response, next: Nex
     if (!Array.isArray(ids) || ids.length === 0) {
       return next(new AppError(400, "ids must be a non-empty array"));
     }
-    await db.delete(questionsTable).where(
-      sql`id = ANY(ARRAY[${sql.join(
-        ids.map((id) => sql`${id}`),
-        sql`, `,
-      )}::uuid[])`,
-    );
+    await db.delete(questionsTable).where(inArray(questionsTable.id, ids));
+    try { await cleanupDeletedQuestionIds(ids); } catch { /* non-critical cleanup */ }
     cacheDel("admin:dashboard:stats");
     cacheDel("admin:analytics:overview");
     res.json({ success: true, deletedCount: ids.length });

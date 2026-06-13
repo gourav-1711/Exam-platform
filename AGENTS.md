@@ -96,6 +96,7 @@ When the user requests a durable behavior change, record it here or in the relev
 - **Purpose**: Next.js 15 app with Clerk auth, Redux Toolkit, React Query, Tailwind CSS
 - **Ownership**: Views (src/views/), components (src/components/), app routes (src/app/), API hooks (src/lib/api/), store (src/store/)
 - **Key files**: src/app/layout.tsx (root layout), src/app/providers.tsx (providers), src/lib/api/index.ts (API hooks), src/lib/types/api.ts (types)
+- **Routing pattern**: Features with a player use `/[feature]/[id]/play` for the player route (e.g., daily-quiz, mock-tests). The detail/instructions page is at `/[feature]/[id]` and the listing at `/[feature]`.
 - **Child AGENTS.md**: Not created yet — all frontend concerns managed from root
 
 ### scripts/ — Utility Scripts

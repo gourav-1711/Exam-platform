@@ -22,9 +22,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
-import { Trash2, Edit3, Check, X, BookOpen, BadgeCheck } from "lucide-react";
+import { Trash2, Edit3, Check, X, BookOpen, BadgeCheck, AlertTriangle, FileText, ClipboardList, GraduationCap, ScrollText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { ApiError } from "@/lib/api/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
 
 export default function SubjectsAdminPage() {
@@ -43,6 +54,19 @@ export default function SubjectsAdminPage() {
   const [editingName, setEditingName] = useState("");
 
   const [deleteTargetId, setDeleteId] = useState<string | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<{
+    message: string;
+    references: {
+      questions: number;
+      examSets: number;
+      mockTests: number;
+      studyNotes: number;
+      previousYearPapers: number;
+      syllabus: number;
+      total: number;
+    };
+  } | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const invalidateSubjects = () => {
     queryClient.invalidateQueries({ queryKey: ["admin", "subjects"] });
@@ -109,6 +133,38 @@ export default function SubjectsAdminPage() {
       await adminFetch(`/api/admin/subjects/${id}`, {
         method: "DELETE",
       });
+      setDeleteId(null);
+      toast({ title: "Deleted", description: "Subject deleted successfully" });
+      invalidateSubjects();
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 409 && (err.body as Record<string, unknown>)?.warning) {
+        const body = err.body as { message: string; references: Record<string, number> };
+        setDeleteWarning({
+          message: body.message,
+          references: body.references as any,
+        });
+        setPendingDeleteId(id);
+        setDeleteId(null);
+      } else {
+        toast({
+          title: "Delete failed",
+          description: err instanceof Error ? err.message : String(err),
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleForceDelete = async () => {
+    if (!pendingDeleteId) return;
+    try {
+      await adminFetch(`/api/admin/subjects/${pendingDeleteId}`, {
+        method: "DELETE",
+        body: JSON.stringify({ confirm: true }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setDeleteWarning(null);
+      setPendingDeleteId(null);
       toast({ title: "Deleted", description: "Subject deleted successfully" });
       invalidateSubjects();
     } catch (err: unknown) {
@@ -258,6 +314,84 @@ export default function SubjectsAdminPage() {
           if (deleteTargetId !== null) handleDelete(deleteTargetId);
         }}
       />
+
+      {/* ── Reference Warning Dialog ──────────────────────────────────── */}
+      <AlertDialog open={deleteWarning !== null} onOpenChange={(open) => !open && setDeleteWarning(null)}>
+        <AlertDialogContent className="rounded-2xl border-border bg-white shadow-xl max-w-md">
+          <AlertDialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+              <AlertTriangle className="w-6 h-6 text-amber-600" />
+            </div>
+            <AlertDialogTitle className="text-gray-900 font-bold text-lg text-center">
+              Subject in use
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-500 text-sm text-center">
+              {deleteWarning?.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {deleteWarning && (
+            <div className="space-y-2 px-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Referenced by:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Questions", key: "questions" as const, icon: BookOpen },
+                  { label: "Exam Sets", key: "examSets" as const, icon: ClipboardList },
+                  { label: "Mock Tests", key: "mockTests" as const, icon: FileText },
+                  { label: "Study Notes", key: "studyNotes" as const, icon: ScrollText },
+                  { label: "PY Papers", key: "previousYearPapers" as const, icon: GraduationCap },
+                  { label: "Syllabus", key: "syllabus" as const, icon: FileText },
+                ].map(({ label, key, icon: Icon }) => (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${
+                      deleteWarning.references[key] > 0
+                        ? "bg-amber-50 border-amber-200"
+                        : "bg-gray-50 border-gray-100 opacity-50"
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${
+                      deleteWarning.references[key] > 0 ? "text-amber-600" : "text-gray-400"
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-gray-600 truncate">{label}</p>
+                      <p className={`text-xs font-bold ${
+                        deleteWarning.references[key] > 0 ? "text-amber-700" : "text-gray-400"
+                      }`}>
+                        {deleteWarning.references[key]} record{deleteWarning.references[key] !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-center text-xs text-gray-400 pt-1">
+                All references will be set to null (the referenced data will be preserved).
+              </p>
+            </div>
+          )}
+
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel asChild>
+              <Button variant="outline" onClick={() => { setDeleteWarning(null); setPendingDeleteId(null); }} className="rounded-xl flex-1">
+                Cancel
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  handleForceDelete();
+                  setDeleteWarning(null);
+                }}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl flex-1 gap-2"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                Delete anyway
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

@@ -29,6 +29,13 @@
       "when": 1780983844377,
       "tag": "0003_unknown_switch",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781361084796,
+      "tag": "0004_dizzy_chamber",
+      "breakpoints": true
     }
   ]
 }
