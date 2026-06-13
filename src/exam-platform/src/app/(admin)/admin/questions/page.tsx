@@ -61,8 +61,20 @@ import { Empty, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { useToast } from "@/hooks/use-toast";
 import { useListSubjects } from "@/lib/api";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
+import { ApiError } from "@/lib/api/client";
 import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { CsvImportReview } from "@/components/admin/CsvImportReview";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AlertTriangle, ClipboardList, FileText } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Question {
@@ -153,6 +165,11 @@ export default function QuestionsAdminPage() {
   // Delete
   const [deleteTargetId, setDeleteId] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [deleteWarning, setDeleteWarning] = useState<{
+    message: string;
+    references: { examSets: number; mockTests: number; dailyQuizzes: number; total: number };
+    pendingIds?: string[];
+  } | null>(null);
 
   // CSV import
   const csvImportRef = useRef<HTMLInputElement>(null);
@@ -277,7 +294,14 @@ export default function QuestionsAdminPage() {
       setDeleteId(null);
       toast({ title: "Deleted", description: "Question removed." });
     },
-    onError: () => toast({ title: "Delete failed", variant: "destructive" }),
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 409 && (err.body as any)?.warning) {
+        toast({ title: "Cannot delete", description: (err.body as any).message, variant: "destructive" });
+        setDeleteId(null);
+      } else {
+        toast({ title: "Delete failed", variant: "destructive" });
+      }
+    },
   });
 
   const bulkDeleteMutation = useMutation({
@@ -293,8 +317,41 @@ export default function QuestionsAdminPage() {
       setBulkDeleteOpen(false);
       toast({ title: "Deleted", description: `${selectedIds.length} questions removed.` });
     },
-    onError: () => toast({ title: "Bulk delete failed", variant: "destructive" }),
+    onError: (err: Error) => {
+      if (err instanceof ApiError && err.status === 409 && (err.body as any)?.warning) {
+        const body = err.body as any;
+        setDeleteWarning({ message: body.message, references: body.references, pendingIds: [...selectedIds] });
+        setBulkDeleteOpen(false);
+      } else {
+        toast({ title: "Bulk delete failed", variant: "destructive" });
+      }
+    },
   });
+
+  const handleForceDelete = async () => {
+    if (!deleteWarning) return;
+    const { pendingIds } = deleteWarning;
+    try {
+      if (pendingIds) {
+        // Bulk force delete
+        await adminFetch("/api/admin/questions/bulk-delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: pendingIds, confirm: true }),
+        });
+        setSelectedIds([]);
+      }
+      setDeleteWarning(null);
+      invalidate();
+      toast({ title: "Deleted", description: "Questions removed." });
+    } catch (err: unknown) {
+      toast({
+        title: "Delete failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    }
+  };
 
   const bulkUploadMutation = useMutation({
     mutationFn: async (questions: Record<string, unknown>[]) =>
@@ -875,6 +932,79 @@ export default function QuestionsAdminPage() {
             if (selectedIds.length > 0) bulkDeleteMutation.mutate(selectedIds);
           }}
         />
+
+        {/* ── Reference Warning Dialog ──────────────────────────────────────── */}
+        <AlertDialog open={deleteWarning !== null} onOpenChange={(open) => !open && setDeleteWarning(null)}>
+          <AlertDialogContent className="rounded-2xl border-border bg-white shadow-xl max-w-md">
+            <AlertDialogHeader>
+              <div className="mx-auto w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <AlertDialogTitle className="text-gray-900 font-bold text-lg text-center">
+                Questions in use
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-500 text-sm text-center">
+                {deleteWarning?.message}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {deleteWarning && (
+              <div className="space-y-2 px-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Referenced in:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "Exam Sets", key: "examSets" as const, icon: ClipboardList, count: deleteWarning.references.examSets },
+                    { label: "Mock Tests", key: "mockTests" as const, icon: FileText, count: deleteWarning.references.mockTests },
+                    { label: "Daily Quizzes", key: "dailyQuizzes" as const, icon: FileText, count: deleteWarning.references.dailyQuizzes },
+                  ].map(({ label, key, icon: Icon, count }) => (
+                    <div
+                      key={key}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${
+                        count > 0
+                          ? "bg-amber-50 border-amber-200"
+                          : "bg-gray-50 border-gray-100 opacity-50"
+                      }`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${
+                        count > 0 ? "text-amber-600" : "text-gray-400"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-semibold text-gray-600 truncate">{label}</p>
+                        <p className={`text-xs font-bold ${
+                          count > 0 ? "text-amber-700" : "text-gray-400"
+                        }`}>
+                          {count} set{count !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-center text-xs text-gray-400 pt-1">
+                  The question IDs will be removed from those sets (the sets themselves will be preserved).
+                </p>
+              </div>
+            )}
+
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel asChild>
+                <Button variant="outline" onClick={() => setDeleteWarning(null)} className="rounded-xl flex-1">
+                  Cancel
+                </Button>
+              </AlertDialogCancel>
+              <AlertDialogAction asChild>
+                <Button
+                  variant="destructive"
+                  onClick={handleForceDelete}
+                  disabled={!deleteWarning?.pendingIds}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl flex-1 gap-2"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Delete anyway
+                </Button>
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </TooltipProvider>
   );

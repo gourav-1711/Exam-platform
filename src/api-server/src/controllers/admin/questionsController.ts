@@ -171,9 +171,7 @@ async function getQuestionReferenceCounts(ids: string[]): Promise<QuestionRefere
     { label: "dailyQuizzes", table: dailyQuizzes, column: (dailyQuizzes as any).questionIds },
   ];
 
-  const idArray = ids.length > 1
-    ? sql`ARRAY[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`
-    : sql`ARRAY[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`;
+  const idArray = sql`ARRAY[${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)}]`;
 
   const results = await Promise.all(
     tables.map(async ({ label, table, column }) => {
@@ -225,6 +223,19 @@ async function cleanupDeletedQuestionIds(ids: string[]) {
 export async function deleteQuestion(req: Request, res: Response, next: NextFunction) {
   try {
     const id = routeParam(req.params.id);
+
+    // Pre-delete check: count references and warn if any exist
+    const references = await getQuestionReferenceCounts([id]);
+    const confirmed = req.query.confirm === "true" || req.body?.confirm === true;
+
+    if (references.total > 0 && !confirmed) {
+      return res.status(409).json({
+        warning: true,
+        message: `This question is used in ${references.total} set(s). Set ?confirm=true to delete anyway (the question IDs will be removed from those sets).`,
+        references,
+      });
+    }
+
     await db.delete(questionsTable).where(eq(questionsTable.id, id));
     try { await cleanupDeletedQuestionIds([id]); } catch { /* non-critical cleanup */ }
     cacheDel("admin:dashboard:stats");
@@ -242,6 +253,19 @@ export async function bulkDeleteQuestions(req: Request, res: Response, next: Nex
     if (!Array.isArray(ids) || ids.length === 0) {
       return next(new AppError(400, "ids must be a non-empty array"));
     }
+
+    // Pre-delete check: count references and warn if any exist
+    const references = await getQuestionReferenceCounts(ids);
+    const confirmed = req.query.confirm === "true" || req.body?.confirm === true;
+
+    if (references.total > 0 && !confirmed) {
+      return res.status(409).json({
+        warning: true,
+        message: `${references.total} set(s) contain these questions. Set ?confirm=true to delete anyway (the question IDs will be removed from those sets).`,
+        references,
+      });
+    }
+
     await db.delete(questionsTable).where(inArray(questionsTable.id, ids));
     try { await cleanupDeletedQuestionIds(ids); } catch { /* non-critical cleanup */ }
     cacheDel("admin:dashboard:stats");
