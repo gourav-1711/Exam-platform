@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { customFetch, useListSubjects } from "@/lib/api";
+import { useListSubjects } from "@/lib/api";
+import { useAdminFetch } from "@/hooks/useAdminFetch";
 import {
   Upload,
   Loader2,
@@ -87,6 +88,7 @@ function detectField(row: Record<string, string>, field: string): string {
 export function CsvImportReview({ invalidateKeys, onSuccess, onClose, triggerRef }: CsvImportReviewProps) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const adminFetch = useAdminFetch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: pyqSubjects = [] } = useListSubjects();
 
@@ -126,7 +128,7 @@ type UploadQuestion = Omit<ParsedQuestion, "rowIndex">;
   // ── Upload mutation ────────────────────────────────────────────────────
   const bulkUploadMutation = useMutation({
     mutationFn: async (questions: UploadQuestion[]) =>
-      customFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
+      adminFetch<{ success: boolean; count: number }>("/api/admin/questions/bulk-upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ questions }),

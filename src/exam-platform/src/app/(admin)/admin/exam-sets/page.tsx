@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -122,6 +122,13 @@ export default function ExamSetsAdminPage() {
       );
     },
   });
+
+  // Reset to page 1 if current page exceeds total pages
+  useEffect(() => {
+    if (data && data.pagination.total > 0 && page > data.pagination.totalPages) {
+      setPage(1);
+    }
+  }, [data, page]);
 
   const createMutation = useMutation({
     mutationFn: async (body: Record<string, unknown>) => {

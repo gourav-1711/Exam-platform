@@ -247,6 +247,13 @@ export default function DailyQuizzesAdminPage() {
   const quizzes = data?.quizzes ?? [];
   const totalPages = data?.pagination?.totalPages ?? 1;
 
+  // Reset to page 1 if current page exceeds total pages (e.g. after deleting items on the last page)
+  useEffect(() => {
+    if (data && data.pagination.total > 0 && page > data.pagination.totalPages) {
+      setPage(1);
+    }
+  }, [data, page]);
+
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "daily-quizzes"] });
 

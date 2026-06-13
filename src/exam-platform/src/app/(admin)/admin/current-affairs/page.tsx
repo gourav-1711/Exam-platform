@@ -258,6 +258,13 @@ export default function CurrentAffairsAdminPage() {
   const totalPages = data ? Math.ceil(data.total / (data.limit ?? 10)) : 1;
   const items = data?.items ?? [];
 
+  // Reset to page 1 if current page exceeds total pages (e.g. after deleting items on the last page)
+  useEffect(() => {
+    if (data && data.total > 0 && page > totalPages) {
+      setPage(1);
+    }
+  }, [data, page, totalPages]);
+
   return (
     <TooltipProvider>
       <motion.div

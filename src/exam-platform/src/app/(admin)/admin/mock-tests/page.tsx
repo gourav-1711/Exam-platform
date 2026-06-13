@@ -217,6 +217,13 @@ export default function MockTestsAdminPage() {
   const totalPages = testsResponse?.pagination?.totalPages ?? 1;
   const totalItems = testsResponse?.pagination?.total ?? 0;
 
+  // Reset to page 1 if current page exceeds total pages (e.g. after deleting items on the last page)
+  useEffect(() => {
+    if (testsResponse && testsResponse.pagination.total > 0 && page > testsResponse.pagination.totalPages) {
+      setPage(1);
+    }
+  }, [testsResponse, page]);
+
   // ── Mutations ──────────────────────────────────────────────────────────────
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "mock-tests"] });
 
