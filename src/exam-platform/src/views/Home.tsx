@@ -201,7 +201,7 @@ const FEATURES_LIST_HINDI = [
 
 // "किसके लिए उपयोगी है?" targets
 const EXAM_TARGETS = [
-  "RAS, SI, EO/RO & PSC Exams",
+  "RAS, SI, EO/RO & PCS Exams",
   "CTET, REET & All Teaching Exams",
   "Patwar, VDO, Police & Other Exams",
   "SSC, Banking & Railway Preparation",
